@@ -99,16 +99,24 @@ class MessageRepository {
   }
 
   /// 标记删除（误发消息），`version` 加 1。
+  /// 同事务把这条消息的附件引用也标记删除（schema §2.4）；
+  /// 附件文件本身不删——内容可能被其他消息引用，v0.1 一律保留文件，
+  /// 空间清理是 v0.4 的事（D-22）。
   Future<Message> markDeleted(String messageId) {
     return _db.transaction(() async {
       final msg = await (_db.select(_db.messages)
             ..where((t) => t.id.equals(messageId)))
           .getSingle();
       if (msg.deletedAt != null) return msg;
+      final now = ids.nowMs();
+      await (_db.update(_db.messageAttachments)
+            ..where(
+                (t) => t.messageId.equals(messageId) & t.deletedAt.isNull()))
+          .write(MessageAttachmentsCompanion(deletedAt: Value(now)));
       final updated = await (_db.update(_db.messages)
             ..where((t) => t.id.equals(messageId)))
           .writeReturning(MessagesCompanion(
-        deletedAt: Value(ids.nowMs()),
+        deletedAt: Value(now),
         version: Value(msg.version + 1),
       ));
       return updated.single;

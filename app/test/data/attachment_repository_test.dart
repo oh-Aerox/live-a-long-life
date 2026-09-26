@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
+import 'package:live_a_long_life/data/repositories/message_repository.dart';
 import 'package:path/path.dart' as p;
 
 import 'test_helpers.dart';
@@ -109,6 +110,35 @@ void main() {
   });
 
   group('消息关联（schema §2.4）', () {
+    test('删除消息：引用被标记删除，共享附件的文件保留（product-spec §3）', () async {
+      final bytes = List.filled(64, 8);
+      final result = await repo.importFile(await writeSource('a.jpg', bytes),
+          mimeType: 'image/jpeg');
+      final messages = MessageRepository(env.db, env.ctx);
+      final m1 = await messages.send(
+          clientMsgId: 'c1',
+          role: MessageRole.user,
+          kind: MessageKind.attachments,
+          sentTz: 'Asia/Shanghai');
+      final m2 = await messages.send(
+          clientMsgId: 'c2',
+          role: MessageRole.user,
+          kind: MessageKind.attachments,
+          sentTz: 'Asia/Shanghai');
+      await repo.linkToMessage(
+          messageId: m1.id, attachmentId: result.attachment.id, position: 0);
+      await repo.linkToMessage(
+          messageId: m2.id, attachmentId: result.attachment.id, position: 0);
+
+      await messages.markDeleted(m1.id);
+
+      expect(await repo.attachmentsOf(m1.id), isEmpty);
+      expect((await repo.attachmentsOf(m2.id)).length, 1);
+      // 文件与副本状态不受影响
+      expect(await repo.verifyCopy(result.attachment.id), CopyState.present);
+      expect(await repo.messageIdsReferencing(result.attachment.id), [m2.id]);
+    });
+
     test('同一 (消息, 附件) 只挂一次，position 与确认标记保留', () async {
       final result = await repo.importFile(
           await writeSource('a.jpg', List.filled(64, 5)),

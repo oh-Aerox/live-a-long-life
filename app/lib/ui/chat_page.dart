@@ -332,25 +332,175 @@ class _ChatPageState extends State<ChatPage> {
     if (m.kind == MessageKind.attachments) {
       content = _AttachmentTiles(services: _s, messageId: m.id);
     } else {
-      content = Text(m.body ?? '',
-          style: TextStyle(color: isUser ? Colors.white : null));
+      final textStyle = TextStyle(color: isUser ? Colors.white : null);
+      content = m.revisionNo > 0
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(m.body ?? '', style: textStyle),
+                Text('已编辑',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: (isUser ? Colors.white : Colors.grey)
+                            .withValues(alpha: 0.7))),
+              ],
+            )
+          : Text(m.body ?? '', style: textStyle);
     }
+    final bubble = Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      constraints:
+          BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+      decoration: BoxDecoration(
+        color: isUser
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: content,
+    );
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.78),
-        decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
+      child: isUser
+          ? GestureDetector(
+              onLongPress: () => _showMessageMenu(m), child: bubble)
+          : bubble,
+    );
+  }
+
+  // ---- 消息纠错（M3：A-06 与误发移除）----
+
+  Future<void> _showMessageMenu(Message m) async {
+    final canEdit = m.kind == MessageKind.text;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (canEdit)
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('编辑'),
+                onTap: () => Navigator.pop(context, 'edit'),
+              ),
+            if (canEdit && m.revisionNo > 0)
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: const Text('查看原文'),
+                onTap: () => Navigator.pop(context, 'history'),
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('删除（误发）'),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+          ],
         ),
-        child: content,
       ),
     );
+    if (action == null || !mounted) return;
+    switch (action) {
+      case 'edit':
+        await _editMessage(m);
+      case 'history':
+        await _showHistory(m);
+      case 'delete':
+        await _confirmDelete(m);
+    }
+  }
+
+  Future<void> _editMessage(Message m) async {
+    final controller = TextEditingController(text: m.body ?? '');
+    final newText = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑消息'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 5,
+          minLines: 1,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newText == null || newText.isEmpty || newText == m.body) return;
+    await _s.messages.edit(m.id, newText);
+  }
+
+  Future<void> _showHistory(Message m) async {
+    final revisions = await _s.messages.revisionsOf(m.id);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('修改历史'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final r in revisions) ...[
+                Text(
+                  r.revisionNo == 0 ? '原文' : '第 ${r.revisionNo} 次修改前',
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.grey),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(r.textBefore),
+                ),
+              ],
+              const Text('当前',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(m.body ?? ''),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(Message m) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除这条消息？'),
+        content: const Text('消息会从对话流移除。这是给误发准备的，'
+            '写错内容用"编辑"更合适。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _s.messages.markDeleted(m.id);
   }
 
   Widget _buildInputBar() {
