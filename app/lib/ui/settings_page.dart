@@ -11,6 +11,7 @@ import '../services/export_service.dart';
 import '../services/notification_service.dart';
 import '../services/restore_service.dart';
 import '../services/signing_info.dart';
+import 'healthkit_spike_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
 
@@ -134,6 +135,15 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('版本'),
             trailing: Text(_version),
+          ),
+          ListTile(
+            title: const Text('HealthKit 试验（T1）'),
+            subtitle: const Text('技术验证用，之后的版本会移除'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HealthKitSpikePage()),
+            ),
           ),
         ],
       ),

@@ -46,6 +46,7 @@ dependencies:
   package_info_plus: ^10.2.1
   flutter_local_notifications: ^19.0.0
   timezone: ^0.10.1
+  health: ^13.3.2
 
 dev_dependencies:
   flutter_test:
