@@ -213,6 +213,23 @@ class AttachmentRepository {
         );
   }
 
+  /// 本机副本的文件路径；不在本机（offloaded / missing）时为 null。
+  Future<String?> localPathOf(String attachmentId) async {
+    final copy = await _copyOf(attachmentId);
+    if (copy == null || copy.state != CopyState.present) return null;
+    return copy.localPath;
+  }
+
+  /// 引用某附件的消息 ID，按引用时间排列（用于重复提示的"查看已有"）。
+  Future<List<String>> messageIdsReferencing(String attachmentId) async {
+    final rows = await (_db.select(_db.messageAttachments)
+          ..where((t) =>
+              t.attachmentId.equals(attachmentId) & t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+    return rows.map((r) => r.messageId).toList();
+  }
+
   Future<List<(MessageAttachment, Attachment)>> attachmentsOf(
       String messageId) async {
     final query = _db.select(_db.messageAttachments).join([
