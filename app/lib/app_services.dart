@@ -32,6 +32,7 @@ class AppServices {
   final ProfileRepository profile;
   final SettingsRepository settings;
   final Directory filesDir;
+  late final File dbFile;
 
   static Future<AppServices> init() async {
     final support = await getApplicationSupportDirectory();
@@ -50,6 +51,14 @@ class AppServices {
       profile: ProfileRepository(db, ctx),
       settings: settings,
       filesDir: filesDir,
-    );
+    )..dbFile = dbFile;
+  }
+
+  /// 资料库里是否已有内容（恢复前判断，A-29）。
+  Future<bool> hasExistingData() async {
+    final msgs = await (db.select(db.messages)..limit(1)).get();
+    if (msgs.isNotEmpty) return true;
+    final fields = await (db.select(db.profileFields)..limit(1)).get();
+    return fields.isNotEmpty;
   }
 }

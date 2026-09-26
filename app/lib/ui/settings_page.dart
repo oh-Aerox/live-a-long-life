@@ -1,8 +1,15 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../app_services.dart';
+import '../services/export_service.dart';
 import '../services/notification_service.dart';
+import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
@@ -23,6 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String _reviewSummary = '';
   DateTime? _signingExpiry;
   String _version = '';
+  bool _busy = false;
 
   @override
   void initState() {
@@ -108,13 +116,14 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: const Text('导出数据'),
+            subtitle: const Text('导出到"文件"应用可见的文件夹'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _todo(context),
+            onTap: _busy ? null : () => _export(),
           ),
           ListTile(
             title: const Text('从导出恢复'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _todo(context),
+            onTap: _busy ? null : () => _restore(),
           ),
           const Divider(),
           ListTile(
@@ -131,8 +140,119 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _todo(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('这个功能在 M5 实现')));
+  // ---- 导出与恢复（M5，product-spec §3）----
+
+  Future<void> _export() async {
+    setState(() => _busy = true);
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final now = DateTime.now();
+      final name = '导出-${now.year}'
+          '${now.month.toString().padLeft(2, '0')}'
+          '${now.day.toString().padLeft(2, '0')}-'
+          '${now.hour.toString().padLeft(2, '0')}'
+          '${now.minute.toString().padLeft(2, '0')}';
+      final target = Directory(p.join(docs.path, 'exports', name));
+      final result = await ExportService(widget.services.db).export(target);
+      if (!mounted) return;
+      final missingNote = result.missingFiles.isEmpty
+          ? ''
+          : '\n\n注意：${result.missingFiles.length} 个附件本机没有文件，'
+              '未包含在导出里。';
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('导出完成'),
+          content: Text('已导出 ${result.messageCount} 条消息、'
+              '${result.fileCount} 个文件，校验通过。\n\n'
+              '位置：文件 App → 我的 iPhone → 长寿记 → exports → $name\n\n'
+              '导出的内容未加密，请保存在安全的位置。$missingNote'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('知道了')),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('导出失败：$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    final path = await FilePicker.getDirectoryPath(dialogTitle: '选择导出文件夹');
+    if (path == null || !mounted) return;
+
+    final hasData = await widget.services.hasExistingData();
+    if (!mounted) return;
+    if (hasData) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('替换全部数据？'),
+          content: const Text('应用里已有数据。恢复会用导出的内容替换现有'
+              '全部数据，且无法撤销。\n\n建议先用"导出数据"备份现有内容，'
+              '再进行恢复。'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('替换全部数据')),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final service = RestoreService(
+        dbFile: widget.services.dbFile,
+        filesDir: widget.services.filesDir,
+      );
+      // 替换会移走当前资料库文件，先关掉数据库连接。
+      await widget.services.db.close();
+      final result = await service.restore(
+        Directory(path),
+        hasExistingData: hasData,
+        replaceExisting: true,
+        newDeviceId: widget.services.ctx.deviceId,
+      );
+      if (!mounted) return;
+      final title = result.partial ? '部分恢复' : '恢复完成';
+      final missingNote = result.partial
+          ? '\n\n${result.missingFiles.length} 个附件文件缺失或损坏，'
+              '对应内容以"文件缺失"显示，其余已照常导入。'
+          : '';
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text('已恢复 ${result.messageCount} 条消息、'
+              '${result.restoredFiles} 个文件。$missingNote\n\n'
+              '请关闭应用后重新打开，加载恢复的数据。'),
+          actions: [
+            TextButton(
+                onPressed: () => exit(0), child: const Text('关闭应用')),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text('恢复失败，原有数据未受影响：$e。请重新打开应用。')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 }
