@@ -9,17 +9,27 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
 import '../data/repositories/attachment_repository.dart';
+import '../services/notification_service.dart';
+import '../services/signing_info.dart';
+import 'settings_page.dart';
 
 /// 对话页（product-spec §3 v0.1 页面）。
 /// 消息按 seq 排列、按天分组；发送即保存并显示"已保存"；
 /// 附件复制进应用存储并校验后才出现在对话流（即"已保存"）。
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key, required this.services, required this.tz});
+  const ChatPage({
+    super.key,
+    required this.services,
+    required this.tz,
+    required this.notifications,
+  });
 
   final AppServices services;
 
   /// 当前 IANA 时区名，启动时检测。
   final String tz;
+
+  final NotificationService notifications;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -243,9 +253,24 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('长寿记')),
+      appBar: AppBar(
+        title: const Text('长寿记'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '设置',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => SettingsPage(
+                      services: _s, notifications: widget.notifications)),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
+          _SigningExpiryBanner(),
           Expanded(
             child: StreamBuilder<List<Message>>(
               stream: _s.messages.watchThread(),
@@ -569,6 +594,34 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 签名剩两天以内时在对话页顶部提示（D-19、P-52）。
+class _SigningExpiryBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DateTime?>(
+      future: SigningInfo.provisioningExpiry(),
+      builder: (context, snapshot) {
+        final expiry = snapshot.data;
+        if (expiry == null) return const SizedBox.shrink();
+        final days = expiry.difference(DateTime.now()).inDays;
+        if (days > 2) return const SizedBox.shrink();
+        final text = days < 0
+            ? '应用签名已过期，请尽快连接 Mac 重签'
+            : days == 0
+                ? '应用签名今天到期，请连接 Mac 重签，先导出一次数据'
+                : '应用签名 $days 天后到期，记得连接 Mac 重签';
+        return Container(
+          width: double.infinity,
+          color: Colors.orange.withValues(alpha: 0.15),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(text,
+              style: const TextStyle(fontSize: 13, color: Colors.orange)),
+        );
+      },
     );
   }
 }
