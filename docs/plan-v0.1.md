@@ -94,6 +94,8 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 
 ## 6. 风险与注意
 
+- **已踩过的坑：UIScene 生命周期（2026-09-27 修复）。** Xcode 27 SDK 构建的应用在 iOS 27 上必须采用 UIScene 生命周期，否则从主屏幕正常启动时被系统 SIGTRAP 终止（闪退）；挂调试器（flutter run）启动时 trap 被吞掉，完全看不出问题。已按官方迁移：Info.plist 加 `UIApplicationSceneManifest`（FlutterSceneDelegate），AppDelegate 插件注册移到 `didInitializeImplicitFlutterEngine`。教训：每个里程碑要用不挂调试器的方式（主屏幕点开或 `devicectl device process launch`）验证启动。崩溃报告在 docs/evidence/2026-09-27-uiscene-launch-crash.ips。
+
 - **免费签名 7 天过期**（D-19）：开发期间保持固定 team；到期用 T2 脚本重签，不卸载重装。
 - **iOS 权限文案：** 相册、相机、通知在首次请求前说明用途；HealthKit 文案在 T1 一并准备。
 - **大文件复制耗时：** 多图和大 PDF 的落盘校验异步执行，界面显示进度，校验完成前不显示"已保存"。
