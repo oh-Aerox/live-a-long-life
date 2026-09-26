@@ -52,7 +52,12 @@ v0.1 只做一件事：**在 iPhone 上可靠录入，退出、重启、更新�
 | SHA-256 | crypto（流式计算） | 大文件不整块读入内存 |
 | 路径 | path_provider | 附件存 Application Support 下 `files/` |
 
-工程约定：固定 bundle ID 和签名 team（D-19，免费账号 App ID 有数量限制）；仓库用 git 管理，工程初始化时 `git init` 并首次提交（当前目录还不是 git 仓库）。
+工程约定（M0 已定）：
+- Flutter 工程在 `app/` 子目录（项目根目录名含空格，不能直接做工程目录），工程名 `live_a_long_life`；
+- bundle ID 固定为 `com.example.livealonglife`（iOS / macOS / Android applicationId 一致），签名 team `XXXXXXXXXX`（D-19，免费账号 App ID 有数量限制）；
+- 仓库在项目根目录 `git init`，首次提交含设计文档与工程骨架；
+- 本机 Flutter 3.38.7 stable / Dart 3.10.7 / Xcode 27.0；
+- iOS 部署目标 15.0（Xcode 27 不再接受模板默认的 13.0）。
 
 ## 3. 数据层范围（schema 的 v0.1 子集）
 
@@ -98,7 +103,7 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 
 | 状态 | 任务 | 备注 |
 |---|---|---|
-| [ ] | M0 工程初始化，真机跑通空应用 | |
+| [x] | M0 工程初始化，真机跑通空应用 | 2026-09-26：release 构建自动签名通过，安装并启动于 iPhone（iOS 27.2）|
 | [ ] | M1 数据层与单元测试 | |
 | [ ] | M2 对话页录入（文字 / 多图 / PDF / 去重 / 记好了） | |
 | [ ] | M3 消息编辑与误发移除 | |
