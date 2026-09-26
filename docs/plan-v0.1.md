@@ -104,7 +104,7 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 | 状态 | 任务 | 备注 |
 |---|---|---|
 | [x] | M0 工程初始化，真机跑通空应用 | 2026-09-26：release 构建自动签名通过，安装并启动于 iPhone（iOS 27.2）|
-| [ ] | M1 数据层与单元测试 | |
+| [x] | M1 数据层与单元测试 | 2026-09-26：drift 2.34 建 7 张表；消息/附件/资料/设置仓库；18 个单元测试通过。代码生成需 `dart run build_runner build --force-jit`（sqlite3 3.x 的 native hook 与 build_runner AOT 冲突）|
 | [ ] | M2 对话页录入（文字 / 多图 / PDF / 去重 / 记好了） | |
 | [ ] | M3 消息编辑与误发移除 | |
 | [ ] | M4 首次引导、通知、设置页 | |
