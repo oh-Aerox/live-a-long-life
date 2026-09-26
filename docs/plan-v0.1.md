@@ -109,6 +109,6 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 | [x] | M3 消息编辑与误发移除 | 2026-09-26：长按消息弹菜单（编辑 / 查看原文 / 删除误发）；编辑保留历史并显示"已编辑"；删除同事务标记附件引用，文件一律保留（清理留给 v0.4）|
 | [x] | M4 首次引导、通知、设置页 | 2026-09-26：三步引导（时区确认 / 回顾时间 / 可跳过资料）；flutter_local_notifications 19.5 每日重复提醒，启动时按设置重排；设置页含每日回顾、基本资料、存储说明、签名到期（读 embedded.mobileprovision）、版本；对话页签名 ≤2 天横幅。真机启动通过；A-05 重启后触发需人工验证 |
 | [x] | M5 导出与恢复 | 2026-09-26：导出到 Documents/exports（Files App 可见），data.json + files/ + manifest.json，导出后逐文件校验；恢复走临时位置准备、成功后一次替换、失败保留原库；部分恢复与拒绝未确认替换有单测覆盖。A-29 全流程真机验证在 M6 |
-| [ ] | M6 真机验收 A-01 至 A-07、A-29 | 证据入 platform-matrix |
-| [ ] | T1 HealthKit 真机读取试验 | 与 M1–M5 并行 |
-| [ ] | T2 一键重签脚本 + 覆盖安装验证 | 与 M1–M5 并行 |
+| [ ] | M6 真机验收 A-01 至 A-07、A-29 | 需要用户在手机上逐条操作，证据入 platform-matrix |
+| [ ] | T1 HealthKit 真机读取试验 | 进展（2026-09-26）：entitlement + 权限文案已加，带 HealthKit 的免费签名构建和真机安装通过；设置页有临时入口"HealthKit 试验"。剩余：在手机上点"开始试验"，处理权限弹窗，截图存证 |
+| [ ] | T2 一键重签脚本 + 覆盖安装验证 | 进展（2026-09-26）：`scripts/resign-install.sh` 真机跑通（P-50 部分验证）。`flutter install` 会先卸载清数据，已改用 `xcrun devicectl` 原地安装。剩余：签名到期日重签 + A-07 数据保留人工确认 |
