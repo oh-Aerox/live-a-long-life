@@ -29,10 +29,13 @@ class _MacHomePageState extends State<MacHomePage> {
   late final PeerRepository _peerRepo =
       PeerRepository(widget.services.db);
 
+  SyncState? _pullState;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _ensureServer();
   }
 
   @override
@@ -46,25 +49,51 @@ class _MacHomePageState extends State<MacHomePage> {
     final messages = await db.select(db.messages).get();
     final records = await db.select(db.records).get();
     final peers = await _peerRepo.all();
+    final pull = await (db.select(db.syncStates)
+          ..where((t) => t.direction.equalsValue(SyncDirection.pull))
+          ..limit(1))
+        .getSingleOrNull();
     if (mounted) {
       setState(() {
         _messageCount = messages.where((m) => m.deletedAt == null).length;
         _recordCount = records.where((r) => r.deletedAt == null).length;
         _peers = peers;
+        _pullState = pull;
       });
     }
   }
 
-  Future<void> _startPairing() async {
-    _server ??= SyncServer(
+  String get _syncText {
+    final s = _pullState;
+    if (s == null) return '还没有收到过同步';
+    final t =
+        DateTime.fromMillisecondsSinceEpoch(s.lastSuccessAt ?? 0).toLocal();
+    return '已确认到第 ${s.ackedContiguousSeq} 条 · '
+        '最近 ${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// 常驻服务：应用打开即监听，配对过的手机随时可以推送。
+  Future<void> _ensureServer() async {
+    if (_server != null) return;
+    _server = SyncServer(
       deviceId: widget.services.ctx.deviceId,
       displayName: 'Mac',
+      db: widget.services.db,
+      filesDir: widget.services.filesDir,
       peers: _peerRepo,
       keyStore: widget.services.keyStore,
-    );
+    )..onReplicaChanged = () {
+        if (mounted) _load();
+      };
+    await _server!.start();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _startPairing() async {
+    await _ensureServer();
     final info = await _server!.startPairing();
     if (mounted) setState(() => _pairing = info);
-    // 配对完成后刷新列表（简单轮询，V3-M3 换事件）。
+    // 配对完成后刷新列表（简单轮询，之后换事件）。
     Future.delayed(const Duration(seconds: 3), _pollPaired);
   }
 
@@ -99,6 +128,11 @@ class _MacHomePageState extends State<MacHomePage> {
                   const SizedBox(height: 8),
                   Text('消息：$_messageCount 条'),
                   Text('记录：$_recordCount 条'),
+                  Text('同步：$_syncText'),
+                  if (_server?.running ?? false)
+                    Text('接收服务：端口 ${_server!.port}',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),
             ),

@@ -12,6 +12,7 @@ import 'data/repositories/model_config_repository.dart';
 import 'data/repositories/health_repository.dart';
 import 'data/repositories/organize_repository.dart';
 import 'data/repositories/profile_repository.dart';
+import 'data/repositories/peer_repository.dart';
 import 'data/repositories/record_repository.dart';
 import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
@@ -19,6 +20,7 @@ import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/organize_service.dart';
 import 'services/review_service.dart';
+import 'services/sync/sync_service.dart';
 
 /// 应用级服务：数据库与各仓库。
 /// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
@@ -46,6 +48,14 @@ class AppServices {
       modelConfigs: modelConfigs,
       keyStore: keyStore,
     );
+    peerRepo = PeerRepository(db);
+    syncService = SyncService(
+      deviceId: ctx.deviceId,
+      db: db,
+      peers: peerRepo,
+      keyStore: keyStore,
+      filesDir: filesDir,
+    );
   }
 
   final AppDatabase db;
@@ -61,6 +71,8 @@ class AppServices {
   final Directory filesDir;
   late final File dbFile;
   late final OrganizeService organizeService;
+  late final PeerRepository peerRepo;
+  late final SyncService syncService;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

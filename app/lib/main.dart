@@ -47,6 +47,9 @@ Future<void> main() async {
   // 启动补整理：上次失败或没配模型时留下的"待整理"消息（A-10）。
   unawaited(services.organizeService.catchUp());
 
+  // 已配对时启动即尝试推送（V3-M3；失败静默，状态在"连接 Mac"页可见）。
+  unawaited(services.syncService.syncNow());
+
   // 健康数据（V2-M4）：用户在设置里开启后，每次启动增量同步。
   services.healthService = HealthService(
     repository: services.health,

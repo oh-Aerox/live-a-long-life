@@ -15948,6 +15948,549 @@ class PeersCompanion extends UpdateCompanion<Peer> {
   }
 }
 
+class $SyncStatesTable extends SyncStates
+    with TableInfo<$SyncStatesTable, SyncState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerDeviceIdMeta = const VerificationMeta(
+    'peerDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> peerDeviceId = GeneratedColumn<String>(
+    'peer_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncDirection, String> direction =
+      GeneratedColumn<String>(
+        'direction',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncDirection>($SyncStatesTable.$converterdirection);
+  static const VerificationMeta _generationMeta = const VerificationMeta(
+    'generation',
+  );
+  @override
+  late final GeneratedColumn<String> generation = GeneratedColumn<String>(
+    'generation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ackedContiguousSeqMeta =
+      const VerificationMeta('ackedContiguousSeq');
+  @override
+  late final GeneratedColumn<int> ackedContiguousSeq = GeneratedColumn<int>(
+    'acked_contiguous_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _ackedRangesMeta = const VerificationMeta(
+    'ackedRanges',
+  );
+  @override
+  late final GeneratedColumn<String> ackedRanges = GeneratedColumn<String>(
+    'acked_ranges',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _pendingCountMeta = const VerificationMeta(
+    'pendingCount',
+  );
+  @override
+  late final GeneratedColumn<int> pendingCount = GeneratedColumn<int>(
+    'pending_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastSuccessAtMeta = const VerificationMeta(
+    'lastSuccessAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSuccessAt = GeneratedColumn<int>(
+    'last_success_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    peerDeviceId,
+    direction,
+    generation,
+    ackedContiguousSeq,
+    ackedRanges,
+    pendingCount,
+    lastSuccessAt,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_device_id')) {
+      context.handle(
+        _peerDeviceIdMeta,
+        peerDeviceId.isAcceptableOrUnknown(
+          data['peer_device_id']!,
+          _peerDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_peerDeviceIdMeta);
+    }
+    if (data.containsKey('generation')) {
+      context.handle(
+        _generationMeta,
+        generation.isAcceptableOrUnknown(data['generation']!, _generationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_generationMeta);
+    }
+    if (data.containsKey('acked_contiguous_seq')) {
+      context.handle(
+        _ackedContiguousSeqMeta,
+        ackedContiguousSeq.isAcceptableOrUnknown(
+          data['acked_contiguous_seq']!,
+          _ackedContiguousSeqMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acked_ranges')) {
+      context.handle(
+        _ackedRangesMeta,
+        ackedRanges.isAcceptableOrUnknown(
+          data['acked_ranges']!,
+          _ackedRangesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pending_count')) {
+      context.handle(
+        _pendingCountMeta,
+        pendingCount.isAcceptableOrUnknown(
+          data['pending_count']!,
+          _pendingCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_success_at')) {
+      context.handle(
+        _lastSuccessAtMeta,
+        lastSuccessAt.isAcceptableOrUnknown(
+          data['last_success_at']!,
+          _lastSuccessAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerDeviceId, direction};
+  @override
+  SyncState map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncState(
+      peerDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_device_id'],
+      )!,
+      direction: $SyncStatesTable.$converterdirection.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}direction'],
+        )!,
+      ),
+      generation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generation'],
+      )!,
+      ackedContiguousSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}acked_contiguous_seq'],
+      )!,
+      ackedRanges: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}acked_ranges'],
+      )!,
+      pendingCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pending_count'],
+      )!,
+      lastSuccessAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_success_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $SyncStatesTable createAlias(String alias) {
+    return $SyncStatesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<SyncDirection, String> $converterdirection =
+      const EnumConverter(SyncDirection.values);
+}
+
+class SyncState extends DataClass implements Insertable<SyncState> {
+  final String peerDeviceId;
+  final SyncDirection direction;
+  final String generation;
+  final int ackedContiguousSeq;
+  final String ackedRanges;
+  final int pendingCount;
+  final int? lastSuccessAt;
+  final String? lastError;
+  const SyncState({
+    required this.peerDeviceId,
+    required this.direction,
+    required this.generation,
+    required this.ackedContiguousSeq,
+    required this.ackedRanges,
+    required this.pendingCount,
+    this.lastSuccessAt,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_device_id'] = Variable<String>(peerDeviceId);
+    {
+      map['direction'] = Variable<String>(
+        $SyncStatesTable.$converterdirection.toSql(direction),
+      );
+    }
+    map['generation'] = Variable<String>(generation);
+    map['acked_contiguous_seq'] = Variable<int>(ackedContiguousSeq);
+    map['acked_ranges'] = Variable<String>(ackedRanges);
+    map['pending_count'] = Variable<int>(pendingCount);
+    if (!nullToAbsent || lastSuccessAt != null) {
+      map['last_success_at'] = Variable<int>(lastSuccessAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  SyncStatesCompanion toCompanion(bool nullToAbsent) {
+    return SyncStatesCompanion(
+      peerDeviceId: Value(peerDeviceId),
+      direction: Value(direction),
+      generation: Value(generation),
+      ackedContiguousSeq: Value(ackedContiguousSeq),
+      ackedRanges: Value(ackedRanges),
+      pendingCount: Value(pendingCount),
+      lastSuccessAt: lastSuccessAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSuccessAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory SyncState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncState(
+      peerDeviceId: serializer.fromJson<String>(json['peerDeviceId']),
+      direction: serializer.fromJson<SyncDirection>(json['direction']),
+      generation: serializer.fromJson<String>(json['generation']),
+      ackedContiguousSeq: serializer.fromJson<int>(json['ackedContiguousSeq']),
+      ackedRanges: serializer.fromJson<String>(json['ackedRanges']),
+      pendingCount: serializer.fromJson<int>(json['pendingCount']),
+      lastSuccessAt: serializer.fromJson<int?>(json['lastSuccessAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerDeviceId': serializer.toJson<String>(peerDeviceId),
+      'direction': serializer.toJson<SyncDirection>(direction),
+      'generation': serializer.toJson<String>(generation),
+      'ackedContiguousSeq': serializer.toJson<int>(ackedContiguousSeq),
+      'ackedRanges': serializer.toJson<String>(ackedRanges),
+      'pendingCount': serializer.toJson<int>(pendingCount),
+      'lastSuccessAt': serializer.toJson<int?>(lastSuccessAt),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  SyncState copyWith({
+    String? peerDeviceId,
+    SyncDirection? direction,
+    String? generation,
+    int? ackedContiguousSeq,
+    String? ackedRanges,
+    int? pendingCount,
+    Value<int?> lastSuccessAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+  }) => SyncState(
+    peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+    direction: direction ?? this.direction,
+    generation: generation ?? this.generation,
+    ackedContiguousSeq: ackedContiguousSeq ?? this.ackedContiguousSeq,
+    ackedRanges: ackedRanges ?? this.ackedRanges,
+    pendingCount: pendingCount ?? this.pendingCount,
+    lastSuccessAt: lastSuccessAt.present
+        ? lastSuccessAt.value
+        : this.lastSuccessAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  SyncState copyWithCompanion(SyncStatesCompanion data) {
+    return SyncState(
+      peerDeviceId: data.peerDeviceId.present
+          ? data.peerDeviceId.value
+          : this.peerDeviceId,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      generation: data.generation.present
+          ? data.generation.value
+          : this.generation,
+      ackedContiguousSeq: data.ackedContiguousSeq.present
+          ? data.ackedContiguousSeq.value
+          : this.ackedContiguousSeq,
+      ackedRanges: data.ackedRanges.present
+          ? data.ackedRanges.value
+          : this.ackedRanges,
+      pendingCount: data.pendingCount.present
+          ? data.pendingCount.value
+          : this.pendingCount,
+      lastSuccessAt: data.lastSuccessAt.present
+          ? data.lastSuccessAt.value
+          : this.lastSuccessAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncState(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('direction: $direction, ')
+          ..write('generation: $generation, ')
+          ..write('ackedContiguousSeq: $ackedContiguousSeq, ')
+          ..write('ackedRanges: $ackedRanges, ')
+          ..write('pendingCount: $pendingCount, ')
+          ..write('lastSuccessAt: $lastSuccessAt, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    peerDeviceId,
+    direction,
+    generation,
+    ackedContiguousSeq,
+    ackedRanges,
+    pendingCount,
+    lastSuccessAt,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncState &&
+          other.peerDeviceId == this.peerDeviceId &&
+          other.direction == this.direction &&
+          other.generation == this.generation &&
+          other.ackedContiguousSeq == this.ackedContiguousSeq &&
+          other.ackedRanges == this.ackedRanges &&
+          other.pendingCount == this.pendingCount &&
+          other.lastSuccessAt == this.lastSuccessAt &&
+          other.lastError == this.lastError);
+}
+
+class SyncStatesCompanion extends UpdateCompanion<SyncState> {
+  final Value<String> peerDeviceId;
+  final Value<SyncDirection> direction;
+  final Value<String> generation;
+  final Value<int> ackedContiguousSeq;
+  final Value<String> ackedRanges;
+  final Value<int> pendingCount;
+  final Value<int?> lastSuccessAt;
+  final Value<String?> lastError;
+  final Value<int> rowid;
+  const SyncStatesCompanion({
+    this.peerDeviceId = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.generation = const Value.absent(),
+    this.ackedContiguousSeq = const Value.absent(),
+    this.ackedRanges = const Value.absent(),
+    this.pendingCount = const Value.absent(),
+    this.lastSuccessAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncStatesCompanion.insert({
+    required String peerDeviceId,
+    required SyncDirection direction,
+    required String generation,
+    this.ackedContiguousSeq = const Value.absent(),
+    this.ackedRanges = const Value.absent(),
+    this.pendingCount = const Value.absent(),
+    this.lastSuccessAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : peerDeviceId = Value(peerDeviceId),
+       direction = Value(direction),
+       generation = Value(generation);
+  static Insertable<SyncState> custom({
+    Expression<String>? peerDeviceId,
+    Expression<String>? direction,
+    Expression<String>? generation,
+    Expression<int>? ackedContiguousSeq,
+    Expression<String>? ackedRanges,
+    Expression<int>? pendingCount,
+    Expression<int>? lastSuccessAt,
+    Expression<String>? lastError,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerDeviceId != null) 'peer_device_id': peerDeviceId,
+      if (direction != null) 'direction': direction,
+      if (generation != null) 'generation': generation,
+      if (ackedContiguousSeq != null)
+        'acked_contiguous_seq': ackedContiguousSeq,
+      if (ackedRanges != null) 'acked_ranges': ackedRanges,
+      if (pendingCount != null) 'pending_count': pendingCount,
+      if (lastSuccessAt != null) 'last_success_at': lastSuccessAt,
+      if (lastError != null) 'last_error': lastError,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncStatesCompanion copyWith({
+    Value<String>? peerDeviceId,
+    Value<SyncDirection>? direction,
+    Value<String>? generation,
+    Value<int>? ackedContiguousSeq,
+    Value<String>? ackedRanges,
+    Value<int>? pendingCount,
+    Value<int?>? lastSuccessAt,
+    Value<String?>? lastError,
+    Value<int>? rowid,
+  }) {
+    return SyncStatesCompanion(
+      peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+      direction: direction ?? this.direction,
+      generation: generation ?? this.generation,
+      ackedContiguousSeq: ackedContiguousSeq ?? this.ackedContiguousSeq,
+      ackedRanges: ackedRanges ?? this.ackedRanges,
+      pendingCount: pendingCount ?? this.pendingCount,
+      lastSuccessAt: lastSuccessAt ?? this.lastSuccessAt,
+      lastError: lastError ?? this.lastError,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerDeviceId.present) {
+      map['peer_device_id'] = Variable<String>(peerDeviceId.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(
+        $SyncStatesTable.$converterdirection.toSql(direction.value),
+      );
+    }
+    if (generation.present) {
+      map['generation'] = Variable<String>(generation.value);
+    }
+    if (ackedContiguousSeq.present) {
+      map['acked_contiguous_seq'] = Variable<int>(ackedContiguousSeq.value);
+    }
+    if (ackedRanges.present) {
+      map['acked_ranges'] = Variable<String>(ackedRanges.value);
+    }
+    if (pendingCount.present) {
+      map['pending_count'] = Variable<int>(pendingCount.value);
+    }
+    if (lastSuccessAt.present) {
+      map['last_success_at'] = Variable<int>(lastSuccessAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStatesCompanion(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('direction: $direction, ')
+          ..write('generation: $generation, ')
+          ..write('ackedContiguousSeq: $ackedContiguousSeq, ')
+          ..write('ackedRanges: $ackedRanges, ')
+          ..write('pendingCount: $pendingCount, ')
+          ..write('lastSuccessAt: $lastSuccessAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -15982,6 +16525,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $CorrectionSuggestionsTable(this);
   late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
   late final $PeersTable peers = $PeersTable(this);
+  late final $SyncStatesTable syncStates = $SyncStatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -16008,6 +16552,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     correctionSuggestions,
     changeLogs,
     peers,
+    syncStates,
   ];
 }
 
@@ -23533,6 +24078,273 @@ typedef $$PeersTableProcessedTableManager =
       Peer,
       PrefetchHooks Function()
     >;
+typedef $$SyncStatesTableCreateCompanionBuilder =
+    SyncStatesCompanion Function({
+      required String peerDeviceId,
+      required SyncDirection direction,
+      required String generation,
+      Value<int> ackedContiguousSeq,
+      Value<String> ackedRanges,
+      Value<int> pendingCount,
+      Value<int?> lastSuccessAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+typedef $$SyncStatesTableUpdateCompanionBuilder =
+    SyncStatesCompanion Function({
+      Value<String> peerDeviceId,
+      Value<SyncDirection> direction,
+      Value<String> generation,
+      Value<int> ackedContiguousSeq,
+      Value<String> ackedRanges,
+      Value<int> pendingCount,
+      Value<int?> lastSuccessAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+
+class $$SyncStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncStatesTable> {
+  $$SyncStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<SyncDirection, SyncDirection, String>
+  get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ackedContiguousSeq => $composableBuilder(
+    column: $table.ackedContiguousSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ackedRanges => $composableBuilder(
+    column: $table.ackedRanges,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pendingCount => $composableBuilder(
+    column: $table.pendingCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSuccessAt => $composableBuilder(
+    column: $table.lastSuccessAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncStatesTable> {
+  $$SyncStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ackedContiguousSeq => $composableBuilder(
+    column: $table.ackedContiguousSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ackedRanges => $composableBuilder(
+    column: $table.ackedRanges,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pendingCount => $composableBuilder(
+    column: $table.pendingCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSuccessAt => $composableBuilder(
+    column: $table.lastSuccessAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncStatesTable> {
+  $$SyncStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<SyncDirection, String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get ackedContiguousSeq => $composableBuilder(
+    column: $table.ackedContiguousSeq,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ackedRanges => $composableBuilder(
+    column: $table.ackedRanges,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get pendingCount => $composableBuilder(
+    column: $table.pendingCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSuccessAt => $composableBuilder(
+    column: $table.lastSuccessAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+}
+
+class $$SyncStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncStatesTable,
+          SyncState,
+          $$SyncStatesTableFilterComposer,
+          $$SyncStatesTableOrderingComposer,
+          $$SyncStatesTableAnnotationComposer,
+          $$SyncStatesTableCreateCompanionBuilder,
+          $$SyncStatesTableUpdateCompanionBuilder,
+          (
+            SyncState,
+            BaseReferences<_$AppDatabase, $SyncStatesTable, SyncState>,
+          ),
+          SyncState,
+          PrefetchHooks Function()
+        > {
+  $$SyncStatesTableTableManager(_$AppDatabase db, $SyncStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerDeviceId = const Value.absent(),
+                Value<SyncDirection> direction = const Value.absent(),
+                Value<String> generation = const Value.absent(),
+                Value<int> ackedContiguousSeq = const Value.absent(),
+                Value<String> ackedRanges = const Value.absent(),
+                Value<int> pendingCount = const Value.absent(),
+                Value<int?> lastSuccessAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStatesCompanion(
+                peerDeviceId: peerDeviceId,
+                direction: direction,
+                generation: generation,
+                ackedContiguousSeq: ackedContiguousSeq,
+                ackedRanges: ackedRanges,
+                pendingCount: pendingCount,
+                lastSuccessAt: lastSuccessAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerDeviceId,
+                required SyncDirection direction,
+                required String generation,
+                Value<int> ackedContiguousSeq = const Value.absent(),
+                Value<String> ackedRanges = const Value.absent(),
+                Value<int> pendingCount = const Value.absent(),
+                Value<int?> lastSuccessAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStatesCompanion.insert(
+                peerDeviceId: peerDeviceId,
+                direction: direction,
+                generation: generation,
+                ackedContiguousSeq: ackedContiguousSeq,
+                ackedRanges: ackedRanges,
+                pendingCount: pendingCount,
+                lastSuccessAt: lastSuccessAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncStatesTable,
+      SyncState,
+      $$SyncStatesTableFilterComposer,
+      $$SyncStatesTableOrderingComposer,
+      $$SyncStatesTableAnnotationComposer,
+      $$SyncStatesTableCreateCompanionBuilder,
+      $$SyncStatesTableUpdateCompanionBuilder,
+      (SyncState, BaseReferences<_$AppDatabase, $SyncStatesTable, SyncState>),
+      SyncState,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -23579,4 +24391,6 @@ class $AppDatabaseManager {
       $$ChangeLogsTableTableManager(_db, _db.changeLogs);
   $$PeersTableTableManager get peers =>
       $$PeersTableTableManager(_db, _db.peers);
+  $$SyncStatesTableTableManager get syncStates =>
+      $$SyncStatesTableTableManager(_db, _db.syncStates);
 }

@@ -92,9 +92,14 @@ void main() {
       FlutterSecureStorage.setMockInitialValues({});
       macEnv = await TestEnv.create();
       phoneEnv = await TestEnv.create();
+      final macFiles =
+          await Directory.systemTemp.createTemp('sync_mac_files');
+      addTearDown(() => macFiles.delete(recursive: true));
       server = SyncServer(
         deviceId: 'mac-1',
         displayName: 'Mac',
+        db: macEnv.db,
+        filesDir: macFiles,
         peers: PeerRepository(macEnv.db),
         keyStore: KeyStore(),
       );

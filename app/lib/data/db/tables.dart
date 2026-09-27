@@ -88,6 +88,8 @@ enum SuggestionStatus { pending, accepted, rejected, obsolete }
 
 enum ChangeOp { upsert, delete }
 
+enum SyncDirection { push, pull }
+
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
 mixin CommonColumns on Table {
@@ -366,6 +368,24 @@ class CorrectionSuggestions extends Table with CommonColumns {
   TextColumn get reason => text()();
   TextColumn get status =>
       text().map(const EnumConverter(SuggestionStatus.values))();
+}
+
+/// schema.md §7.3：同步进度。push = 本机发往对方，pull = 对方发来。
+/// `acked_contiguous_seq` 只在它之前全部确认后才推进。
+class SyncStates extends Table {
+  TextColumn get peerDeviceId => text()();
+  TextColumn get direction =>
+      text().map(const EnumConverter(SyncDirection.values))();
+  TextColumn get generation => text()();
+  IntColumn get ackedContiguousSeq =>
+      integer().withDefault(const Constant(0))();
+  TextColumn get ackedRanges => text().withDefault(const Constant('[]'))();
+  IntColumn get pendingCount => integer().withDefault(const Constant(0))();
+  IntColumn get lastSuccessAt => integer().nullable()();
+  TextColumn get lastError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {peerDeviceId, direction};
 }
 
 /// schema.md §7.1：已配对设备。`cert_fingerprint` 是配对密钥的

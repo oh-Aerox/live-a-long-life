@@ -52,7 +52,7 @@ v0.3 做三件事：**手机数据自动同到 Mac 保存完整副本；Mac 用�
 | [x] | V3-M0 Mac 端跑通与平台分流 | 2026-09-27：macOS 部署目标 10.15→12.0（Xcode 27 要求，Podfile post_install 统一抬高，同 iOS M0 教训）；main 按平台分流，Mac 不初始化手机专属插件；Mac 主页（副本概览 + 配对/周报占位）；本机构建运行稳定。菜单栏常驻小样推迟到 V3-M3（有接收功能后常驻才有意义）|
 | [x] | V3-M1 变更日志（手机侧数据层）| 2026-09-27：change_logs 建表（迁移 v4），payload 行快照保证负载与 entity_version 一致（Codex 7_reply，schema §7.2 已注明）；代次存 settings.data_generation，不随导出走，恢复后首次写入生成新代次；埋点覆盖消息/修订/附件身份（带 depends_on_blob）/关联/资料/记录/版本/来源/批次/逐项/调用记录/健康样本与日聚合/修正建议；副本状态、回顾记账、organize_state 单独变化不入日志（§7.2 注明）；实体通用 change_seq 回写。5 个新单测（无空洞递增、快照版本一致、delete 操作、代次更换），全套 95 个通过 |
 | [x] | V3-M2 配对与加密通道 | 2026-09-27：peers 建表（迁移 v5）+ 仓库；SecureChannel（AES-256-GCM、AAD 绑身份、防重放）；Mac 端 SyncServer（/pair 一次性配对窗口、/ping 认证检查、无密钥一律拒绝）+ 主页二维码卡片（qr_flutter）；手机端 SyncClient + 扫码页（mobile_scanner，设置 → 连接 Mac）。回环网络下双端配对/指纹一致/拒绝陌生设备 6 个单测。真机扫码配对等下次连手机（iOS 构建也顺延）|
-| [ ] | V3-M3 增量同步 | |
+| [x] | V3-M3 增量同步 | 2026-09-27：sync_states 建表（迁移 v6）；手机 SyncService 按 change_seq 逐条推送逐条确认（第一版不合并，schema §7.2）、连续游标推进、断点续传（重启从游标继续）；附件 need_blob → 传文件（SHA 校验落盘）→ 重发确认；Mac SyncServer 常驻固定端口（47856 起顺延）、/changes 通用回灌（白名单表、不产生本机变更日志）、/blob、Mac 自记副本状态；代次变化拒收提示重建（完整重建流程留 V3-M7 前）；触发：手机启动、配对成功；Mac 主页显示同步进度与端口。3 个端到端回环测试（含附件流与代次变化）。真机双端联调等下次连手机。**遗留：** mDNS 自动发现未做（地址靠配对时记录，Mac 换 IP 需重新配对），Mac 端"generation_changed 后的重建"未做 |
 | [ ] | V3-M4 Mac 查看与同步状态页 | |
 | [ ] | V3-M5 周报分析与修正建议回传 | |
 | [ ] | V3-M6 加密备份与恢复演练 | |

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -41,9 +43,11 @@ class _PairMacPageState extends State<PairMacPage> {
         keyStore: widget.services.keyStore,
       );
       final peer = await client.pairWith(info);
+      // 配对成功立即推一次积压的变更。
+      unawaited(widget.services.syncService.syncNow());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已与 ${peer.displayName} 配对')));
+            SnackBar(content: Text('已与 ${peer.displayName} 配对，开始同步')));
         Navigator.pop(context, true);
       }
     } catch (e) {
