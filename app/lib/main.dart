@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 
@@ -30,6 +32,9 @@ Future<void> main() async {
     final enabled = await services.settings.get('review_enabled') as bool;
     await notifications.scheduleReviewTimes(times, enabled: enabled);
   }
+
+  // 启动补整理：上次失败或没配模型时留下的"待整理"消息（A-10）。
+  unawaited(services.organizeService.catchUp());
 
   runApp(App(
     services: services,

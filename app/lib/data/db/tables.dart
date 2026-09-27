@@ -56,6 +56,9 @@ enum OrganizeRunStatus {
 }
 
 enum OrganizeItemStatus {
+  /// 已登记待提交：项 ID 在模型产出确定后、正式提交前持久化（schema §3.1a），
+  /// 崩溃重试时凭它不重复建记录。
+  pending,
   committed,
   staleInput,
   staleTarget,
@@ -78,6 +81,10 @@ enum ModelPreset { openai, anthropic, deepseek, openaiCompatible, ollama }
 enum ModelProtocol { openaiCompatible, anthropic }
 
 enum ReviewOutcome { answered, skipped, noResponse }
+
+enum SuggestionProposedBy { macAnalysis, organizeRun }
+
+enum SuggestionStatus { pending, accepted, rejected, obsolete }
 
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
@@ -343,6 +350,20 @@ class ModelConfigs extends Table with CommonColumns {
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
   IntColumn get lastTestAt => integer().nullable()();
   TextColumn get lastTestResult => text().nullable()();
+}
+
+/// schema.md §6.2：修正建议。表定义在分析层（v0.3），但手机整理遇到
+/// 受保护字段时也会提出（D-05 第 3 条，A-25 是 v0.2 验收），所以现在就建。
+class CorrectionSuggestions extends Table with CommonColumns {
+  TextColumn get proposedBy =>
+      text().map(const EnumConverter(SuggestionProposedBy.values))();
+  TextColumn get organizeRunId => text().nullable()();
+  TextColumn get targetRecordId => text()();
+  IntColumn get targetVersion => integer()();
+  TextColumn get proposedData => text()(); // JSON：{field_path: 新值}
+  TextColumn get reason => text()();
+  TextColumn get status =>
+      text().map(const EnumConverter(SuggestionStatus.values))();
 }
 
 /// schema.md §4.4：回顾提问记录，用于当天不重复提问、问题数量 ≤3（D-08）。

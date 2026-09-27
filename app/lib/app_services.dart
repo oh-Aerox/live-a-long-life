@@ -11,8 +11,10 @@ import 'data/repositories/message_repository.dart';
 import 'data/repositories/model_config_repository.dart';
 import 'data/repositories/organize_repository.dart';
 import 'data/repositories/profile_repository.dart';
+import 'data/repositories/record_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'services/key_store.dart';
+import 'services/organize_service.dart';
 
 /// 应用级服务：数据库与各仓库。
 /// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
@@ -27,9 +29,19 @@ class AppServices {
     required this.settings,
     required this.modelConfigs,
     required this.organize,
+    required this.records,
     required this.keyStore,
     required this.filesDir,
-  });
+  }) {
+    organizeService = OrganizeService(
+      db: db,
+      messages: messages,
+      records: records,
+      runs: organize,
+      modelConfigs: modelConfigs,
+      keyStore: keyStore,
+    );
+  }
 
   final AppDatabase db;
   final AppContext ctx;
@@ -39,9 +51,11 @@ class AppServices {
   final SettingsRepository settings;
   final ModelConfigRepository modelConfigs;
   final OrganizeRepository organize;
+  final RecordRepository records;
   final KeyStore keyStore;
   final Directory filesDir;
   late final File dbFile;
+  late final OrganizeService organizeService;
 
   static Future<AppServices> init() async {
     final support = await getApplicationSupportDirectory();
@@ -61,6 +75,7 @@ class AppServices {
       settings: settings,
       modelConfigs: ModelConfigRepository(db, ctx),
       organize: OrganizeRepository(db, ctx),
+      records: RecordRepository(db, ctx),
       keyStore: KeyStore(),
       filesDir: filesDir,
     )..dbFile = dbFile;

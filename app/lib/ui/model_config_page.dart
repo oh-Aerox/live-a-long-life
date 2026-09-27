@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
@@ -205,6 +207,8 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
           return; // 测试失败留在本页修改
         }
       }
+      // 配好模型后补整理积压的"待整理"消息（A-10）。
+      unawaited(s.organizeService.catchUp());
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _busy = false);

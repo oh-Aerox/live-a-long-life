@@ -207,6 +207,16 @@ class RecordRepository {
         ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
       .get();
 
+  /// 自某天（含）以来的记录，日期字符串比较（yyyy-MM-dd 可比）。
+  /// 整理批次用它圈定"可更新的已有记录"范围。
+  Future<List<RecordRow>> since(String localDate) => (_db.select(_db.records)
+        ..where((t) =>
+            t.deletedAt.isNull() &
+            t.localDate.isNotNull() &
+            t.localDate.isBiggerOrEqualValue(localDate))
+        ..orderBy([(t) => OrderingTerm.asc(t.localDate)]))
+      .get();
+
   Future<RecordRevision> currentRevisionOf(String recordId) async {
     final rec = await (_db.select(_db.records)
           ..where((t) => t.id.equals(recordId)))

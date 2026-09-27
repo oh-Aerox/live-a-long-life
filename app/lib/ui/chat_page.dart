@@ -68,6 +68,7 @@ class _ChatPageState extends State<ChatPage> {
       text: text,
       sentTz: widget.tz,
     );
+    await _resetIdleTimer();
   }
 
   Future<void> _sendDoneMarker() async {
@@ -76,7 +77,17 @@ class _ChatPageState extends State<ChatPage> {
       role: MessageRole.user,
       kind: MessageKind.doneMarker,
       sentTz: widget.tz,
+      organizeState: OrganizeState.notApplicable,
     );
+    // "记好了"触发整理批次（D-05）。
+    await _s.organizeService.enqueue(OrganizeTrigger.doneMarker);
+  }
+
+  /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
+  Future<void> _resetIdleTimer() async {
+    final sec =
+        await _s.settings.get('idle_preorganize_sec') as int? ?? 180;
+    _s.organizeService.noteUserActivity(Duration(seconds: sec));
   }
 
   // ---- 附件导入 ----
@@ -204,6 +215,7 @@ class _ChatPageState extends State<ChatPage> {
           duplicateAcknowledged: kept[i].duplicateAcknowledged,
         );
       }
+      await _resetIdleTimer();
     } finally {
       if (mounted) setState(() => _savingBatches--);
     }
@@ -389,12 +401,36 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: content,
     );
+    // 整理状态（A-10：无模型或失败时消息显示"待整理"）。
+    final stateLabel = switch (m.organizeState) {
+      OrganizeState.pending || OrganizeState.needsReorganize => '待整理',
+      OrganizeState.needsManual => '整理遇到冲突，需手动处理',
+      _ => null,
+    };
+    final withState = !isUser || stateLabel == null
+        ? bubble
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              bubble,
+              Padding(
+                padding: const EdgeInsets.only(right: 14, bottom: 2),
+                child: Text(stateLabel,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: m.organizeState == OrganizeState.needsManual
+                            ? Colors.orange
+                            : Colors.grey)),
+              ),
+            ],
+          );
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: isUser
           ? GestureDetector(
-              onLongPress: () => _showMessageMenu(m), child: bubble)
-          : bubble,
+              onLongPress: () => _showMessageMenu(m), child: withState)
+          : withState,
     );
   }
 

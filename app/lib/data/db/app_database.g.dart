@@ -14035,6 +14035,842 @@ class ReviewPromptsCompanion extends UpdateCompanion<ReviewPrompt> {
   }
 }
 
+class $CorrectionSuggestionsTable extends CorrectionSuggestions
+    with TableInfo<$CorrectionSuggestionsTable, CorrectionSuggestion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CorrectionSuggestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SuggestionProposedBy, String>
+  proposedBy =
+      GeneratedColumn<String>(
+        'proposed_by',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SuggestionProposedBy>(
+        $CorrectionSuggestionsTable.$converterproposedBy,
+      );
+  static const VerificationMeta _organizeRunIdMeta = const VerificationMeta(
+    'organizeRunId',
+  );
+  @override
+  late final GeneratedColumn<String> organizeRunId = GeneratedColumn<String>(
+    'organize_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetRecordIdMeta = const VerificationMeta(
+    'targetRecordId',
+  );
+  @override
+  late final GeneratedColumn<String> targetRecordId = GeneratedColumn<String>(
+    'target_record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetVersionMeta = const VerificationMeta(
+    'targetVersion',
+  );
+  @override
+  late final GeneratedColumn<int> targetVersion = GeneratedColumn<int>(
+    'target_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _proposedDataMeta = const VerificationMeta(
+    'proposedData',
+  );
+  @override
+  late final GeneratedColumn<String> proposedData = GeneratedColumn<String>(
+    'proposed_data',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SuggestionStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SuggestionStatus>(
+        $CorrectionSuggestionsTable.$converterstatus,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    proposedBy,
+    organizeRunId,
+    targetRecordId,
+    targetVersion,
+    proposedData,
+    reason,
+    status,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'correction_suggestions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CorrectionSuggestion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('organize_run_id')) {
+      context.handle(
+        _organizeRunIdMeta,
+        organizeRunId.isAcceptableOrUnknown(
+          data['organize_run_id']!,
+          _organizeRunIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_record_id')) {
+      context.handle(
+        _targetRecordIdMeta,
+        targetRecordId.isAcceptableOrUnknown(
+          data['target_record_id']!,
+          _targetRecordIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetRecordIdMeta);
+    }
+    if (data.containsKey('target_version')) {
+      context.handle(
+        _targetVersionMeta,
+        targetVersion.isAcceptableOrUnknown(
+          data['target_version']!,
+          _targetVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetVersionMeta);
+    }
+    if (data.containsKey('proposed_data')) {
+      context.handle(
+        _proposedDataMeta,
+        proposedData.isAcceptableOrUnknown(
+          data['proposed_data']!,
+          _proposedDataMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_proposedDataMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CorrectionSuggestion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CorrectionSuggestion(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      proposedBy: $CorrectionSuggestionsTable.$converterproposedBy.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}proposed_by'],
+        )!,
+      ),
+      organizeRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organize_run_id'],
+      ),
+      targetRecordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_record_id'],
+      )!,
+      targetVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_version'],
+      )!,
+      proposedData: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}proposed_data'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      status: $CorrectionSuggestionsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $CorrectionSuggestionsTable createAlias(String alias) {
+    return $CorrectionSuggestionsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<SuggestionProposedBy, String> $converterproposedBy =
+      const EnumConverter(SuggestionProposedBy.values);
+  static TypeConverter<SuggestionStatus, String> $converterstatus =
+      const EnumConverter(SuggestionStatus.values);
+}
+
+class CorrectionSuggestion extends DataClass
+    implements Insertable<CorrectionSuggestion> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final SuggestionProposedBy proposedBy;
+  final String? organizeRunId;
+  final String targetRecordId;
+  final int targetVersion;
+  final String proposedData;
+  final String reason;
+  final SuggestionStatus status;
+  const CorrectionSuggestion({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.proposedBy,
+    this.organizeRunId,
+    required this.targetRecordId,
+    required this.targetVersion,
+    required this.proposedData,
+    required this.reason,
+    required this.status,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    {
+      map['proposed_by'] = Variable<String>(
+        $CorrectionSuggestionsTable.$converterproposedBy.toSql(proposedBy),
+      );
+    }
+    if (!nullToAbsent || organizeRunId != null) {
+      map['organize_run_id'] = Variable<String>(organizeRunId);
+    }
+    map['target_record_id'] = Variable<String>(targetRecordId);
+    map['target_version'] = Variable<int>(targetVersion);
+    map['proposed_data'] = Variable<String>(proposedData);
+    map['reason'] = Variable<String>(reason);
+    {
+      map['status'] = Variable<String>(
+        $CorrectionSuggestionsTable.$converterstatus.toSql(status),
+      );
+    }
+    return map;
+  }
+
+  CorrectionSuggestionsCompanion toCompanion(bool nullToAbsent) {
+    return CorrectionSuggestionsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      proposedBy: Value(proposedBy),
+      organizeRunId: organizeRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(organizeRunId),
+      targetRecordId: Value(targetRecordId),
+      targetVersion: Value(targetVersion),
+      proposedData: Value(proposedData),
+      reason: Value(reason),
+      status: Value(status),
+    );
+  }
+
+  factory CorrectionSuggestion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CorrectionSuggestion(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      proposedBy: serializer.fromJson<SuggestionProposedBy>(json['proposedBy']),
+      organizeRunId: serializer.fromJson<String?>(json['organizeRunId']),
+      targetRecordId: serializer.fromJson<String>(json['targetRecordId']),
+      targetVersion: serializer.fromJson<int>(json['targetVersion']),
+      proposedData: serializer.fromJson<String>(json['proposedData']),
+      reason: serializer.fromJson<String>(json['reason']),
+      status: serializer.fromJson<SuggestionStatus>(json['status']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'proposedBy': serializer.toJson<SuggestionProposedBy>(proposedBy),
+      'organizeRunId': serializer.toJson<String?>(organizeRunId),
+      'targetRecordId': serializer.toJson<String>(targetRecordId),
+      'targetVersion': serializer.toJson<int>(targetVersion),
+      'proposedData': serializer.toJson<String>(proposedData),
+      'reason': serializer.toJson<String>(reason),
+      'status': serializer.toJson<SuggestionStatus>(status),
+    };
+  }
+
+  CorrectionSuggestion copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    SuggestionProposedBy? proposedBy,
+    Value<String?> organizeRunId = const Value.absent(),
+    String? targetRecordId,
+    int? targetVersion,
+    String? proposedData,
+    String? reason,
+    SuggestionStatus? status,
+  }) => CorrectionSuggestion(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    proposedBy: proposedBy ?? this.proposedBy,
+    organizeRunId: organizeRunId.present
+        ? organizeRunId.value
+        : this.organizeRunId,
+    targetRecordId: targetRecordId ?? this.targetRecordId,
+    targetVersion: targetVersion ?? this.targetVersion,
+    proposedData: proposedData ?? this.proposedData,
+    reason: reason ?? this.reason,
+    status: status ?? this.status,
+  );
+  CorrectionSuggestion copyWithCompanion(CorrectionSuggestionsCompanion data) {
+    return CorrectionSuggestion(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      proposedBy: data.proposedBy.present
+          ? data.proposedBy.value
+          : this.proposedBy,
+      organizeRunId: data.organizeRunId.present
+          ? data.organizeRunId.value
+          : this.organizeRunId,
+      targetRecordId: data.targetRecordId.present
+          ? data.targetRecordId.value
+          : this.targetRecordId,
+      targetVersion: data.targetVersion.present
+          ? data.targetVersion.value
+          : this.targetVersion,
+      proposedData: data.proposedData.present
+          ? data.proposedData.value
+          : this.proposedData,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      status: data.status.present ? data.status.value : this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CorrectionSuggestion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('proposedBy: $proposedBy, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('targetRecordId: $targetRecordId, ')
+          ..write('targetVersion: $targetVersion, ')
+          ..write('proposedData: $proposedData, ')
+          ..write('reason: $reason, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    proposedBy,
+    organizeRunId,
+    targetRecordId,
+    targetVersion,
+    proposedData,
+    reason,
+    status,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CorrectionSuggestion &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.proposedBy == this.proposedBy &&
+          other.organizeRunId == this.organizeRunId &&
+          other.targetRecordId == this.targetRecordId &&
+          other.targetVersion == this.targetVersion &&
+          other.proposedData == this.proposedData &&
+          other.reason == this.reason &&
+          other.status == this.status);
+}
+
+class CorrectionSuggestionsCompanion
+    extends UpdateCompanion<CorrectionSuggestion> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<SuggestionProposedBy> proposedBy;
+  final Value<String?> organizeRunId;
+  final Value<String> targetRecordId;
+  final Value<int> targetVersion;
+  final Value<String> proposedData;
+  final Value<String> reason;
+  final Value<SuggestionStatus> status;
+  final Value<int> rowid;
+  const CorrectionSuggestionsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.proposedBy = const Value.absent(),
+    this.organizeRunId = const Value.absent(),
+    this.targetRecordId = const Value.absent(),
+    this.targetVersion = const Value.absent(),
+    this.proposedData = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CorrectionSuggestionsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required SuggestionProposedBy proposedBy,
+    this.organizeRunId = const Value.absent(),
+    required String targetRecordId,
+    required int targetVersion,
+    required String proposedData,
+    required String reason,
+    required SuggestionStatus status,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       proposedBy = Value(proposedBy),
+       targetRecordId = Value(targetRecordId),
+       targetVersion = Value(targetVersion),
+       proposedData = Value(proposedData),
+       reason = Value(reason),
+       status = Value(status);
+  static Insertable<CorrectionSuggestion> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? proposedBy,
+    Expression<String>? organizeRunId,
+    Expression<String>? targetRecordId,
+    Expression<int>? targetVersion,
+    Expression<String>? proposedData,
+    Expression<String>? reason,
+    Expression<String>? status,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (proposedBy != null) 'proposed_by': proposedBy,
+      if (organizeRunId != null) 'organize_run_id': organizeRunId,
+      if (targetRecordId != null) 'target_record_id': targetRecordId,
+      if (targetVersion != null) 'target_version': targetVersion,
+      if (proposedData != null) 'proposed_data': proposedData,
+      if (reason != null) 'reason': reason,
+      if (status != null) 'status': status,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CorrectionSuggestionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<SuggestionProposedBy>? proposedBy,
+    Value<String?>? organizeRunId,
+    Value<String>? targetRecordId,
+    Value<int>? targetVersion,
+    Value<String>? proposedData,
+    Value<String>? reason,
+    Value<SuggestionStatus>? status,
+    Value<int>? rowid,
+  }) {
+    return CorrectionSuggestionsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      proposedBy: proposedBy ?? this.proposedBy,
+      organizeRunId: organizeRunId ?? this.organizeRunId,
+      targetRecordId: targetRecordId ?? this.targetRecordId,
+      targetVersion: targetVersion ?? this.targetVersion,
+      proposedData: proposedData ?? this.proposedData,
+      reason: reason ?? this.reason,
+      status: status ?? this.status,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (proposedBy.present) {
+      map['proposed_by'] = Variable<String>(
+        $CorrectionSuggestionsTable.$converterproposedBy.toSql(
+          proposedBy.value,
+        ),
+      );
+    }
+    if (organizeRunId.present) {
+      map['organize_run_id'] = Variable<String>(organizeRunId.value);
+    }
+    if (targetRecordId.present) {
+      map['target_record_id'] = Variable<String>(targetRecordId.value);
+    }
+    if (targetVersion.present) {
+      map['target_version'] = Variable<int>(targetVersion.value);
+    }
+    if (proposedData.present) {
+      map['proposed_data'] = Variable<String>(proposedData.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $CorrectionSuggestionsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CorrectionSuggestionsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('proposedBy: $proposedBy, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('targetRecordId: $targetRecordId, ')
+          ..write('targetVersion: $targetVersion, ')
+          ..write('proposedData: $proposedData, ')
+          ..write('reason: $reason, ')
+          ..write('status: $status, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -14065,6 +14901,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RecordSourcesTable recordSources = $RecordSourcesTable(this);
   late final $ModelConfigsTable modelConfigs = $ModelConfigsTable(this);
   late final $ReviewPromptsTable reviewPrompts = $ReviewPromptsTable(this);
+  late final $CorrectionSuggestionsTable correctionSuggestions =
+      $CorrectionSuggestionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14088,6 +14926,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     recordSources,
     modelConfigs,
     reviewPrompts,
+    correctionSuggestions,
   ];
 }
 
@@ -20681,6 +21520,415 @@ typedef $$ReviewPromptsTableProcessedTableManager =
       ReviewPrompt,
       PrefetchHooks Function()
     >;
+typedef $$CorrectionSuggestionsTableCreateCompanionBuilder =
+    CorrectionSuggestionsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required SuggestionProposedBy proposedBy,
+      Value<String?> organizeRunId,
+      required String targetRecordId,
+      required int targetVersion,
+      required String proposedData,
+      required String reason,
+      required SuggestionStatus status,
+      Value<int> rowid,
+    });
+typedef $$CorrectionSuggestionsTableUpdateCompanionBuilder =
+    CorrectionSuggestionsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<SuggestionProposedBy> proposedBy,
+      Value<String?> organizeRunId,
+      Value<String> targetRecordId,
+      Value<int> targetVersion,
+      Value<String> proposedData,
+      Value<String> reason,
+      Value<SuggestionStatus> status,
+      Value<int> rowid,
+    });
+
+class $$CorrectionSuggestionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CorrectionSuggestionsTable> {
+  $$CorrectionSuggestionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    SuggestionProposedBy,
+    SuggestionProposedBy,
+    String
+  >
+  get proposedBy => $composableBuilder(
+    column: $table.proposedBy,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetRecordId => $composableBuilder(
+    column: $table.targetRecordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetVersion => $composableBuilder(
+    column: $table.targetVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get proposedData => $composableBuilder(
+    column: $table.proposedData,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<SuggestionStatus, SuggestionStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+}
+
+class $$CorrectionSuggestionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CorrectionSuggestionsTable> {
+  $$CorrectionSuggestionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get proposedBy => $composableBuilder(
+    column: $table.proposedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetRecordId => $composableBuilder(
+    column: $table.targetRecordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetVersion => $composableBuilder(
+    column: $table.targetVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get proposedData => $composableBuilder(
+    column: $table.proposedData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CorrectionSuggestionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CorrectionSuggestionsTable> {
+  $$CorrectionSuggestionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SuggestionProposedBy, String>
+  get proposedBy => $composableBuilder(
+    column: $table.proposedBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get targetRecordId => $composableBuilder(
+    column: $table.targetRecordId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetVersion => $composableBuilder(
+    column: $table.targetVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get proposedData => $composableBuilder(
+    column: $table.proposedData,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SuggestionStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+}
+
+class $$CorrectionSuggestionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CorrectionSuggestionsTable,
+          CorrectionSuggestion,
+          $$CorrectionSuggestionsTableFilterComposer,
+          $$CorrectionSuggestionsTableOrderingComposer,
+          $$CorrectionSuggestionsTableAnnotationComposer,
+          $$CorrectionSuggestionsTableCreateCompanionBuilder,
+          $$CorrectionSuggestionsTableUpdateCompanionBuilder,
+          (
+            CorrectionSuggestion,
+            BaseReferences<
+              _$AppDatabase,
+              $CorrectionSuggestionsTable,
+              CorrectionSuggestion
+            >,
+          ),
+          CorrectionSuggestion,
+          PrefetchHooks Function()
+        > {
+  $$CorrectionSuggestionsTableTableManager(
+    _$AppDatabase db,
+    $CorrectionSuggestionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CorrectionSuggestionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CorrectionSuggestionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CorrectionSuggestionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<SuggestionProposedBy> proposedBy = const Value.absent(),
+                Value<String?> organizeRunId = const Value.absent(),
+                Value<String> targetRecordId = const Value.absent(),
+                Value<int> targetVersion = const Value.absent(),
+                Value<String> proposedData = const Value.absent(),
+                Value<String> reason = const Value.absent(),
+                Value<SuggestionStatus> status = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CorrectionSuggestionsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                proposedBy: proposedBy,
+                organizeRunId: organizeRunId,
+                targetRecordId: targetRecordId,
+                targetVersion: targetVersion,
+                proposedData: proposedData,
+                reason: reason,
+                status: status,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required SuggestionProposedBy proposedBy,
+                Value<String?> organizeRunId = const Value.absent(),
+                required String targetRecordId,
+                required int targetVersion,
+                required String proposedData,
+                required String reason,
+                required SuggestionStatus status,
+                Value<int> rowid = const Value.absent(),
+              }) => CorrectionSuggestionsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                proposedBy: proposedBy,
+                organizeRunId: organizeRunId,
+                targetRecordId: targetRecordId,
+                targetVersion: targetVersion,
+                proposedData: proposedData,
+                reason: reason,
+                status: status,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CorrectionSuggestionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CorrectionSuggestionsTable,
+      CorrectionSuggestion,
+      $$CorrectionSuggestionsTableFilterComposer,
+      $$CorrectionSuggestionsTableOrderingComposer,
+      $$CorrectionSuggestionsTableAnnotationComposer,
+      $$CorrectionSuggestionsTableCreateCompanionBuilder,
+      $$CorrectionSuggestionsTableUpdateCompanionBuilder,
+      (
+        CorrectionSuggestion,
+        BaseReferences<
+          _$AppDatabase,
+          $CorrectionSuggestionsTable,
+          CorrectionSuggestion
+        >,
+      ),
+      CorrectionSuggestion,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -20721,4 +21969,6 @@ class $AppDatabaseManager {
       $$ModelConfigsTableTableManager(_db, _db.modelConfigs);
   $$ReviewPromptsTableTableManager get reviewPrompts =>
       $$ReviewPromptsTableTableManager(_db, _db.reviewPrompts);
+  $$CorrectionSuggestionsTableTableManager get correctionSuggestions =>
+      $$CorrectionSuggestionsTableTableManager(_db, _db.correctionSuggestions);
 }

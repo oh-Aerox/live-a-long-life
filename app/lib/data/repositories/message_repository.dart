@@ -144,4 +144,19 @@ class MessageRepository {
         ..where((t) => t.deletedAt.isNull())
         ..orderBy([(t) => OrderingTerm.asc(t.seq)]))
       .get();
+
+  /// 等待整理的用户消息（待整理或改后待重整理），按 seq 排列。
+  Future<List<Message>> pendingOrganize() => (_db.select(_db.messages)
+        ..where((t) =>
+            t.deletedAt.isNull() &
+            t.role.equalsValue(MessageRole.user) &
+            (t.organizeState.equalsValue(OrganizeState.pending) |
+                t.organizeState.equalsValue(OrganizeState.needsReorganize)))
+        ..orderBy([(t) => OrderingTerm.asc(t.seq)]))
+      .get();
+
+  /// 更新消息的整理状态（整理服务在所有相关项落定后汇总调用，schema §3.1a）。
+  Future<void> setOrganizeState(String messageId, OrganizeState state) =>
+      (_db.update(_db.messages)..where((t) => t.id.equals(messageId)))
+          .write(MessagesCompanion(organizeState: Value(state)));
 }

@@ -67,10 +67,12 @@ class OrganizeRepository {
 
   /// 登记批次的一项。同一 (run, record) 已存在时原样返回——
   /// 重试凭 `record_id` 识别已有项，不重复建（schema §3.1a）。
+  /// `initialRetryCount` 继承此前批次对同一目标记录的重排次数。
   Future<OrganizeRunItem> upsertItem({
     required String organizeRunId,
     required String recordId,
     required OrganizeItemStatus status,
+    int initialRetryCount = 0,
   }) {
     return _db.transaction(() async {
       final existing = await (_db.select(_db.organizeRunItems)
@@ -89,6 +91,7 @@ class OrganizeRepository {
               organizeRunId: organizeRunId,
               recordId: recordId,
               status: status,
+              retryCount: Value(initialRetryCount),
             ),
           );
     });

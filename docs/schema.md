@@ -209,7 +209,7 @@
 |---|---|
 | `organize_run_id` | 所属批次 |
 | `record_id` | 目标记录。新建记录的 ID 在批次开始处理时就生成并写入本行，提交前已有稳定身份；重试时凭它识别已完成的项，不重复建记录 |
-| `status` | `committed` 已写入 / `stale_input` 输入已变，作废并重新排队 / `stale_target` 目标记录已被更新，作废并重新排队 / `protected_suggested` 受保护字段未覆盖，已生成修正建议 / `needs_manual` 需要手动处理 |
+| `status` | `pending` 已登记待提交（项 ID 持久化后、事务提交前的短暂状态，实现所需，2026-09-27 补充）/ `committed` 已写入 / `stale_input` 输入已变，作废并重新排队 / `stale_target` 目标记录已被更新，作废并重新排队 / `protected_suggested` 受保护字段未覆盖，已生成修正建议 / `needs_manual` 需要手动处理 |
 | `retry_count` | 因输入或目标过时（`stale_input` / `stale_target`）而重排的次数 |
 | `correction_suggestion_id` | 生成了修正建议时，对应的 ID |
 
@@ -502,6 +502,8 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 | `is_stale` | 在手机上实时计算，不存储。截止点之后依赖范围内的事实新增、纠错、作废或健康数据更新、数据代次改变时需要更新。仅清理/取回附件副本不令分析过期 |
 
 ### 6.2 `correction_suggestions` 修正建议
+
+本表虽在分析层（v0.3）定义，但手机整理批次在 v0.2 就会因受保护字段提出修正建议（D-05 第 3 条、A-25），所以建表随 v0.2（迁移 v3，2026-09-27）。`organize_run_id` 记录提出它的批次，Mac 分析提出时为空。
 
 | 字段 | 说明 |
 |---|---|
