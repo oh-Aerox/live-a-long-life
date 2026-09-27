@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -8,11 +9,19 @@ import 'services/health_service.dart';
 import 'services/notification_service.dart';
 import 'services/review_service.dart';
 import 'ui/chat_page.dart';
+import 'ui/mac_home_page.dart';
 import 'ui/onboarding_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final services = await AppServices.init();
+
+  // Mac 端（V3-M0）：只读副本 + 同步接收，不初始化手机专属插件
+  // （通知、HealthKit、整理触发都属于手机，D-12）。
+  if (Platform.isMacOS) {
+    runApp(MacApp(services: services));
+    return;
+  }
 
   // 当前 IANA 时区，写入消息的 sent_tz（schema §2.1）。
   var tz = 'Asia/Shanghai';
@@ -70,6 +79,28 @@ Future<void> main() async {
     notifications: notifications,
     onboarded: onboarded,
   ));
+}
+
+/// Mac 端应用（V3-M0 骨架）。
+class MacApp extends StatelessWidget {
+  const MacApp({super.key, required this.services});
+
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '长寿记',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.teal, brightness: Brightness.dark),
+      ),
+      home: MacHomePage(services: services),
+    );
+  }
 }
 
 class App extends StatefulWidget {

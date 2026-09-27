@@ -13,6 +13,7 @@
 | [platform-matrix.md](platform-matrix.md) | 各平台能力的实现与验证状态 | 只凭验证证据更新状态 |
 | [plan-v0.1.md](plan-v0.1.md) | v0.1 实施计划、任务进度、新会话上手指引 | 任务完成后在清单勾选；验证证据仍记入 platform-matrix |
 | [plan-v0.2.md](plan-v0.2.md) | v0.2 实施计划与任务进度 | 同上；M6/T1/T2 真机欠账见 plan-v0.1 第 7 节 |
+| [plan-v0.3.md](plan-v0.3.md) | v0.3（Mac 端与同步）实施计划 | 2026-09-27 提前开工，与 v0.2 验收并行；用户反馈优先 |
 
 ## 编号约定
 
