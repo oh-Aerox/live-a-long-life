@@ -92,6 +92,8 @@ enum SyncDirection { push, pull }
 
 enum AnalysisKind { weeklyReview, visitTimeline, trend }
 
+enum BackupStatus { building, verifying, published, failed }
+
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
 mixin CommonColumns on Table {
@@ -370,6 +372,24 @@ class CorrectionSuggestions extends Table with CommonColumns {
   TextColumn get reason => text()();
   TextColumn get status =>
       text().map(const EnumConverter(SuggestionStatus.values))();
+}
+
+/// schema.md §7.5：备份记录（Mac 端）。生成中用临时目录名，
+/// 校验通过后才改正式名并转 published。
+class BackupRuns extends Table {
+  TextColumn get backupId => text()();
+  TextColumn get dataGeneration => text()();
+  IntColumn get cutoffSeq => integer()();
+  TextColumn get manifest => text()(); // JSON：文件清单 + 数据库快照哈希
+  TextColumn get status =>
+      text().map(const EnumConverter(BackupStatus.values))();
+  TextColumn get targetPath => text()();
+  IntColumn get verifiedAt => integer().nullable()();
+  TextColumn get error => text().nullable()();
+  IntColumn get createdAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {backupId};
 }
 
 /// schema.md §6.1：分析结果（Mac 生成，回传手机）。

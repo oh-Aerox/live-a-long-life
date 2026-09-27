@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_services.dart';
@@ -35,6 +38,86 @@ class _MacHomePageState extends State<MacHomePage> {
   SyncState? _pullState;
   AnalysisArtifact? _latestReport;
   bool _generating = false;
+  BackupRun? _latestBackup;
+  bool _backingUp = false;
+  final _passphrase = TextEditingController();
+  String? _drillResult;
+
+  Future<void> _runBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final pass = await _backupPassphrase();
+    if (pass == null) return;
+    setState(() => _backingUp = true);
+    try {
+      final home = Platform.environment['HOME'] ?? '.';
+      final target = Directory(p.join(home, 'Documents', '长寿记备份'));
+      await target.create(recursive: true);
+      final run = await widget.services.backupService
+          .backup(targetRoot: target, passphrase: pass);
+      messenger.showSnackBar(
+          SnackBar(content: Text('备份完成并校验通过：${run.targetPath}')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('备份失败：$e')));
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+      await _load();
+    }
+  }
+
+  Future<void> _runDrill() async {
+    final backup = _latestBackup;
+    if (backup == null || backup.status != BackupStatus.published) return;
+    final pass = await _backupPassphrase();
+    if (pass == null) return;
+    setState(() => _backingUp = true);
+    try {
+      final tmp = await Directory.systemTemp.createTemp('restore_drill');
+      final result = await widget.services.backupService.restoreDrill(
+        backupDir: Directory(backup.targetPath),
+        passphrase: pass,
+        restoreTo: tmp,
+      );
+      setState(() => _drillResult = result.ok
+          ? '演练成功：${result.tableRows.values.fold(0, (a, b) => a + b)} 行数据、'
+              '${result.filesRestored} 个附件全部解密校验通过'
+              '${result.missingFiles.isEmpty ? '' : '；备份时已缺原件 ${result.missingFiles.length} 个'}'
+          : '演练失败：${result.error}');
+      await tmp.delete(recursive: true);
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+    }
+  }
+
+  /// 备份密码：首次输入后存 Keychain（D-15），之后直接用。
+  Future<String?> _backupPassphrase() async {
+    final stored = await widget.services.keyStore.read('backup_passphrase');
+    if (stored != null && stored.isNotEmpty) return stored;
+    if (!mounted) return null;
+    final pass = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('设置备份密码'),
+        content: TextField(
+          controller: _passphrase,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+              helperText: '密码存在这台 Mac 的钥匙串里；忘记密码备份无法解开'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(
+              onPressed: () =>
+                  Navigator.pop(context, _passphrase.text.trim()),
+              child: const Text('确定')),
+        ],
+      ),
+    );
+    if (pass == null || pass.isEmpty) return null;
+    await widget.services.keyStore.saveRaw('backup_passphrase', pass);
+    return pass;
+  }
 
   Future<void> _generateReport() async {
     setState(() => _generating = true);
@@ -74,6 +157,7 @@ class _MacHomePageState extends State<MacHomePage> {
         .getSingleOrNull();
     final latestReport =
         await widget.services.analysisService.latest(AnalysisKind.weeklyReview);
+    final latestBackup = await widget.services.backupService.latest();
     if (mounted) {
       setState(() {
         _messageCount = messages.where((m) => m.deletedAt == null).length;
@@ -81,6 +165,7 @@ class _MacHomePageState extends State<MacHomePage> {
         _peers = peers;
         _pullState = pull;
         _latestReport = latestReport;
+        _latestBackup = latestBackup;
       });
     }
   }
@@ -283,8 +368,59 @@ class _MacHomePageState extends State<MacHomePage> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('加密备份',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(_latestBackup == null
+                      ? '还没有备份。备份是加密整包，可以放进 iCloud 云盘目录。'
+                      : '最近备份：${_backupStatusText(_latestBackup!)}'),
+                  if (_drillResult != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(_drillResult!,
+                          style: const TextStyle(fontSize: 13)),
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      FilledButton.tonal(
+                        onPressed: _backingUp ? null : _runBackup,
+                        child: Text(_backingUp ? '进行中…' : '立即备份'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: _backingUp ||
+                                _latestBackup?.status != BackupStatus.published
+                            ? null
+                            : _runDrill,
+                        child: const Text('恢复演练'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  String _backupStatusText(BackupRun run) {
+    final t = DateTime.fromMillisecondsSinceEpoch(run.createdAt).toLocal();
+    final status = switch (run.status) {
+      BackupStatus.published => '可用',
+      BackupStatus.failed => '失败（${run.error ?? "未知"}）',
+      BackupStatus.building => '生成中',
+      BackupStatus.verifying => '校验中',
+    };
+    return '${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')} · $status';
   }
 }

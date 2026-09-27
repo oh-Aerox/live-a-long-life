@@ -17,6 +17,7 @@ import 'data/repositories/record_repository.dart';
 import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'services/analysis_service.dart';
+import 'services/backup_service.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/organize_service.dart';
@@ -70,6 +71,7 @@ class AppServices {
       records: records,
       deviceId: ctx.deviceId,
     );
+    backupService = BackupService(db: db, filesDir: filesDir);
   }
 
   final AppDatabase db;
@@ -89,6 +91,7 @@ class AppServices {
   late final SyncService syncService;
   late final AnalysisService analysisService;
   late final SuggestionService suggestionService;
+  late final BackupService backupService;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

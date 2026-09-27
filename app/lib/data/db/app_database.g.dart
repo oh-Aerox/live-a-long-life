@@ -17513,6 +17513,581 @@ class AnalysisArtifactsCompanion extends UpdateCompanion<AnalysisArtifact> {
   }
 }
 
+class $BackupRunsTable extends BackupRuns
+    with TableInfo<$BackupRunsTable, BackupRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BackupRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _backupIdMeta = const VerificationMeta(
+    'backupId',
+  );
+  @override
+  late final GeneratedColumn<String> backupId = GeneratedColumn<String>(
+    'backup_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataGenerationMeta = const VerificationMeta(
+    'dataGeneration',
+  );
+  @override
+  late final GeneratedColumn<String> dataGeneration = GeneratedColumn<String>(
+    'data_generation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cutoffSeqMeta = const VerificationMeta(
+    'cutoffSeq',
+  );
+  @override
+  late final GeneratedColumn<int> cutoffSeq = GeneratedColumn<int>(
+    'cutoff_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _manifestMeta = const VerificationMeta(
+    'manifest',
+  );
+  @override
+  late final GeneratedColumn<String> manifest = GeneratedColumn<String>(
+    'manifest',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<BackupStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<BackupStatus>($BackupRunsTable.$converterstatus);
+  static const VerificationMeta _targetPathMeta = const VerificationMeta(
+    'targetPath',
+  );
+  @override
+  late final GeneratedColumn<String> targetPath = GeneratedColumn<String>(
+    'target_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _verifiedAtMeta = const VerificationMeta(
+    'verifiedAt',
+  );
+  @override
+  late final GeneratedColumn<int> verifiedAt = GeneratedColumn<int>(
+    'verified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    backupId,
+    dataGeneration,
+    cutoffSeq,
+    manifest,
+    status,
+    targetPath,
+    verifiedAt,
+    error,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'backup_runs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BackupRun> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('backup_id')) {
+      context.handle(
+        _backupIdMeta,
+        backupId.isAcceptableOrUnknown(data['backup_id']!, _backupIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_backupIdMeta);
+    }
+    if (data.containsKey('data_generation')) {
+      context.handle(
+        _dataGenerationMeta,
+        dataGeneration.isAcceptableOrUnknown(
+          data['data_generation']!,
+          _dataGenerationMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dataGenerationMeta);
+    }
+    if (data.containsKey('cutoff_seq')) {
+      context.handle(
+        _cutoffSeqMeta,
+        cutoffSeq.isAcceptableOrUnknown(data['cutoff_seq']!, _cutoffSeqMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cutoffSeqMeta);
+    }
+    if (data.containsKey('manifest')) {
+      context.handle(
+        _manifestMeta,
+        manifest.isAcceptableOrUnknown(data['manifest']!, _manifestMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_manifestMeta);
+    }
+    if (data.containsKey('target_path')) {
+      context.handle(
+        _targetPathMeta,
+        targetPath.isAcceptableOrUnknown(data['target_path']!, _targetPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetPathMeta);
+    }
+    if (data.containsKey('verified_at')) {
+      context.handle(
+        _verifiedAtMeta,
+        verifiedAt.isAcceptableOrUnknown(data['verified_at']!, _verifiedAtMeta),
+      );
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {backupId};
+  @override
+  BackupRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BackupRun(
+      backupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}backup_id'],
+      )!,
+      dataGeneration: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data_generation'],
+      )!,
+      cutoffSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cutoff_seq'],
+      )!,
+      manifest: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}manifest'],
+      )!,
+      status: $BackupRunsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      targetPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_path'],
+      )!,
+      verifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}verified_at'],
+      ),
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BackupRunsTable createAlias(String alias) {
+    return $BackupRunsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<BackupStatus, String> $converterstatus =
+      const EnumConverter(BackupStatus.values);
+}
+
+class BackupRun extends DataClass implements Insertable<BackupRun> {
+  final String backupId;
+  final String dataGeneration;
+  final int cutoffSeq;
+  final String manifest;
+  final BackupStatus status;
+  final String targetPath;
+  final int? verifiedAt;
+  final String? error;
+  final int createdAt;
+  const BackupRun({
+    required this.backupId,
+    required this.dataGeneration,
+    required this.cutoffSeq,
+    required this.manifest,
+    required this.status,
+    required this.targetPath,
+    this.verifiedAt,
+    this.error,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['backup_id'] = Variable<String>(backupId);
+    map['data_generation'] = Variable<String>(dataGeneration);
+    map['cutoff_seq'] = Variable<int>(cutoffSeq);
+    map['manifest'] = Variable<String>(manifest);
+    {
+      map['status'] = Variable<String>(
+        $BackupRunsTable.$converterstatus.toSql(status),
+      );
+    }
+    map['target_path'] = Variable<String>(targetPath);
+    if (!nullToAbsent || verifiedAt != null) {
+      map['verified_at'] = Variable<int>(verifiedAt);
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  BackupRunsCompanion toCompanion(bool nullToAbsent) {
+    return BackupRunsCompanion(
+      backupId: Value(backupId),
+      dataGeneration: Value(dataGeneration),
+      cutoffSeq: Value(cutoffSeq),
+      manifest: Value(manifest),
+      status: Value(status),
+      targetPath: Value(targetPath),
+      verifiedAt: verifiedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(verifiedAt),
+      error: error == null && nullToAbsent
+          ? const Value.absent()
+          : Value(error),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory BackupRun.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BackupRun(
+      backupId: serializer.fromJson<String>(json['backupId']),
+      dataGeneration: serializer.fromJson<String>(json['dataGeneration']),
+      cutoffSeq: serializer.fromJson<int>(json['cutoffSeq']),
+      manifest: serializer.fromJson<String>(json['manifest']),
+      status: serializer.fromJson<BackupStatus>(json['status']),
+      targetPath: serializer.fromJson<String>(json['targetPath']),
+      verifiedAt: serializer.fromJson<int?>(json['verifiedAt']),
+      error: serializer.fromJson<String?>(json['error']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'backupId': serializer.toJson<String>(backupId),
+      'dataGeneration': serializer.toJson<String>(dataGeneration),
+      'cutoffSeq': serializer.toJson<int>(cutoffSeq),
+      'manifest': serializer.toJson<String>(manifest),
+      'status': serializer.toJson<BackupStatus>(status),
+      'targetPath': serializer.toJson<String>(targetPath),
+      'verifiedAt': serializer.toJson<int?>(verifiedAt),
+      'error': serializer.toJson<String?>(error),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  BackupRun copyWith({
+    String? backupId,
+    String? dataGeneration,
+    int? cutoffSeq,
+    String? manifest,
+    BackupStatus? status,
+    String? targetPath,
+    Value<int?> verifiedAt = const Value.absent(),
+    Value<String?> error = const Value.absent(),
+    int? createdAt,
+  }) => BackupRun(
+    backupId: backupId ?? this.backupId,
+    dataGeneration: dataGeneration ?? this.dataGeneration,
+    cutoffSeq: cutoffSeq ?? this.cutoffSeq,
+    manifest: manifest ?? this.manifest,
+    status: status ?? this.status,
+    targetPath: targetPath ?? this.targetPath,
+    verifiedAt: verifiedAt.present ? verifiedAt.value : this.verifiedAt,
+    error: error.present ? error.value : this.error,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  BackupRun copyWithCompanion(BackupRunsCompanion data) {
+    return BackupRun(
+      backupId: data.backupId.present ? data.backupId.value : this.backupId,
+      dataGeneration: data.dataGeneration.present
+          ? data.dataGeneration.value
+          : this.dataGeneration,
+      cutoffSeq: data.cutoffSeq.present ? data.cutoffSeq.value : this.cutoffSeq,
+      manifest: data.manifest.present ? data.manifest.value : this.manifest,
+      status: data.status.present ? data.status.value : this.status,
+      targetPath: data.targetPath.present
+          ? data.targetPath.value
+          : this.targetPath,
+      verifiedAt: data.verifiedAt.present
+          ? data.verifiedAt.value
+          : this.verifiedAt,
+      error: data.error.present ? data.error.value : this.error,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupRun(')
+          ..write('backupId: $backupId, ')
+          ..write('dataGeneration: $dataGeneration, ')
+          ..write('cutoffSeq: $cutoffSeq, ')
+          ..write('manifest: $manifest, ')
+          ..write('status: $status, ')
+          ..write('targetPath: $targetPath, ')
+          ..write('verifiedAt: $verifiedAt, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    backupId,
+    dataGeneration,
+    cutoffSeq,
+    manifest,
+    status,
+    targetPath,
+    verifiedAt,
+    error,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BackupRun &&
+          other.backupId == this.backupId &&
+          other.dataGeneration == this.dataGeneration &&
+          other.cutoffSeq == this.cutoffSeq &&
+          other.manifest == this.manifest &&
+          other.status == this.status &&
+          other.targetPath == this.targetPath &&
+          other.verifiedAt == this.verifiedAt &&
+          other.error == this.error &&
+          other.createdAt == this.createdAt);
+}
+
+class BackupRunsCompanion extends UpdateCompanion<BackupRun> {
+  final Value<String> backupId;
+  final Value<String> dataGeneration;
+  final Value<int> cutoffSeq;
+  final Value<String> manifest;
+  final Value<BackupStatus> status;
+  final Value<String> targetPath;
+  final Value<int?> verifiedAt;
+  final Value<String?> error;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const BackupRunsCompanion({
+    this.backupId = const Value.absent(),
+    this.dataGeneration = const Value.absent(),
+    this.cutoffSeq = const Value.absent(),
+    this.manifest = const Value.absent(),
+    this.status = const Value.absent(),
+    this.targetPath = const Value.absent(),
+    this.verifiedAt = const Value.absent(),
+    this.error = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BackupRunsCompanion.insert({
+    required String backupId,
+    required String dataGeneration,
+    required int cutoffSeq,
+    required String manifest,
+    required BackupStatus status,
+    required String targetPath,
+    this.verifiedAt = const Value.absent(),
+    this.error = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : backupId = Value(backupId),
+       dataGeneration = Value(dataGeneration),
+       cutoffSeq = Value(cutoffSeq),
+       manifest = Value(manifest),
+       status = Value(status),
+       targetPath = Value(targetPath),
+       createdAt = Value(createdAt);
+  static Insertable<BackupRun> custom({
+    Expression<String>? backupId,
+    Expression<String>? dataGeneration,
+    Expression<int>? cutoffSeq,
+    Expression<String>? manifest,
+    Expression<String>? status,
+    Expression<String>? targetPath,
+    Expression<int>? verifiedAt,
+    Expression<String>? error,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (backupId != null) 'backup_id': backupId,
+      if (dataGeneration != null) 'data_generation': dataGeneration,
+      if (cutoffSeq != null) 'cutoff_seq': cutoffSeq,
+      if (manifest != null) 'manifest': manifest,
+      if (status != null) 'status': status,
+      if (targetPath != null) 'target_path': targetPath,
+      if (verifiedAt != null) 'verified_at': verifiedAt,
+      if (error != null) 'error': error,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BackupRunsCompanion copyWith({
+    Value<String>? backupId,
+    Value<String>? dataGeneration,
+    Value<int>? cutoffSeq,
+    Value<String>? manifest,
+    Value<BackupStatus>? status,
+    Value<String>? targetPath,
+    Value<int?>? verifiedAt,
+    Value<String?>? error,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return BackupRunsCompanion(
+      backupId: backupId ?? this.backupId,
+      dataGeneration: dataGeneration ?? this.dataGeneration,
+      cutoffSeq: cutoffSeq ?? this.cutoffSeq,
+      manifest: manifest ?? this.manifest,
+      status: status ?? this.status,
+      targetPath: targetPath ?? this.targetPath,
+      verifiedAt: verifiedAt ?? this.verifiedAt,
+      error: error ?? this.error,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (backupId.present) {
+      map['backup_id'] = Variable<String>(backupId.value);
+    }
+    if (dataGeneration.present) {
+      map['data_generation'] = Variable<String>(dataGeneration.value);
+    }
+    if (cutoffSeq.present) {
+      map['cutoff_seq'] = Variable<int>(cutoffSeq.value);
+    }
+    if (manifest.present) {
+      map['manifest'] = Variable<String>(manifest.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $BackupRunsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (targetPath.present) {
+      map['target_path'] = Variable<String>(targetPath.value);
+    }
+    if (verifiedAt.present) {
+      map['verified_at'] = Variable<int>(verifiedAt.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupRunsCompanion(')
+          ..write('backupId: $backupId, ')
+          ..write('dataGeneration: $dataGeneration, ')
+          ..write('cutoffSeq: $cutoffSeq, ')
+          ..write('manifest: $manifest, ')
+          ..write('status: $status, ')
+          ..write('targetPath: $targetPath, ')
+          ..write('verifiedAt: $verifiedAt, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -17550,6 +18125,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncStatesTable syncStates = $SyncStatesTable(this);
   late final $AnalysisArtifactsTable analysisArtifacts =
       $AnalysisArtifactsTable(this);
+  late final $BackupRunsTable backupRuns = $BackupRunsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -17578,6 +18154,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     peers,
     syncStates,
     analysisArtifacts,
+    backupRuns,
   ];
 }
 
@@ -25843,6 +26420,286 @@ typedef $$AnalysisArtifactsTableProcessedTableManager =
       AnalysisArtifact,
       PrefetchHooks Function()
     >;
+typedef $$BackupRunsTableCreateCompanionBuilder =
+    BackupRunsCompanion Function({
+      required String backupId,
+      required String dataGeneration,
+      required int cutoffSeq,
+      required String manifest,
+      required BackupStatus status,
+      required String targetPath,
+      Value<int?> verifiedAt,
+      Value<String?> error,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$BackupRunsTableUpdateCompanionBuilder =
+    BackupRunsCompanion Function({
+      Value<String> backupId,
+      Value<String> dataGeneration,
+      Value<int> cutoffSeq,
+      Value<String> manifest,
+      Value<BackupStatus> status,
+      Value<String> targetPath,
+      Value<int?> verifiedAt,
+      Value<String?> error,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+class $$BackupRunsTableFilterComposer
+    extends Composer<_$AppDatabase, $BackupRunsTable> {
+  $$BackupRunsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get backupId => $composableBuilder(
+    column: $table.backupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cutoffSeq => $composableBuilder(
+    column: $table.cutoffSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get manifest => $composableBuilder(
+    column: $table.manifest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<BackupStatus, BackupStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get targetPath => $composableBuilder(
+    column: $table.targetPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get verifiedAt => $composableBuilder(
+    column: $table.verifiedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BackupRunsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BackupRunsTable> {
+  $$BackupRunsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get backupId => $composableBuilder(
+    column: $table.backupId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cutoffSeq => $composableBuilder(
+    column: $table.cutoffSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get manifest => $composableBuilder(
+    column: $table.manifest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetPath => $composableBuilder(
+    column: $table.targetPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get verifiedAt => $composableBuilder(
+    column: $table.verifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BackupRunsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BackupRunsTable> {
+  $$BackupRunsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get backupId =>
+      $composableBuilder(column: $table.backupId, builder: (column) => column);
+
+  GeneratedColumn<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get cutoffSeq =>
+      $composableBuilder(column: $table.cutoffSeq, builder: (column) => column);
+
+  GeneratedColumn<String> get manifest =>
+      $composableBuilder(column: $table.manifest, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<BackupStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get targetPath => $composableBuilder(
+    column: $table.targetPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get verifiedAt => $composableBuilder(
+    column: $table.verifiedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$BackupRunsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BackupRunsTable,
+          BackupRun,
+          $$BackupRunsTableFilterComposer,
+          $$BackupRunsTableOrderingComposer,
+          $$BackupRunsTableAnnotationComposer,
+          $$BackupRunsTableCreateCompanionBuilder,
+          $$BackupRunsTableUpdateCompanionBuilder,
+          (
+            BackupRun,
+            BaseReferences<_$AppDatabase, $BackupRunsTable, BackupRun>,
+          ),
+          BackupRun,
+          PrefetchHooks Function()
+        > {
+  $$BackupRunsTableTableManager(_$AppDatabase db, $BackupRunsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BackupRunsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BackupRunsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BackupRunsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> backupId = const Value.absent(),
+                Value<String> dataGeneration = const Value.absent(),
+                Value<int> cutoffSeq = const Value.absent(),
+                Value<String> manifest = const Value.absent(),
+                Value<BackupStatus> status = const Value.absent(),
+                Value<String> targetPath = const Value.absent(),
+                Value<int?> verifiedAt = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BackupRunsCompanion(
+                backupId: backupId,
+                dataGeneration: dataGeneration,
+                cutoffSeq: cutoffSeq,
+                manifest: manifest,
+                status: status,
+                targetPath: targetPath,
+                verifiedAt: verifiedAt,
+                error: error,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String backupId,
+                required String dataGeneration,
+                required int cutoffSeq,
+                required String manifest,
+                required BackupStatus status,
+                required String targetPath,
+                Value<int?> verifiedAt = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BackupRunsCompanion.insert(
+                backupId: backupId,
+                dataGeneration: dataGeneration,
+                cutoffSeq: cutoffSeq,
+                manifest: manifest,
+                status: status,
+                targetPath: targetPath,
+                verifiedAt: verifiedAt,
+                error: error,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BackupRunsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BackupRunsTable,
+      BackupRun,
+      $$BackupRunsTableFilterComposer,
+      $$BackupRunsTableOrderingComposer,
+      $$BackupRunsTableAnnotationComposer,
+      $$BackupRunsTableCreateCompanionBuilder,
+      $$BackupRunsTableUpdateCompanionBuilder,
+      (BackupRun, BaseReferences<_$AppDatabase, $BackupRunsTable, BackupRun>),
+      BackupRun,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -25893,4 +26750,6 @@ class $AppDatabaseManager {
       $$SyncStatesTableTableManager(_db, _db.syncStates);
   $$AnalysisArtifactsTableTableManager get analysisArtifacts =>
       $$AnalysisArtifactsTableTableManager(_db, _db.analysisArtifacts);
+  $$BackupRunsTableTableManager get backupRuns =>
+      $$BackupRunsTableTableManager(_db, _db.backupRuns);
 }

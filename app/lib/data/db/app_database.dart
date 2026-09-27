@@ -32,12 +32,13 @@ part 'app_database.g.dart';
   Peers,
   SyncStates,
   AnalysisArtifacts,
+  BackupRuns,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +77,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             // v0.3 分析结果（schema §6.1）。
             await m.createTable(analysisArtifacts);
+          }
+          if (from < 8) {
+            // v0.3 备份记录（schema §7.5，Mac 端）。
+            await m.createTable(backupRuns);
           }
         },
         beforeOpen: (details) async {
