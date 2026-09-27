@@ -13,6 +13,7 @@ import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'healthkit_spike_page.dart';
 import 'model_config_page.dart';
+import 'pair_mac_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
 
@@ -174,6 +175,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('版本'),
             trailing: Text(_version),
+          ),
+          ListTile(
+            title: const Text('连接 Mac'),
+            subtitle: const Text('扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => PairMacPage(services: widget.services)),
+            ),
           ),
           SwitchListTile(
             title: const Text('读取健康数据'),

@@ -29,12 +29,13 @@ part 'app_database.g.dart';
   ReviewPrompts,
   CorrectionSuggestions,
   ChangeLogs,
+  Peers,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +62,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             // v0.3 同步的变更日志（schema §7.2）。
             await m.createTable(changeLogs);
+          }
+          if (from < 5) {
+            // v0.3 配对设备（schema §7.1）。
+            await m.createTable(peers);
           }
         },
         beforeOpen: (details) async {

@@ -368,6 +368,20 @@ class CorrectionSuggestions extends Table with CommonColumns {
       text().map(const EnumConverter(SuggestionStatus.values))();
 }
 
+/// schema.md §7.1：已配对设备。`cert_fingerprint` 是配对密钥的
+/// SHA-256 指纹（配对时固定，D-13）；密钥本体存系统安全存储。
+class Peers extends Table {
+  TextColumn get peerDeviceId => text()();
+  TextColumn get displayName => text()();
+  TextColumn get certFingerprint => text()();
+  IntColumn get pairedAt => integer()();
+  TextColumn get lastSeenAddr => text().nullable()();
+  IntColumn get revokedAt => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {peerDeviceId};
+}
+
 /// schema.md §7.2：变更日志。本设备本代次内 change_seq 单调递增无空洞；
 /// payload 是变更同一事务里的行快照（负载与 entity_version 一致）。
 /// 只记本机产生的业务变更；接收对方变更不回传（D-13）。

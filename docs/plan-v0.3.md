@@ -22,7 +22,7 @@ v0.3 做三件事：**手机数据自动同到 Mac 保存完整副本；Mac 用�
 | Mac 常驻菜单栏 | tray_manager + window_manager | 先小样验证；不行换 system_tray 或推迟到窗口应用可用之后 |
 | 局域网发现 | bonsoir（Bonjour/mDNS）| 候选；不行退回手机扫码里带 IP 直连 |
 | 配对 | Mac 显示二维码（含设备 ID、地址、公钥指纹），手机 mobile_scanner 扫码 | D-13 |
-| 传输通道 | 本机 HTTP（shelf）+ 配对时交换的密钥做双向认证与内容加密 | 具体加密方案实施 V3-M2 时定案并记录（自签 TLS 证书固定 vs 应用层加密）|
+| 传输通道 | **已定案（2026-09-27 V3-M2）：** 本机 HTTP（dart:io）+ 应用层 AES-256-GCM。配对二维码只出现在用户自己的 Mac 屏幕上，本身是带外安全信道，直接携带 32 字节对称密钥；此后所有消息 AES-GCM 加密，AAD 绑定发送方设备 ID 与时间戳（AEAD 一体完成加密与双向认证），时间戳窗口 ±5 分钟 + nonce 缓存挡重放。peers.cert_fingerprint 存密钥 SHA-256 指纹，密钥本体在系统安全存储。放弃自签 TLS：Dart 侧生成/固定 X.509 证书链复杂度高，收益无差别 |
 | 变更传输 | 按 change_seq 逐条发送逐条确认，连续游标推进（schema §7.2/§7.3，第一版不合并）| |
 | 附件 | 先报 sha256，对方缺才传，校验后确认；depends_on_blob 完成前变更不确认 | schema §7.4 |
 | macOS 上的插件 | 手机专属插件（health、image_picker、通知等）按平台隔离，Mac 主入口不初始化 | |
@@ -51,7 +51,7 @@ v0.3 做三件事：**手机数据自动同到 Mac 保存完整副本；Mac 用�
 |---|---|---|
 | [x] | V3-M0 Mac 端跑通与平台分流 | 2026-09-27：macOS 部署目标 10.15→12.0（Xcode 27 要求，Podfile post_install 统一抬高，同 iOS M0 教训）；main 按平台分流，Mac 不初始化手机专属插件；Mac 主页（副本概览 + 配对/周报占位）；本机构建运行稳定。菜单栏常驻小样推迟到 V3-M3（有接收功能后常驻才有意义）|
 | [x] | V3-M1 变更日志（手机侧数据层）| 2026-09-27：change_logs 建表（迁移 v4），payload 行快照保证负载与 entity_version 一致（Codex 7_reply，schema §7.2 已注明）；代次存 settings.data_generation，不随导出走，恢复后首次写入生成新代次；埋点覆盖消息/修订/附件身份（带 depends_on_blob）/关联/资料/记录/版本/来源/批次/逐项/调用记录/健康样本与日聚合/修正建议；副本状态、回顾记账、organize_state 单独变化不入日志（§7.2 注明）；实体通用 change_seq 回写。5 个新单测（无空洞递增、快照版本一致、delete 操作、代次更换），全套 95 个通过 |
-| [ ] | V3-M2 配对与加密通道 | |
+| [x] | V3-M2 配对与加密通道 | 2026-09-27：peers 建表（迁移 v5）+ 仓库；SecureChannel（AES-256-GCM、AAD 绑身份、防重放）；Mac 端 SyncServer（/pair 一次性配对窗口、/ping 认证检查、无密钥一律拒绝）+ 主页二维码卡片（qr_flutter）；手机端 SyncClient + 扫码页（mobile_scanner，设置 → 连接 Mac）。回环网络下双端配对/指纹一致/拒绝陌生设备 6 个单测。真机扫码配对等下次连手机（iOS 构建也顺延）|
 | [ ] | V3-M3 增量同步 | |
 | [ ] | V3-M4 Mac 查看与同步状态页 | |
 | [ ] | V3-M5 周报分析与修正建议回传 | |

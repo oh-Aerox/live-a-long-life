@@ -14,6 +14,9 @@ PODS:
   - flutter_timezone (0.1.0):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
+  - mobile_scanner (7.0.0):
+    - Flutter
+    - FlutterMacOS
   - package_info_plus (0.0.1):
     - FlutterMacOS
 
@@ -25,6 +28,7 @@ DEPENDENCIES:
   - flutter_secure_storage_darwin (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - flutter_timezone (from `Flutter/ephemeral/.symlinks/plugins/flutter_timezone/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - mobile_scanner (from `Flutter/ephemeral/.symlinks/plugins/mobile_scanner/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
 
 EXTERNAL SOURCES:
@@ -42,6 +46,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_timezone/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
+  mobile_scanner:
+    :path: Flutter/ephemeral/.symlinks/plugins/mobile_scanner/darwin
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
 
@@ -53,6 +59,7 @@ SPEC CHECKSUMS:
   flutter_secure_storage_darwin: 46e401699982ee74142909676535e0f6a7321e58
   flutter_timezone: d272288c69082ad571630e0d17140b3d6b93dc0c
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
 
 PODFILE CHECKSUM: 3f9f431a23589ea43dff88b6ecb17bdf3286addc

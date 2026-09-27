@@ -15506,6 +15506,448 @@ class ChangeLogsCompanion extends UpdateCompanion<ChangeLog> {
   }
 }
 
+class $PeersTable extends Peers with TableInfo<$PeersTable, Peer> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PeersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerDeviceIdMeta = const VerificationMeta(
+    'peerDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> peerDeviceId = GeneratedColumn<String>(
+    'peer_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _certFingerprintMeta = const VerificationMeta(
+    'certFingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> certFingerprint = GeneratedColumn<String>(
+    'cert_fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pairedAtMeta = const VerificationMeta(
+    'pairedAt',
+  );
+  @override
+  late final GeneratedColumn<int> pairedAt = GeneratedColumn<int>(
+    'paired_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastSeenAddrMeta = const VerificationMeta(
+    'lastSeenAddr',
+  );
+  @override
+  late final GeneratedColumn<String> lastSeenAddr = GeneratedColumn<String>(
+    'last_seen_addr',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revokedAtMeta = const VerificationMeta(
+    'revokedAt',
+  );
+  @override
+  late final GeneratedColumn<int> revokedAt = GeneratedColumn<int>(
+    'revoked_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    peerDeviceId,
+    displayName,
+    certFingerprint,
+    pairedAt,
+    lastSeenAddr,
+    revokedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Peer> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_device_id')) {
+      context.handle(
+        _peerDeviceIdMeta,
+        peerDeviceId.isAcceptableOrUnknown(
+          data['peer_device_id']!,
+          _peerDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_peerDeviceIdMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('cert_fingerprint')) {
+      context.handle(
+        _certFingerprintMeta,
+        certFingerprint.isAcceptableOrUnknown(
+          data['cert_fingerprint']!,
+          _certFingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_certFingerprintMeta);
+    }
+    if (data.containsKey('paired_at')) {
+      context.handle(
+        _pairedAtMeta,
+        pairedAt.isAcceptableOrUnknown(data['paired_at']!, _pairedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pairedAtMeta);
+    }
+    if (data.containsKey('last_seen_addr')) {
+      context.handle(
+        _lastSeenAddrMeta,
+        lastSeenAddr.isAcceptableOrUnknown(
+          data['last_seen_addr']!,
+          _lastSeenAddrMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revoked_at')) {
+      context.handle(
+        _revokedAtMeta,
+        revokedAt.isAcceptableOrUnknown(data['revoked_at']!, _revokedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerDeviceId};
+  @override
+  Peer map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Peer(
+      peerDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_device_id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      certFingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cert_fingerprint'],
+      )!,
+      pairedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}paired_at'],
+      )!,
+      lastSeenAddr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_seen_addr'],
+      ),
+      revokedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revoked_at'],
+      ),
+    );
+  }
+
+  @override
+  $PeersTable createAlias(String alias) {
+    return $PeersTable(attachedDatabase, alias);
+  }
+}
+
+class Peer extends DataClass implements Insertable<Peer> {
+  final String peerDeviceId;
+  final String displayName;
+  final String certFingerprint;
+  final int pairedAt;
+  final String? lastSeenAddr;
+  final int? revokedAt;
+  const Peer({
+    required this.peerDeviceId,
+    required this.displayName,
+    required this.certFingerprint,
+    required this.pairedAt,
+    this.lastSeenAddr,
+    this.revokedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_device_id'] = Variable<String>(peerDeviceId);
+    map['display_name'] = Variable<String>(displayName);
+    map['cert_fingerprint'] = Variable<String>(certFingerprint);
+    map['paired_at'] = Variable<int>(pairedAt);
+    if (!nullToAbsent || lastSeenAddr != null) {
+      map['last_seen_addr'] = Variable<String>(lastSeenAddr);
+    }
+    if (!nullToAbsent || revokedAt != null) {
+      map['revoked_at'] = Variable<int>(revokedAt);
+    }
+    return map;
+  }
+
+  PeersCompanion toCompanion(bool nullToAbsent) {
+    return PeersCompanion(
+      peerDeviceId: Value(peerDeviceId),
+      displayName: Value(displayName),
+      certFingerprint: Value(certFingerprint),
+      pairedAt: Value(pairedAt),
+      lastSeenAddr: lastSeenAddr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenAddr),
+      revokedAt: revokedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(revokedAt),
+    );
+  }
+
+  factory Peer.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Peer(
+      peerDeviceId: serializer.fromJson<String>(json['peerDeviceId']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      certFingerprint: serializer.fromJson<String>(json['certFingerprint']),
+      pairedAt: serializer.fromJson<int>(json['pairedAt']),
+      lastSeenAddr: serializer.fromJson<String?>(json['lastSeenAddr']),
+      revokedAt: serializer.fromJson<int?>(json['revokedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerDeviceId': serializer.toJson<String>(peerDeviceId),
+      'displayName': serializer.toJson<String>(displayName),
+      'certFingerprint': serializer.toJson<String>(certFingerprint),
+      'pairedAt': serializer.toJson<int>(pairedAt),
+      'lastSeenAddr': serializer.toJson<String?>(lastSeenAddr),
+      'revokedAt': serializer.toJson<int?>(revokedAt),
+    };
+  }
+
+  Peer copyWith({
+    String? peerDeviceId,
+    String? displayName,
+    String? certFingerprint,
+    int? pairedAt,
+    Value<String?> lastSeenAddr = const Value.absent(),
+    Value<int?> revokedAt = const Value.absent(),
+  }) => Peer(
+    peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+    displayName: displayName ?? this.displayName,
+    certFingerprint: certFingerprint ?? this.certFingerprint,
+    pairedAt: pairedAt ?? this.pairedAt,
+    lastSeenAddr: lastSeenAddr.present ? lastSeenAddr.value : this.lastSeenAddr,
+    revokedAt: revokedAt.present ? revokedAt.value : this.revokedAt,
+  );
+  Peer copyWithCompanion(PeersCompanion data) {
+    return Peer(
+      peerDeviceId: data.peerDeviceId.present
+          ? data.peerDeviceId.value
+          : this.peerDeviceId,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      certFingerprint: data.certFingerprint.present
+          ? data.certFingerprint.value
+          : this.certFingerprint,
+      pairedAt: data.pairedAt.present ? data.pairedAt.value : this.pairedAt,
+      lastSeenAddr: data.lastSeenAddr.present
+          ? data.lastSeenAddr.value
+          : this.lastSeenAddr,
+      revokedAt: data.revokedAt.present ? data.revokedAt.value : this.revokedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Peer(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('displayName: $displayName, ')
+          ..write('certFingerprint: $certFingerprint, ')
+          ..write('pairedAt: $pairedAt, ')
+          ..write('lastSeenAddr: $lastSeenAddr, ')
+          ..write('revokedAt: $revokedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    peerDeviceId,
+    displayName,
+    certFingerprint,
+    pairedAt,
+    lastSeenAddr,
+    revokedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Peer &&
+          other.peerDeviceId == this.peerDeviceId &&
+          other.displayName == this.displayName &&
+          other.certFingerprint == this.certFingerprint &&
+          other.pairedAt == this.pairedAt &&
+          other.lastSeenAddr == this.lastSeenAddr &&
+          other.revokedAt == this.revokedAt);
+}
+
+class PeersCompanion extends UpdateCompanion<Peer> {
+  final Value<String> peerDeviceId;
+  final Value<String> displayName;
+  final Value<String> certFingerprint;
+  final Value<int> pairedAt;
+  final Value<String?> lastSeenAddr;
+  final Value<int?> revokedAt;
+  final Value<int> rowid;
+  const PeersCompanion({
+    this.peerDeviceId = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.certFingerprint = const Value.absent(),
+    this.pairedAt = const Value.absent(),
+    this.lastSeenAddr = const Value.absent(),
+    this.revokedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PeersCompanion.insert({
+    required String peerDeviceId,
+    required String displayName,
+    required String certFingerprint,
+    required int pairedAt,
+    this.lastSeenAddr = const Value.absent(),
+    this.revokedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : peerDeviceId = Value(peerDeviceId),
+       displayName = Value(displayName),
+       certFingerprint = Value(certFingerprint),
+       pairedAt = Value(pairedAt);
+  static Insertable<Peer> custom({
+    Expression<String>? peerDeviceId,
+    Expression<String>? displayName,
+    Expression<String>? certFingerprint,
+    Expression<int>? pairedAt,
+    Expression<String>? lastSeenAddr,
+    Expression<int>? revokedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerDeviceId != null) 'peer_device_id': peerDeviceId,
+      if (displayName != null) 'display_name': displayName,
+      if (certFingerprint != null) 'cert_fingerprint': certFingerprint,
+      if (pairedAt != null) 'paired_at': pairedAt,
+      if (lastSeenAddr != null) 'last_seen_addr': lastSeenAddr,
+      if (revokedAt != null) 'revoked_at': revokedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PeersCompanion copyWith({
+    Value<String>? peerDeviceId,
+    Value<String>? displayName,
+    Value<String>? certFingerprint,
+    Value<int>? pairedAt,
+    Value<String?>? lastSeenAddr,
+    Value<int?>? revokedAt,
+    Value<int>? rowid,
+  }) {
+    return PeersCompanion(
+      peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+      displayName: displayName ?? this.displayName,
+      certFingerprint: certFingerprint ?? this.certFingerprint,
+      pairedAt: pairedAt ?? this.pairedAt,
+      lastSeenAddr: lastSeenAddr ?? this.lastSeenAddr,
+      revokedAt: revokedAt ?? this.revokedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerDeviceId.present) {
+      map['peer_device_id'] = Variable<String>(peerDeviceId.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (certFingerprint.present) {
+      map['cert_fingerprint'] = Variable<String>(certFingerprint.value);
+    }
+    if (pairedAt.present) {
+      map['paired_at'] = Variable<int>(pairedAt.value);
+    }
+    if (lastSeenAddr.present) {
+      map['last_seen_addr'] = Variable<String>(lastSeenAddr.value);
+    }
+    if (revokedAt.present) {
+      map['revoked_at'] = Variable<int>(revokedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeersCompanion(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('displayName: $displayName, ')
+          ..write('certFingerprint: $certFingerprint, ')
+          ..write('pairedAt: $pairedAt, ')
+          ..write('lastSeenAddr: $lastSeenAddr, ')
+          ..write('revokedAt: $revokedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -15539,6 +15981,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CorrectionSuggestionsTable correctionSuggestions =
       $CorrectionSuggestionsTable(this);
   late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
+  late final $PeersTable peers = $PeersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -15564,6 +16007,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewPrompts,
     correctionSuggestions,
     changeLogs,
+    peers,
   ];
 }
 
@@ -22869,6 +23313,226 @@ typedef $$ChangeLogsTableProcessedTableManager =
       ChangeLog,
       PrefetchHooks Function()
     >;
+typedef $$PeersTableCreateCompanionBuilder =
+    PeersCompanion Function({
+      required String peerDeviceId,
+      required String displayName,
+      required String certFingerprint,
+      required int pairedAt,
+      Value<String?> lastSeenAddr,
+      Value<int?> revokedAt,
+      Value<int> rowid,
+    });
+typedef $$PeersTableUpdateCompanionBuilder =
+    PeersCompanion Function({
+      Value<String> peerDeviceId,
+      Value<String> displayName,
+      Value<String> certFingerprint,
+      Value<int> pairedAt,
+      Value<String?> lastSeenAddr,
+      Value<int?> revokedAt,
+      Value<int> rowid,
+    });
+
+class $$PeersTableFilterComposer extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get certFingerprint => $composableBuilder(
+    column: $table.certFingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pairedAt => $composableBuilder(
+    column: $table.pairedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSeenAddr => $composableBuilder(
+    column: $table.lastSeenAddr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revokedAt => $composableBuilder(
+    column: $table.revokedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PeersTableOrderingComposer
+    extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get certFingerprint => $composableBuilder(
+    column: $table.certFingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pairedAt => $composableBuilder(
+    column: $table.pairedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSeenAddr => $composableBuilder(
+    column: $table.lastSeenAddr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revokedAt => $composableBuilder(
+    column: $table.revokedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PeersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get certFingerprint => $composableBuilder(
+    column: $table.certFingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get pairedAt =>
+      $composableBuilder(column: $table.pairedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get lastSeenAddr => $composableBuilder(
+    column: $table.lastSeenAddr,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get revokedAt =>
+      $composableBuilder(column: $table.revokedAt, builder: (column) => column);
+}
+
+class $$PeersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PeersTable,
+          Peer,
+          $$PeersTableFilterComposer,
+          $$PeersTableOrderingComposer,
+          $$PeersTableAnnotationComposer,
+          $$PeersTableCreateCompanionBuilder,
+          $$PeersTableUpdateCompanionBuilder,
+          (Peer, BaseReferences<_$AppDatabase, $PeersTable, Peer>),
+          Peer,
+          PrefetchHooks Function()
+        > {
+  $$PeersTableTableManager(_$AppDatabase db, $PeersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PeersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PeersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PeersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerDeviceId = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> certFingerprint = const Value.absent(),
+                Value<int> pairedAt = const Value.absent(),
+                Value<String?> lastSeenAddr = const Value.absent(),
+                Value<int?> revokedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeersCompanion(
+                peerDeviceId: peerDeviceId,
+                displayName: displayName,
+                certFingerprint: certFingerprint,
+                pairedAt: pairedAt,
+                lastSeenAddr: lastSeenAddr,
+                revokedAt: revokedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerDeviceId,
+                required String displayName,
+                required String certFingerprint,
+                required int pairedAt,
+                Value<String?> lastSeenAddr = const Value.absent(),
+                Value<int?> revokedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeersCompanion.insert(
+                peerDeviceId: peerDeviceId,
+                displayName: displayName,
+                certFingerprint: certFingerprint,
+                pairedAt: pairedAt,
+                lastSeenAddr: lastSeenAddr,
+                revokedAt: revokedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PeersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PeersTable,
+      Peer,
+      $$PeersTableFilterComposer,
+      $$PeersTableOrderingComposer,
+      $$PeersTableAnnotationComposer,
+      $$PeersTableCreateCompanionBuilder,
+      $$PeersTableUpdateCompanionBuilder,
+      (Peer, BaseReferences<_$AppDatabase, $PeersTable, Peer>),
+      Peer,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -22913,4 +23577,6 @@ class $AppDatabaseManager {
       $$CorrectionSuggestionsTableTableManager(_db, _db.correctionSuggestions);
   $$ChangeLogsTableTableManager get changeLogs =>
       $$ChangeLogsTableTableManager(_db, _db.changeLogs);
+  $$PeersTableTableManager get peers =>
+      $$PeersTableTableManager(_db, _db.peers);
 }

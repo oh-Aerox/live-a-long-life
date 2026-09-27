@@ -19,6 +19,10 @@ class KeyStore {
 
   Future<String?> read(String keychainRef) => _storage.read(key: keychainRef);
 
+  /// 按显式引用名保存（同步配对密钥等非模型 key 的场景）。
+  Future<void> saveRaw(String keychainRef, String value) =>
+      _storage.write(key: keychainRef, value: value);
+
   Future<void> delete(String keychainRef) =>
       _storage.delete(key: keychainRef);
 }
