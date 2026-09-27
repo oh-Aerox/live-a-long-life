@@ -32,9 +32,12 @@ void main() {
   group('ModelClient · openai_compatible 协议', () {
     late HttpServer server;
     late List<({String path, String auth, Map<String, Object?> body})> seen;
+    // 为真时拒绝多模态输入（content 是数组的请求），模拟纯文本模型。
+    var rejectImages = false;
 
     setUp(() async {
       seen = [];
+      rejectImages = false;
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((req) async {
         final body = jsonDecode(await utf8.decoder.bind(req).join())
@@ -44,10 +47,16 @@ void main() {
           auth: req.headers.value('authorization') ?? '',
           body: body,
         ));
+        final content =
+            ((body['messages'] as List).first as Map)['content'];
         if (req.headers.value('authorization') != 'Bearer good-key') {
           req.response.statusCode = 401;
           req.response
               .write(jsonEncode({'error': {'message': 'invalid api key'}}));
+        } else if (rejectImages && content is List) {
+          req.response.statusCode = 400;
+          req.response.write(
+              jsonEncode({'error': {'message': 'image input not supported'}}));
         } else {
           req.response.write(jsonEncode({
             'choices': [
@@ -93,18 +102,32 @@ void main() {
       );
     });
 
-    test('testConnection 成功时返回 text 能力，失败时不抛异常', () async {
+    test('testConnection：接受图片的服务标 text+image，失败时不抛异常', () async {
       final cfg = _config(
           protocol: ModelProtocol.openaiCompatible, baseUrl: base());
       final ok =
           await ModelClient().testConnection(config: cfg, apiKey: 'good-key');
       expect(ok.ok, isTrue);
-      expect(ok.capabilities, ['text']);
+      expect(ok.capabilities, ['text', 'image']);
+      expect(ok.message, contains('支持图片'));
+      // 两个请求：文本 + 图片探测。
+      expect(seen, hasLength(2));
 
       final fail =
           await ModelClient().testConnection(config: cfg, apiKey: 'bad-key');
       expect(fail.ok, isFalse);
       expect(fail.message, contains('key 无效'));
+    });
+
+    test('testConnection：拒绝图片输入的纯文本模型只标 text（如 kimi）', () async {
+      rejectImages = true;
+      final cfg = _config(
+          protocol: ModelProtocol.openaiCompatible, baseUrl: base());
+      final result =
+          await ModelClient().testConnection(config: cfg, apiKey: 'good-key');
+      expect(result.ok, isTrue);
+      expect(result.capabilities, ['text']);
+      expect(result.message, contains('仅文本'));
     });
 
     test('服务不可达：可重试的网络错误（A-11 排队场景）', () async {

@@ -73,7 +73,14 @@ class ModelClient {
     }
   }
 
-  /// 测试连接：发一条最小消息，验证地址、key 和模型名。
+  /// 1×1 透明 PNG，用于探测图片能力。
+  static const _probePng =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
+      'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  /// 测试连接：先发最小文本验证地址、key 和模型名；成功后再带一张
+  /// 1×1 图片探测视觉能力（schema §4.3：capabilities 由测试结果写入）。
+  /// 图片被拒绝不算失败，只是不标 image 能力。
   Future<TestConnectionResult> testConnection({
     required ModelConfig config,
     required String apiKey,
@@ -85,10 +92,74 @@ class ModelClient {
         userText: '收到请回复"OK"',
         maxTokens: 16,
       );
-      return TestConnectionResult(
-          ok: true, message: '连接成功', capabilities: ['text']);
     } on ModelClientException catch (e) {
       return TestConnectionResult(ok: false, message: e.message);
+    }
+    var supportsImage = false;
+    try {
+      await _probeImage(config, apiKey);
+      supportsImage = true;
+    } on ModelClientException {
+      // 服务拒绝图片输入：仅文本模型。
+    }
+    return TestConnectionResult(
+      ok: true,
+      message: supportsImage ? '连接成功（支持图片）' : '连接成功（仅文本）',
+      capabilities: ['text', if (supportsImage) 'image'],
+    );
+  }
+
+  Future<void> _probeImage(ModelConfig config, String apiKey) async {
+    switch (config.protocol) {
+      case ModelProtocol.openaiCompatible:
+        await _post(
+          _join(config.baseUrl, '/chat/completions'),
+          headers: {'Authorization': 'Bearer $apiKey'},
+          body: {
+            'model': config.model,
+            'max_tokens': 16,
+            'messages': [
+              {
+                'role': 'user',
+                'content': [
+                  {'type': 'text', 'text': '这是图片能力测试，回复"OK"'},
+                  {
+                    'type': 'image_url',
+                    'image_url': {'url': 'data:image/png;base64,$_probePng'},
+                  },
+                ],
+              },
+            ],
+          },
+        );
+      case ModelProtocol.anthropic:
+        await _post(
+          _join(config.baseUrl, '/v1/messages'),
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': anthropicVersion,
+          },
+          body: {
+            'model': config.model,
+            'max_tokens': 16,
+            'messages': [
+              {
+                'role': 'user',
+                'content': [
+                  {
+                    'type': 'image',
+                    'source': {
+                      'type': 'base64',
+                      'media_type': 'image/png',
+                      'data': _probePng,
+                    },
+                  },
+                  {'type': 'text', 'text': '这是图片能力测试，回复"OK"'},
+                ],
+              },
+            ],
+          },
+        );
     }
   }
 

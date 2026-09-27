@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -13,6 +14,13 @@ const _boundaryLabels = {
   DataBoundary.lan: '局域网',
   DataBoundary.cloud: '云端',
 };
+
+/// 已探测的能力标签（schema §4.3，由测试连接写入）。
+String _capabilityLabel(ModelConfig c) {
+  final caps = (jsonDecode(c.capabilities) as List).cast<String>();
+  if (caps.isEmpty) return '能力未探测';
+  return caps.contains('image') ? '文本+图片' : '仅文本';
+}
 
 /// 模型配置列表（product-spec §4、D-16）。
 class ModelConfigPage extends StatefulWidget {
@@ -65,7 +73,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
               title: Text(
                   '${ModelPresetDefaults.byPreset[c.preset]?.label ?? c.preset.name} · ${c.model}'),
               subtitle: Text(
-                  '${_boundaryLabels[c.dataBoundary]} · ${c.lastTestResult ?? "未测试"}'),
+                  '${_boundaryLabels[c.dataBoundary]} · ${_capabilityLabel(c)} · ${c.lastTestResult ?? "未测试"}'),
               leading: c.isDefault
                   ? const Icon(Icons.check_circle, color: Colors.green)
                   : const Icon(Icons.circle_outlined),
