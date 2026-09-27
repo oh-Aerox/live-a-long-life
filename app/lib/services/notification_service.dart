@@ -12,6 +12,10 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   var _initialized = false;
 
+  /// 点开回顾通知时的动作（V2-M5：进入带提问的对话流）。
+  /// init 之后由 main 赋值。
+  void Function()? onReviewTap;
+
   Future<void> init(String ianaTz) async {
     tzdata.initializeTimeZones();
     try {
@@ -29,8 +33,15 @@ class NotificationService {
         ),
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
+      onDidReceiveNotificationResponse: (_) => onReviewTap?.call(),
     );
     _initialized = true;
+  }
+
+  /// 应用是不是由点通知冷启动的（此时 onDidReceive 不会回调）。
+  Future<bool> launchedFromNotification() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    return details?.didNotificationLaunchApp ?? false;
   }
 
   Future<bool> requestPermission() async {

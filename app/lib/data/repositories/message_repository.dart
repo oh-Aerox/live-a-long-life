@@ -159,4 +159,9 @@ class MessageRepository {
   Future<void> setOrganizeState(String messageId, OrganizeState state) =>
       (_db.update(_db.messages)..where((t) => t.id.equals(messageId)))
           .write(MessagesCompanion(organizeState: Value(state)));
+
+  /// 写入应用消息的元数据（回顾提问的记账行引用等，schema §2.1 prompt_meta）。
+  Future<void> setPromptMeta(String messageId, String promptMeta) =>
+      (_db.update(_db.messages)..where((t) => t.id.equals(messageId)))
+          .write(MessagesCompanion(promptMeta: Value(promptMeta)));
 }

@@ -56,6 +56,10 @@ class ReviewPromptRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
           .get();
 
+  Future<ReviewPrompt?> byId(String promptId) =>
+      (_db.select(_db.reviewPrompts)..where((t) => t.id.equals(promptId)))
+          .getSingleOrNull();
+
   /// 某天某缺口是否已经问过。
   Future<bool> askedToday(String reviewDate, String gapKey) async {
     final row = await (_db.select(_db.reviewPrompts)

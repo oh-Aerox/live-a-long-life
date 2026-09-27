@@ -6,6 +6,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'app_services.dart';
 import 'services/health_service.dart';
 import 'services/notification_service.dart';
+import 'services/review_service.dart';
 import 'ui/chat_page.dart';
 import 'ui/onboarding_page.dart';
 
@@ -46,6 +47,21 @@ Future<void> main() async {
   if (await services.settings.get('healthkit_sync_enabled') as bool? ??
       false) {
     unawaited(services.healthService.syncNow());
+  }
+
+  // 每日回顾（V2-M5）：点开通知进入带提问的对话流，只问缺的。
+  services.reviewService = ReviewService(
+    messages: services.messages,
+    records: services.records,
+    prompts: services.reviewPrompts,
+    deviceData: services.healthService.dayData,
+    organize: services.organizeService,
+    tz: tz,
+  );
+  notifications.onReviewTap =
+      () => unawaited(services.reviewService.runReview());
+  if (await notifications.launchedFromNotification()) {
+    unawaited(services.reviewService.runReview());
   }
 
   runApp(App(

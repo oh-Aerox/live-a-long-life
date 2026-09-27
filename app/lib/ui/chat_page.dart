@@ -445,20 +445,47 @@ class _ChatPageState extends State<ChatPage> {
     }
     // "已记到 X月X日"等提示：点开对应记录（A-23 歧义核对入口）。
     final recordId = _noticeRecordId(m);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: recordId == null
-          ? withState
-          : GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        RecordDetailPage(services: _s, recordId: recordId)),
-              ),
-              child: withState,
-            ),
-    );
+    if (recordId != null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) =>
+                    RecordDetailPage(services: _s, recordId: recordId)),
+          ),
+          child: withState,
+        ),
+      );
+    }
+    // 回顾提问：带"跳过"（跳过的问题当天不再出现，A-32）。
+    final promptRowId = _reviewPromptRowId(m);
+    if (promptRowId != null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            withState,
+            _ReviewPromptSkip(services: _s, promptRowId: promptRowId),
+          ],
+        ),
+      );
+    }
+    return Align(alignment: Alignment.centerLeft, child: withState);
+  }
+
+  String? _reviewPromptRowId(Message m) {
+    if (m.kind != MessageKind.appPrompt || m.promptMeta == null) return null;
+    try {
+      final meta = jsonDecode(m.promptMeta!) as Map;
+      if (meta['kind'] != 'review_prompt') return null;
+      return meta['prompt_row_id'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   String? _noticeRecordId(Message m) {
@@ -844,6 +871,61 @@ class _ImageViewerPage extends StatelessWidget {
             child: Center(child: Image.file(File(path))),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 回顾提问下的"跳过"：跳过后当天不再问这个缺口（A-32）。
+class _ReviewPromptSkip extends StatefulWidget {
+  const _ReviewPromptSkip({required this.services, required this.promptRowId});
+
+  final AppServices services;
+  final String promptRowId;
+
+  @override
+  State<_ReviewPromptSkip> createState() => _ReviewPromptSkipState();
+}
+
+class _ReviewPromptSkipState extends State<_ReviewPromptSkip> {
+  ReviewOutcome? _outcome;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.services.reviewPrompts.byId(widget.promptRowId).then((row) {
+      if (mounted) {
+        setState(() {
+          _outcome = row?.outcome;
+          _loaded = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) return const SizedBox.shrink();
+    if (_outcome == ReviewOutcome.skipped) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 16, bottom: 4),
+        child: Text('已跳过', style: TextStyle(fontSize: 11, color: Colors.grey)),
+      );
+    }
+    if (_outcome != null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: TextButton(
+        style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
+        onPressed: () async {
+          await widget.services.reviewPrompts
+              .markOutcome(widget.promptRowId, ReviewOutcome.skipped);
+          if (mounted) setState(() => _outcome = ReviewOutcome.skipped);
+        },
+        child: const Text('跳过', style: TextStyle(fontSize: 12)),
       ),
     );
   }

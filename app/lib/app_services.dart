@@ -13,10 +13,12 @@ import 'data/repositories/health_repository.dart';
 import 'data/repositories/organize_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/record_repository.dart';
+import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/organize_service.dart';
+import 'services/review_service.dart';
 
 /// 应用级服务：数据库与各仓库。
 /// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
@@ -61,9 +63,12 @@ class AppServices {
   late final OrganizeService organizeService;
 
   final HealthRepository health;
+  late final ReviewPromptRepository reviewPrompts =
+      ReviewPromptRepository(db, ctx);
 
   /// 依赖启动时检测的时区，在 main 里赋值。
   late final HealthService healthService;
+  late final ReviewService reviewService;
 
   static Future<AppServices> init() async {
     final support = await getApplicationSupportDirectory();
