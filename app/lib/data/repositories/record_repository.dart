@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../field_meta.dart';
 import '../ids.dart';
@@ -86,6 +87,8 @@ class RecordRepository {
         sources: sources,
         now: now,
       );
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'records', entityId: rid);
       return (_db.select(_db.records)..where((t) => t.id.equals(rid)))
           .getSingle();
     });
@@ -133,6 +136,8 @@ class RecordRepository {
         localDate: Value(occurred.localDate),
         version: Value(newVersion),
       ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'records', entityId: recordId);
       return updated.single;
     });
   }
@@ -164,9 +169,14 @@ class RecordRepository {
           producedBy: producedBy.encode(),
           fieldMeta: fieldMeta.encode(),
         ));
+    await _db.logChange(
+        deviceId: _ctx.deviceId,
+        table: 'record_revisions',
+        entityId: revisionId);
     for (final s in sources) {
+      final sourceRowId = ids.newId();
       await _db.into(_db.recordSources).insert(RecordSourcesCompanion.insert(
-            id: ids.newId(),
+            id: sourceRowId,
             userId: _ctx.userId,
             createdAt: now,
             createdOnDevice: _ctx.deviceId,
@@ -177,7 +187,13 @@ class RecordRepository {
             messageRevisionNo: Value(s.messageRevisionNo),
             span: Value(s.span),
           ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'record_sources',
+          entityId: sourceRowId);
     }
+    // 记录行自身由调用方在其最终状态落定后记（addRevision 的行更新
+    // 发生在本方法之后，这里拍快照会拿到旧版本）。
   }
 
   /// 标记删除，`version` 加 1（schema §1.1）。
@@ -193,6 +209,11 @@ class RecordRepository {
         deletedAt: Value(ids.nowMs()),
         version: Value(rec.version + 1),
       ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'records',
+          entityId: recordId,
+          op: ChangeOp.delete);
       return updated.single;
     });
   }

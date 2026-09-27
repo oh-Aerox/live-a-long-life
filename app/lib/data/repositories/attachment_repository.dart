@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../ids.dart';
 
@@ -116,6 +117,12 @@ class AttachmentRepository {
               verifiedAt: Value(now),
             ),
           );
+      // 附件身份入变更日志；文件本体依赖 sha 确认（副本状态独立通告，§7.2）。
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'attachments',
+          entityId: attachment.id,
+          dependsOnBlob: hash);
       return ImportResult(attachment: attachment, isDuplicate: false);
     });
   }
@@ -204,20 +211,32 @@ class AttachmentRepository {
     required String attachmentId,
     required int position,
     bool duplicateAcknowledged = false,
-  }) async {
-    await _db.into(_db.messageAttachments).insert(
-          MessageAttachmentsCompanion.insert(
-            id: ids.newId(),
-            userId: _ctx.userId,
-            createdAt: ids.nowMs(),
-            createdOnDevice: _ctx.deviceId,
-            messageId: messageId,
-            attachmentId: attachmentId,
-            position: position,
-            duplicateAcknowledged: Value(duplicateAcknowledged),
-          ),
-          mode: InsertMode.insertOrIgnore,
-        );
+  }) {
+    return _db.transaction(() async {
+      final existing = await (_db.select(_db.messageAttachments)
+            ..where((t) =>
+                t.messageId.equals(messageId) &
+                t.attachmentId.equals(attachmentId)))
+          .getSingleOrNull();
+      if (existing != null) return;
+      final linkId = ids.newId();
+      await _db.into(_db.messageAttachments).insert(
+            MessageAttachmentsCompanion.insert(
+              id: linkId,
+              userId: _ctx.userId,
+              createdAt: ids.nowMs(),
+              createdOnDevice: _ctx.deviceId,
+              messageId: messageId,
+              attachmentId: attachmentId,
+              position: position,
+              duplicateAcknowledged: Value(duplicateAcknowledged),
+            ),
+          );
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'message_attachments',
+          entityId: linkId);
+    });
   }
 
   /// 本机副本的当前绝对路径；不在本机（offloaded / missing）时为 null。

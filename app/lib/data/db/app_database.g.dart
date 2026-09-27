@@ -14871,6 +14871,641 @@ class CorrectionSuggestionsCompanion
   }
 }
 
+class $ChangeLogsTable extends ChangeLogs
+    with TableInfo<$ChangeLogsTable, ChangeLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChangeLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceDeviceIdMeta = const VerificationMeta(
+    'sourceDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceDeviceId = GeneratedColumn<String>(
+    'source_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generationMeta = const VerificationMeta(
+    'generation',
+  );
+  @override
+  late final GeneratedColumn<String> generation = GeneratedColumn<String>(
+    'generation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityVersionMeta = const VerificationMeta(
+    'entityVersion',
+  );
+  @override
+  late final GeneratedColumn<int> entityVersion = GeneratedColumn<int>(
+    'entity_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ChangeOp, String> op =
+      GeneratedColumn<String>(
+        'op',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ChangeOp>($ChangeLogsTable.$converterop);
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dependsOnBlobMeta = const VerificationMeta(
+    'dependsOnBlob',
+  );
+  @override
+  late final GeneratedColumn<String> dependsOnBlob = GeneratedColumn<String>(
+    'depends_on_blob',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sourceDeviceId,
+    generation,
+    changeSeq,
+    entityType,
+    entityId,
+    entityVersion,
+    op,
+    payload,
+    dependsOnBlob,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'change_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChangeLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source_device_id')) {
+      context.handle(
+        _sourceDeviceIdMeta,
+        sourceDeviceId.isAcceptableOrUnknown(
+          data['source_device_id']!,
+          _sourceDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceDeviceIdMeta);
+    }
+    if (data.containsKey('generation')) {
+      context.handle(
+        _generationMeta,
+        generation.isAcceptableOrUnknown(data['generation']!, _generationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_generationMeta);
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_changeSeqMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('entity_version')) {
+      context.handle(
+        _entityVersionMeta,
+        entityVersion.isAcceptableOrUnknown(
+          data['entity_version']!,
+          _entityVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_entityVersionMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('depends_on_blob')) {
+      context.handle(
+        _dependsOnBlobMeta,
+        dependsOnBlob.isAcceptableOrUnknown(
+          data['depends_on_blob']!,
+          _dependsOnBlobMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {generation, changeSeq};
+  @override
+  ChangeLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChangeLog(
+      sourceDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_device_id'],
+      )!,
+      generation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generation'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      entityVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}entity_version'],
+      )!,
+      op: $ChangeLogsTable.$converterop.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}op'],
+        )!,
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      dependsOnBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}depends_on_blob'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ChangeLogsTable createAlias(String alias) {
+    return $ChangeLogsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<ChangeOp, String> $converterop = const EnumConverter(
+    ChangeOp.values,
+  );
+}
+
+class ChangeLog extends DataClass implements Insertable<ChangeLog> {
+  final String sourceDeviceId;
+  final String generation;
+  final int changeSeq;
+  final String entityType;
+  final String entityId;
+  final int entityVersion;
+  final ChangeOp op;
+  final String payload;
+  final String? dependsOnBlob;
+  final int createdAt;
+  const ChangeLog({
+    required this.sourceDeviceId,
+    required this.generation,
+    required this.changeSeq,
+    required this.entityType,
+    required this.entityId,
+    required this.entityVersion,
+    required this.op,
+    required this.payload,
+    this.dependsOnBlob,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source_device_id'] = Variable<String>(sourceDeviceId);
+    map['generation'] = Variable<String>(generation);
+    map['change_seq'] = Variable<int>(changeSeq);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['entity_version'] = Variable<int>(entityVersion);
+    {
+      map['op'] = Variable<String>($ChangeLogsTable.$converterop.toSql(op));
+    }
+    map['payload'] = Variable<String>(payload);
+    if (!nullToAbsent || dependsOnBlob != null) {
+      map['depends_on_blob'] = Variable<String>(dependsOnBlob);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ChangeLogsCompanion toCompanion(bool nullToAbsent) {
+    return ChangeLogsCompanion(
+      sourceDeviceId: Value(sourceDeviceId),
+      generation: Value(generation),
+      changeSeq: Value(changeSeq),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      entityVersion: Value(entityVersion),
+      op: Value(op),
+      payload: Value(payload),
+      dependsOnBlob: dependsOnBlob == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dependsOnBlob),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ChangeLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChangeLog(
+      sourceDeviceId: serializer.fromJson<String>(json['sourceDeviceId']),
+      generation: serializer.fromJson<String>(json['generation']),
+      changeSeq: serializer.fromJson<int>(json['changeSeq']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      entityVersion: serializer.fromJson<int>(json['entityVersion']),
+      op: serializer.fromJson<ChangeOp>(json['op']),
+      payload: serializer.fromJson<String>(json['payload']),
+      dependsOnBlob: serializer.fromJson<String?>(json['dependsOnBlob']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sourceDeviceId': serializer.toJson<String>(sourceDeviceId),
+      'generation': serializer.toJson<String>(generation),
+      'changeSeq': serializer.toJson<int>(changeSeq),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'entityVersion': serializer.toJson<int>(entityVersion),
+      'op': serializer.toJson<ChangeOp>(op),
+      'payload': serializer.toJson<String>(payload),
+      'dependsOnBlob': serializer.toJson<String?>(dependsOnBlob),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  ChangeLog copyWith({
+    String? sourceDeviceId,
+    String? generation,
+    int? changeSeq,
+    String? entityType,
+    String? entityId,
+    int? entityVersion,
+    ChangeOp? op,
+    String? payload,
+    Value<String?> dependsOnBlob = const Value.absent(),
+    int? createdAt,
+  }) => ChangeLog(
+    sourceDeviceId: sourceDeviceId ?? this.sourceDeviceId,
+    generation: generation ?? this.generation,
+    changeSeq: changeSeq ?? this.changeSeq,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    entityVersion: entityVersion ?? this.entityVersion,
+    op: op ?? this.op,
+    payload: payload ?? this.payload,
+    dependsOnBlob: dependsOnBlob.present
+        ? dependsOnBlob.value
+        : this.dependsOnBlob,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ChangeLog copyWithCompanion(ChangeLogsCompanion data) {
+    return ChangeLog(
+      sourceDeviceId: data.sourceDeviceId.present
+          ? data.sourceDeviceId.value
+          : this.sourceDeviceId,
+      generation: data.generation.present
+          ? data.generation.value
+          : this.generation,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      entityVersion: data.entityVersion.present
+          ? data.entityVersion.value
+          : this.entityVersion,
+      op: data.op.present ? data.op.value : this.op,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      dependsOnBlob: data.dependsOnBlob.present
+          ? data.dependsOnBlob.value
+          : this.dependsOnBlob,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChangeLog(')
+          ..write('sourceDeviceId: $sourceDeviceId, ')
+          ..write('generation: $generation, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('entityVersion: $entityVersion, ')
+          ..write('op: $op, ')
+          ..write('payload: $payload, ')
+          ..write('dependsOnBlob: $dependsOnBlob, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sourceDeviceId,
+    generation,
+    changeSeq,
+    entityType,
+    entityId,
+    entityVersion,
+    op,
+    payload,
+    dependsOnBlob,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChangeLog &&
+          other.sourceDeviceId == this.sourceDeviceId &&
+          other.generation == this.generation &&
+          other.changeSeq == this.changeSeq &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.entityVersion == this.entityVersion &&
+          other.op == this.op &&
+          other.payload == this.payload &&
+          other.dependsOnBlob == this.dependsOnBlob &&
+          other.createdAt == this.createdAt);
+}
+
+class ChangeLogsCompanion extends UpdateCompanion<ChangeLog> {
+  final Value<String> sourceDeviceId;
+  final Value<String> generation;
+  final Value<int> changeSeq;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<int> entityVersion;
+  final Value<ChangeOp> op;
+  final Value<String> payload;
+  final Value<String?> dependsOnBlob;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const ChangeLogsCompanion({
+    this.sourceDeviceId = const Value.absent(),
+    this.generation = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.entityVersion = const Value.absent(),
+    this.op = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.dependsOnBlob = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChangeLogsCompanion.insert({
+    required String sourceDeviceId,
+    required String generation,
+    required int changeSeq,
+    required String entityType,
+    required String entityId,
+    required int entityVersion,
+    required ChangeOp op,
+    required String payload,
+    this.dependsOnBlob = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : sourceDeviceId = Value(sourceDeviceId),
+       generation = Value(generation),
+       changeSeq = Value(changeSeq),
+       entityType = Value(entityType),
+       entityId = Value(entityId),
+       entityVersion = Value(entityVersion),
+       op = Value(op),
+       payload = Value(payload),
+       createdAt = Value(createdAt);
+  static Insertable<ChangeLog> custom({
+    Expression<String>? sourceDeviceId,
+    Expression<String>? generation,
+    Expression<int>? changeSeq,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<int>? entityVersion,
+    Expression<String>? op,
+    Expression<String>? payload,
+    Expression<String>? dependsOnBlob,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sourceDeviceId != null) 'source_device_id': sourceDeviceId,
+      if (generation != null) 'generation': generation,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (entityVersion != null) 'entity_version': entityVersion,
+      if (op != null) 'op': op,
+      if (payload != null) 'payload': payload,
+      if (dependsOnBlob != null) 'depends_on_blob': dependsOnBlob,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChangeLogsCompanion copyWith({
+    Value<String>? sourceDeviceId,
+    Value<String>? generation,
+    Value<int>? changeSeq,
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<int>? entityVersion,
+    Value<ChangeOp>? op,
+    Value<String>? payload,
+    Value<String?>? dependsOnBlob,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ChangeLogsCompanion(
+      sourceDeviceId: sourceDeviceId ?? this.sourceDeviceId,
+      generation: generation ?? this.generation,
+      changeSeq: changeSeq ?? this.changeSeq,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      entityVersion: entityVersion ?? this.entityVersion,
+      op: op ?? this.op,
+      payload: payload ?? this.payload,
+      dependsOnBlob: dependsOnBlob ?? this.dependsOnBlob,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sourceDeviceId.present) {
+      map['source_device_id'] = Variable<String>(sourceDeviceId.value);
+    }
+    if (generation.present) {
+      map['generation'] = Variable<String>(generation.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (entityVersion.present) {
+      map['entity_version'] = Variable<int>(entityVersion.value);
+    }
+    if (op.present) {
+      map['op'] = Variable<String>(
+        $ChangeLogsTable.$converterop.toSql(op.value),
+      );
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (dependsOnBlob.present) {
+      map['depends_on_blob'] = Variable<String>(dependsOnBlob.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChangeLogsCompanion(')
+          ..write('sourceDeviceId: $sourceDeviceId, ')
+          ..write('generation: $generation, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('entityVersion: $entityVersion, ')
+          ..write('op: $op, ')
+          ..write('payload: $payload, ')
+          ..write('dependsOnBlob: $dependsOnBlob, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -14903,6 +15538,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReviewPromptsTable reviewPrompts = $ReviewPromptsTable(this);
   late final $CorrectionSuggestionsTable correctionSuggestions =
       $CorrectionSuggestionsTable(this);
+  late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14927,6 +15563,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     modelConfigs,
     reviewPrompts,
     correctionSuggestions,
+    changeLogs,
   ];
 }
 
@@ -21929,6 +22566,309 @@ typedef $$CorrectionSuggestionsTableProcessedTableManager =
       CorrectionSuggestion,
       PrefetchHooks Function()
     >;
+typedef $$ChangeLogsTableCreateCompanionBuilder =
+    ChangeLogsCompanion Function({
+      required String sourceDeviceId,
+      required String generation,
+      required int changeSeq,
+      required String entityType,
+      required String entityId,
+      required int entityVersion,
+      required ChangeOp op,
+      required String payload,
+      Value<String?> dependsOnBlob,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$ChangeLogsTableUpdateCompanionBuilder =
+    ChangeLogsCompanion Function({
+      Value<String> sourceDeviceId,
+      Value<String> generation,
+      Value<int> changeSeq,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<int> entityVersion,
+      Value<ChangeOp> op,
+      Value<String> payload,
+      Value<String?> dependsOnBlob,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ChangeLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get sourceDeviceId => $composableBuilder(
+    column: $table.sourceDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get entityVersion => $composableBuilder(
+    column: $table.entityVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ChangeOp, ChangeOp, String> get op =>
+      $composableBuilder(
+        column: $table.op,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dependsOnBlob => $composableBuilder(
+    column: $table.dependsOnBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ChangeLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get sourceDeviceId => $composableBuilder(
+    column: $table.sourceDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get entityVersion => $composableBuilder(
+    column: $table.entityVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get op => $composableBuilder(
+    column: $table.op,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dependsOnBlob => $composableBuilder(
+    column: $table.dependsOnBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ChangeLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get sourceDeviceId => $composableBuilder(
+    column: $table.sourceDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get generation => $composableBuilder(
+    column: $table.generation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<int> get entityVersion => $composableBuilder(
+    column: $table.entityVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<ChangeOp, String> get op =>
+      $composableBuilder(column: $table.op, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get dependsOnBlob => $composableBuilder(
+    column: $table.dependsOnBlob,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ChangeLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ChangeLogsTable,
+          ChangeLog,
+          $$ChangeLogsTableFilterComposer,
+          $$ChangeLogsTableOrderingComposer,
+          $$ChangeLogsTableAnnotationComposer,
+          $$ChangeLogsTableCreateCompanionBuilder,
+          $$ChangeLogsTableUpdateCompanionBuilder,
+          (
+            ChangeLog,
+            BaseReferences<_$AppDatabase, $ChangeLogsTable, ChangeLog>,
+          ),
+          ChangeLog,
+          PrefetchHooks Function()
+        > {
+  $$ChangeLogsTableTableManager(_$AppDatabase db, $ChangeLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChangeLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChangeLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChangeLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> sourceDeviceId = const Value.absent(),
+                Value<String> generation = const Value.absent(),
+                Value<int> changeSeq = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<int> entityVersion = const Value.absent(),
+                Value<ChangeOp> op = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String?> dependsOnBlob = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChangeLogsCompanion(
+                sourceDeviceId: sourceDeviceId,
+                generation: generation,
+                changeSeq: changeSeq,
+                entityType: entityType,
+                entityId: entityId,
+                entityVersion: entityVersion,
+                op: op,
+                payload: payload,
+                dependsOnBlob: dependsOnBlob,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String sourceDeviceId,
+                required String generation,
+                required int changeSeq,
+                required String entityType,
+                required String entityId,
+                required int entityVersion,
+                required ChangeOp op,
+                required String payload,
+                Value<String?> dependsOnBlob = const Value.absent(),
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ChangeLogsCompanion.insert(
+                sourceDeviceId: sourceDeviceId,
+                generation: generation,
+                changeSeq: changeSeq,
+                entityType: entityType,
+                entityId: entityId,
+                entityVersion: entityVersion,
+                op: op,
+                payload: payload,
+                dependsOnBlob: dependsOnBlob,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ChangeLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ChangeLogsTable,
+      ChangeLog,
+      $$ChangeLogsTableFilterComposer,
+      $$ChangeLogsTableOrderingComposer,
+      $$ChangeLogsTableAnnotationComposer,
+      $$ChangeLogsTableCreateCompanionBuilder,
+      $$ChangeLogsTableUpdateCompanionBuilder,
+      (ChangeLog, BaseReferences<_$AppDatabase, $ChangeLogsTable, ChangeLog>),
+      ChangeLog,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -21971,4 +22911,6 @@ class $AppDatabaseManager {
       $$ReviewPromptsTableTableManager(_db, _db.reviewPrompts);
   $$CorrectionSuggestionsTableTableManager get correctionSuggestions =>
       $$CorrectionSuggestionsTableTableManager(_db, _db.correctionSuggestions);
+  $$ChangeLogsTableTableManager get changeLogs =>
+      $$ChangeLogsTableTableManager(_db, _db.changeLogs);
 }

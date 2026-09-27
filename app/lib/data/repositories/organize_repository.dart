@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../ids.dart';
 
@@ -21,21 +22,26 @@ class OrganizeRepository {
     required String inputSnapshotJson,
     String? modelConfigId,
     String? modelSnapshotJson,
-  }) async {
-    final now = ids.nowMs();
-    return _db.into(_db.organizeRuns).insertReturning(
-          OrganizeRunsCompanion.insert(
-            id: ids.newId(),
-            userId: _ctx.userId,
-            createdAt: now,
-            createdOnDevice: _ctx.deviceId,
-            trigger: trigger,
-            inputSnapshot: inputSnapshotJson,
-            modelConfigId: Value(modelConfigId),
-            modelSnapshot: Value(modelSnapshotJson),
-            status: OrganizeRunStatus.queued,
-          ),
-        );
+  }) {
+    return _db.transaction(() async {
+      final now = ids.nowMs();
+      final run = await _db.into(_db.organizeRuns).insertReturning(
+            OrganizeRunsCompanion.insert(
+              id: ids.newId(),
+              userId: _ctx.userId,
+              createdAt: now,
+              createdOnDevice: _ctx.deviceId,
+              trigger: trigger,
+              inputSnapshot: inputSnapshotJson,
+              modelConfigId: Value(modelConfigId),
+              modelSnapshot: Value(modelSnapshotJson),
+              status: OrganizeRunStatus.queued,
+            ),
+          );
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'organize_runs', entityId: run.id);
+      return run;
+    });
   }
 
   Future<OrganizeRun> updateRunStatus(
@@ -45,16 +51,20 @@ class OrganizeRepository {
     int? startedAt,
     int? finishedAt,
   }) async {
-    final updated = await (_db.update(_db.organizeRuns)
-          ..where((t) => t.id.equals(runId)))
-        .writeReturning(OrganizeRunsCompanion(
-      status: Value(status),
-      error: Value(error),
-      startedAt: startedAt == null ? const Value.absent() : Value(startedAt),
-      finishedAt:
-          finishedAt == null ? const Value.absent() : Value(finishedAt),
-    ));
-    return updated.single;
+    return _db.transaction(() async {
+      final updated = await (_db.update(_db.organizeRuns)
+            ..where((t) => t.id.equals(runId)))
+          .writeReturning(OrganizeRunsCompanion(
+        status: Value(status),
+        error: Value(error),
+        startedAt: startedAt == null ? const Value.absent() : Value(startedAt),
+        finishedAt:
+            finishedAt == null ? const Value.absent() : Value(finishedAt),
+      ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'organize_runs', entityId: runId);
+      return updated.single;
+    });
   }
 
   /// 下一个待处理批次。批次不并发：同一时间只有一个 running
@@ -82,7 +92,7 @@ class OrganizeRepository {
           .getSingleOrNull();
       if (existing != null) return existing;
       final now = ids.nowMs();
-      return _db.into(_db.organizeRunItems).insertReturning(
+      final item = await _db.into(_db.organizeRunItems).insertReturning(
             OrganizeRunItemsCompanion.insert(
               id: ids.newId(),
               userId: _ctx.userId,
@@ -94,6 +104,11 @@ class OrganizeRepository {
               retryCount: Value(initialRetryCount),
             ),
           );
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'organize_run_items',
+          entityId: item.id);
+      return item;
     });
   }
 
@@ -121,6 +136,10 @@ class OrganizeRepository {
             : Value(correctionSuggestionId),
         version: Value(item.version + 1),
       ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'organize_run_items',
+          entityId: itemId);
       return updated.single;
     });
   }
@@ -145,8 +164,9 @@ class OrganizeRepository {
     int? tokensOut,
     String? responseText,
     required ModelCaller caller,
-  }) async {
-    return _db.into(_db.modelCalls).insertReturning(
+  }) {
+    return _db.transaction(() async {
+      final call = await _db.into(_db.modelCalls).insertReturning(
           ModelCallsCompanion.insert(
             id: ids.newId(),
             userId: _ctx.userId,
@@ -166,6 +186,10 @@ class OrganizeRepository {
             caller: caller,
           ),
         );
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'model_calls', entityId: call.id);
+      return call;
+    });
   }
 
   /// 调用记录，最新在前（设置页"模型调用记录"用）。

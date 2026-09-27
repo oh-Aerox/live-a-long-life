@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../data/change_log.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
@@ -598,6 +599,10 @@ class OrganizeService {
             reason: '整理批次得出的新值与用户确认过的字段不同',
             status: SuggestionStatus.pending,
           ));
+      await _db.logChange(
+          deviceId: item.createdOnDevice,
+          table: 'correction_suggestions',
+          entityId: suggestion.id);
       await _runs.markItem(item.id, OrganizeItemStatus.protectedSuggested,
           correctionSuggestionId: suggestion.id);
       return OrganizeItemStatus.protectedSuggested;

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../ids.dart';
 
@@ -59,7 +60,10 @@ class MessageRepository {
                 ? OrganizeState.pending
                 : OrganizeState.notApplicable),
       );
-      return _db.into(_db.messages).insertReturning(row);
+      final inserted = await _db.into(_db.messages).insertReturning(row);
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'messages', entityId: inserted.id);
+      return inserted;
     });
   }
 
@@ -74,9 +78,10 @@ class MessageRepository {
         throw StateError('不能修改已删除的消息');
       }
       final now = ids.nowMs();
+      final revisionId = ids.newId();
       await _db.into(_db.messageRevisions).insert(
             MessageRevisionsCompanion.insert(
-              id: ids.newId(),
+              id: revisionId,
               userId: _ctx.userId,
               createdAt: now,
               createdOnDevice: _ctx.deviceId,
@@ -94,6 +99,12 @@ class MessageRepository {
         version: Value(msg.version + 1),
         organizeState: const Value(OrganizeState.needsReorganize),
       ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'message_revisions',
+          entityId: revisionId);
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'messages', entityId: messageId);
       return updated.single;
     });
   }
@@ -109,6 +120,10 @@ class MessageRepository {
           .getSingle();
       if (msg.deletedAt != null) return msg;
       final now = ids.nowMs();
+      final links = await (_db.select(_db.messageAttachments)
+            ..where(
+                (t) => t.messageId.equals(messageId) & t.deletedAt.isNull()))
+          .get();
       await (_db.update(_db.messageAttachments)
             ..where(
                 (t) => t.messageId.equals(messageId) & t.deletedAt.isNull()))
@@ -119,6 +134,18 @@ class MessageRepository {
         deletedAt: Value(now),
         version: Value(msg.version + 1),
       ));
+      for (final link in links) {
+        await _db.logChange(
+            deviceId: _ctx.deviceId,
+            table: 'message_attachments',
+            entityId: link.id,
+            op: ChangeOp.delete);
+      }
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'messages',
+          entityId: messageId,
+          op: ChangeOp.delete);
       return updated.single;
     });
   }

@@ -28,12 +28,13 @@ part 'app_database.g.dart';
   ModelConfigs,
   ReviewPrompts,
   CorrectionSuggestions,
+  ChangeLogs,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +57,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             // 修正建议提前到 v0.2：手机整理的受保护字段冲突要用（A-25）。
             await m.createTable(correctionSuggestions);
+          }
+          if (from < 4) {
+            // v0.3 同步的变更日志（schema §7.2）。
+            await m.createTable(changeLogs);
           }
         },
         beforeOpen: (details) async {

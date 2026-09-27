@@ -86,6 +86,8 @@ enum SuggestionProposedBy { macAnalysis, organizeRun }
 
 enum SuggestionStatus { pending, accepted, rejected, obsolete }
 
+enum ChangeOp { upsert, delete }
+
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
 mixin CommonColumns on Table {
@@ -364,6 +366,25 @@ class CorrectionSuggestions extends Table with CommonColumns {
   TextColumn get reason => text()();
   TextColumn get status =>
       text().map(const EnumConverter(SuggestionStatus.values))();
+}
+
+/// schema.md §7.2：变更日志。本设备本代次内 change_seq 单调递增无空洞；
+/// payload 是变更同一事务里的行快照（负载与 entity_version 一致）。
+/// 只记本机产生的业务变更；接收对方变更不回传（D-13）。
+class ChangeLogs extends Table {
+  TextColumn get sourceDeviceId => text()();
+  TextColumn get generation => text()();
+  IntColumn get changeSeq => integer()();
+  TextColumn get entityType => text()(); // SQLite 表名
+  TextColumn get entityId => text()();
+  IntColumn get entityVersion => integer()();
+  TextColumn get op => text().map(const EnumConverter(ChangeOp.values))();
+  TextColumn get payload => text()(); // JSON 行快照
+  TextColumn get dependsOnBlob => text().nullable()();
+  IntColumn get createdAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {generation, changeSeq};
 }
 
 /// schema.md §4.4：回顾提问记录，用于当天不重复提问、问题数量 ≤3（D-08）。

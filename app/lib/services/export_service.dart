@@ -82,9 +82,11 @@ class ExportService {
     final profile = await _db.select(_db.profileFields).get();
     final settings = await _db.select(_db.settings).get();
 
-    // 设备标识属于这台设备，不随内容导出；恢复端有自己的。
-    final exportedSettings =
-        settings.where((s) => s.key != 'device_id').toList();
+    // 设备标识与数据代次属于这台设备，不随内容导出：恢复后首次写入会
+    // 生成全新代次（schema §7.2，同一份备份恢复两次得到两个代次）。
+    final exportedSettings = settings
+        .where((s) => s.key != 'device_id' && s.key != 'data_generation')
+        .toList();
 
     final data = {
       'format_version': exportFormatVersion,

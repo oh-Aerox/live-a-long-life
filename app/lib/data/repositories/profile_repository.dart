@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../ids.dart';
 
@@ -37,7 +38,7 @@ class ProfileRepository {
     return _db.transaction(() async {
       final latest = await _latest(fieldKey);
       final now = ids.nowMs();
-      return _db.into(_db.profileFields).insertReturning(
+      final inserted = await _db.into(_db.profileFields).insertReturning(
             ProfileFieldsCompanion.insert(
               id: ids.newId(),
               userId: _ctx.userId,
@@ -50,6 +51,11 @@ class ProfileRepository {
               updatedAt: now,
             ),
           );
+      await _db.logChange(
+          deviceId: _ctx.deviceId,
+          table: 'profile_fields',
+          entityId: inserted.id);
+      return inserted;
     });
   }
 

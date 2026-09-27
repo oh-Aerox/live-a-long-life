@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
+import '../change_log.dart';
 import '../db/app_database.dart';
 import '../ids.dart';
 
@@ -60,10 +61,15 @@ class HealthRepository {
             fetchedAt: Value(now),
             removedInSourceAt: const Value(null),
           ));
+          await _db.logChange(
+              deviceId: _ctx.deviceId,
+              table: 'health_samples',
+              entityId: existing.id);
           continue;
         }
+        final sampleId = ids.newId();
         await _db.into(_db.healthSamples).insert(HealthSamplesCompanion.insert(
-              id: ids.newId(),
+              id: sampleId,
               userId: _ctx.userId,
               createdAt: now,
               createdOnDevice: _ctx.deviceId,
@@ -81,6 +87,10 @@ class HealthRepository {
               sourceName: s.sourceName,
               fetchedAt: now,
             ));
+        await _db.logChange(
+            deviceId: _ctx.deviceId,
+            table: 'health_samples',
+            entityId: sampleId);
         inserted++;
       }
       return inserted;
@@ -91,9 +101,21 @@ class HealthRepository {
   /// 只按明确报告标记；重读时缺席不算删除。
   Future<void> markRemovedInSource(List<String> platformUuids) async {
     if (platformUuids.isEmpty) return;
-    await (_db.update(_db.healthSamples)
-          ..where((t) => t.platformUuid.isIn(platformUuids)))
-        .write(HealthSamplesCompanion(removedInSourceAt: Value(ids.nowMs())));
+    await _db.transaction(() async {
+      final rows = await (_db.select(_db.healthSamples)
+            ..where((t) => t.platformUuid.isIn(platformUuids)))
+          .get();
+      await (_db.update(_db.healthSamples)
+            ..where((t) => t.platformUuid.isIn(platformUuids)))
+          .write(
+              HealthSamplesCompanion(removedInSourceAt: Value(ids.nowMs())));
+      for (final row in rows) {
+        await _db.logChange(
+            deviceId: _ctx.deviceId,
+            table: 'health_samples',
+            entityId: row.id);
+      }
+    });
   }
 
   /// 某时间范围内的样本，不含已在来源删除的。
@@ -136,10 +158,15 @@ class HealthRepository {
           value: Value(value),
           fetchedAt: Value(now),
         ));
+        await _db.logChange(
+            deviceId: _ctx.deviceId,
+            table: 'health_daily',
+            entityId: existing.id);
         return;
       }
+      final dailyId = ids.newId();
       await _db.into(_db.healthDaily).insert(HealthDailyCompanion.insert(
-            id: ids.newId(),
+            id: dailyId,
             userId: _ctx.userId,
             createdAt: now,
             createdOnDevice: _ctx.deviceId,
@@ -151,6 +178,8 @@ class HealthRepository {
             value: value,
             fetchedAt: now,
           ));
+      await _db.logChange(
+          deviceId: _ctx.deviceId, table: 'health_daily', entityId: dailyId);
     });
   }
 
