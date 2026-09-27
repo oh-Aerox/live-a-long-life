@@ -36,6 +36,49 @@ enum CopyState { present, offloaded, missing }
 
 enum ProfileFieldState { provided, skipped, declined }
 
+// —— v0.2 起（schema §2.5/§2.6/§3/§4.3/§4.4）——
+
+enum HealthSampleType { sleep, workout }
+
+enum SleepStage { inBed, asleepUnspecified, core, deep, rem, awake }
+
+enum HealthMetric { steps, activeEnergyKcal }
+
+enum OrganizeTrigger { doneMarker, idle, dailyReview, userReorganize }
+
+enum OrganizeRunStatus {
+  queued,
+  running,
+  succeeded,
+  partial,
+  failed,
+  blockedBoundary,
+}
+
+enum OrganizeItemStatus {
+  committed,
+  staleInput,
+  staleTarget,
+  protectedSuggested,
+  needsManual,
+}
+
+enum DataBoundary { device, lan, cloud }
+
+enum ModelCallStatus { succeeded, failed, timeout }
+
+enum ModelCaller { phoneOrganize, macAnalysis, externalAgent }
+
+enum RecordType { meal, sleep, mood, symptom, exercise, note }
+
+enum RecordSourceKind { message, attachment, healthSample, healthDaily }
+
+enum ModelPreset { openai, anthropic, deepseek, openaiCompatible, ollama }
+
+enum ModelProtocol { openaiCompatible, anthropic }
+
+enum ReviewOutcome { answered, skipped, noResponse }
+
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
 mixin CommonColumns on Table {
@@ -146,4 +189,169 @@ class Settings extends Table {
 
   @override
   Set<Column> get primaryKey => {key};
+}
+
+/// schema.md §2.5：设备健康样本，按条保存，`platform_uuid` 去重。
+class HealthSamples extends Table with CommonColumns {
+  TextColumn get platformUuid => text().unique()();
+  TextColumn get sampleType =>
+      text().map(const EnumConverter(HealthSampleType.values))();
+  IntColumn get startUtc => integer()();
+  IntColumn get endUtc => integer()();
+  TextColumn get tz => text()();
+  BoolColumn get tzInferred => boolean().withDefault(const Constant(false))();
+  TextColumn get sourceBundleId => text().nullable()();
+  TextColumn get sleepStage =>
+      text().map(const EnumConverter(SleepStage.values)).nullable()();
+  TextColumn get workoutType => text().nullable()();
+  RealColumn get energyKcal => real().nullable()();
+  RealColumn get distanceM => real().nullable()();
+  TextColumn get sourceName => text()();
+  IntColumn get fetchedAt => integer()();
+  IntColumn get removedInSourceAt => integer().nullable()();
+}
+
+/// schema.md §2.5：anchored query 的锚点，每种样本类型一行。
+class HealthAnchors extends Table {
+  TextColumn get sampleType =>
+      text().map(const EnumConverter(HealthSampleType.values))();
+  BlobColumn get anchor => blob()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {sampleType};
+}
+
+/// schema.md §2.6：按天聚合的设备数据。同一天重复读取覆盖本行；
+/// 没有行表示"暂未读取到"，不表示 0（D-11）。
+class HealthDaily extends Table with CommonColumns {
+  TextColumn get localDate => text()();
+  TextColumn get aggTz => text()();
+  IntColumn get intervalStartUtc => integer()();
+  IntColumn get intervalEndUtc => integer()();
+  TextColumn get metric =>
+      text().map(const EnumConverter(HealthMetric.values))();
+  RealColumn get value => real()();
+  IntColumn get fetchedAt => integer()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {localDate, metric},
+      ];
+}
+
+/// schema.md §3.1：整理批次。
+class OrganizeRuns extends Table with CommonColumns {
+  TextColumn get trigger =>
+      text().map(const EnumConverter(OrganizeTrigger.values))();
+  TextColumn get inputSnapshot => text()(); // JSON（D-05）
+  TextColumn get modelConfigId => text().nullable()();
+  TextColumn get modelSnapshot => text().nullable()(); // JSON，不含 key
+  TextColumn get status =>
+      text().map(const EnumConverter(OrganizeRunStatus.values))();
+  TextColumn get error => text().nullable()();
+  IntColumn get startedAt => integer().nullable()();
+  IntColumn get finishedAt => integer().nullable()();
+}
+
+/// schema.md §3.1a：批次的逐项结果，单独提交；
+/// `record_id` 在提交前就持久化，重试凭它不重复建记录。
+class OrganizeRunItems extends Table with CommonColumns {
+  TextColumn get organizeRunId => text()();
+  TextColumn get recordId => text()();
+  TextColumn get status =>
+      text().map(const EnumConverter(OrganizeItemStatus.values))();
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+  TextColumn get correctionSuggestionId => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {organizeRunId, recordId},
+      ];
+}
+
+/// schema.md §3.2：模型调用记录（D-16 透明度）。
+class ModelCalls extends Table with CommonColumns {
+  TextColumn get organizeRunId => text().nullable()();
+  TextColumn get modelConfigId => text()();
+  TextColumn get dataBoundary =>
+      text().map(const EnumConverter(DataBoundary.values))();
+  TextColumn get sentMessageIds => text()(); // JSON 数组
+  TextColumn get sentAttachmentIds => text()(); // JSON 数组
+  IntColumn get requestAt => integer()();
+  IntColumn get responseAt => integer().nullable()();
+  TextColumn get status =>
+      text().map(const EnumConverter(ModelCallStatus.values))();
+  IntColumn get tokensIn => integer().nullable()();
+  IntColumn get tokensOut => integer().nullable()();
+  TextColumn get responseText => text().nullable()();
+  TextColumn get caller =>
+      text().map(const EnumConverter(ModelCaller.values))();
+}
+
+/// schema.md §3.3：记录。数据类名避开 dart:core 的 Record。
+@DataClassName('RecordRow')
+class Records extends Table with CommonColumns {
+  TextColumn get recordType =>
+      text().map(const EnumConverter(RecordType.values))();
+  TextColumn get currentRevisionId => text().nullable()();
+  TextColumn get localDate => text().nullable()(); // 冗余自当前版本，按日查询用
+}
+
+/// schema.md §3.4：记录版本。`record_version` 即 schema 的 `version`，
+/// 改名避开通用字段；与所属记录的通用 `version` 保持一致，用于过时检查。
+class RecordRevisions extends Table with CommonColumns {
+  TextColumn get recordId => text()();
+  IntColumn get recordVersion => integer()();
+  IntColumn get baseVersion => integer().nullable()();
+  TextColumn get occurred => text()(); // TimeValue JSON（schema §1.2）
+  TextColumn get occurredEnd => text().nullable()();
+  TextColumn get data => text()(); // JSON，按类型见 schema §3.5
+  TextColumn get producedBy => text()(); // JSON（schema §1.3 版本级）
+  TextColumn get fieldMeta => text()(); // JSON（schema §1.3 字段级）
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {recordId, recordVersion},
+      ];
+}
+
+/// schema.md §3.6：来源链接，消息与记录多对多。
+class RecordSources extends Table with CommonColumns {
+  TextColumn get recordRevisionId => text()();
+  TextColumn get fieldPath => text().nullable()();
+  TextColumn get sourceKind =>
+      text().map(const EnumConverter(RecordSourceKind.values))();
+  TextColumn get sourceId => text()();
+  IntColumn get messageRevisionNo => integer().nullable()();
+  TextColumn get span => text().nullable()(); // JSON
+}
+
+/// schema.md §4.3：模型配置。不参与同步、不进备份；key 只存 Keychain 引用。
+class ModelConfigs extends Table with CommonColumns {
+  TextColumn get preset =>
+      text().map(const EnumConverter(ModelPreset.values))();
+  TextColumn get protocol =>
+      text().map(const EnumConverter(ModelProtocol.values))();
+  TextColumn get baseUrl => text()();
+  TextColumn get model => text()();
+  TextColumn get capabilities =>
+      text().withDefault(const Constant('[]'))(); // JSON：["text","image","pdf"]
+  TextColumn get dataBoundary =>
+      text().map(const EnumConverter(DataBoundary.values))();
+  TextColumn get keychainRef => text()();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  IntColumn get lastTestAt => integer().nullable()();
+  TextColumn get lastTestResult => text().nullable()();
+}
+
+/// schema.md §4.4：回顾提问记录，用于当天不重复提问、问题数量 ≤3（D-08）。
+class ReviewPrompts extends Table with CommonColumns {
+  TextColumn get reviewDate => text()();
+  TextColumn get promptMessageId => text()();
+  TextColumn get gapKey => text()();
+  TextColumn get templateId => text()();
+  TextColumn get outcome =>
+      text().map(const EnumConverter(ReviewOutcome.values)).nullable()();
+  TextColumn get answeredMessageId => text().nullable()();
 }

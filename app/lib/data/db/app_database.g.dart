@@ -5067,6 +5067,8974 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $HealthSamplesTable extends HealthSamples
+    with TableInfo<$HealthSamplesTable, HealthSample> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthSamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _platformUuidMeta = const VerificationMeta(
+    'platformUuid',
+  );
+  @override
+  late final GeneratedColumn<String> platformUuid = GeneratedColumn<String>(
+    'platform_uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<HealthSampleType, String>
+  sampleType = GeneratedColumn<String>(
+    'sample_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<HealthSampleType>($HealthSamplesTable.$convertersampleType);
+  static const VerificationMeta _startUtcMeta = const VerificationMeta(
+    'startUtc',
+  );
+  @override
+  late final GeneratedColumn<int> startUtc = GeneratedColumn<int>(
+    'start_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endUtcMeta = const VerificationMeta('endUtc');
+  @override
+  late final GeneratedColumn<int> endUtc = GeneratedColumn<int>(
+    'end_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tzMeta = const VerificationMeta('tz');
+  @override
+  late final GeneratedColumn<String> tz = GeneratedColumn<String>(
+    'tz',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tzInferredMeta = const VerificationMeta(
+    'tzInferred',
+  );
+  @override
+  late final GeneratedColumn<bool> tzInferred = GeneratedColumn<bool>(
+    'tz_inferred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tz_inferred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sourceBundleIdMeta = const VerificationMeta(
+    'sourceBundleId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceBundleId = GeneratedColumn<String>(
+    'source_bundle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SleepStage?, String> sleepStage =
+      GeneratedColumn<String>(
+        'sleep_stage',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<SleepStage?>($HealthSamplesTable.$convertersleepStagen);
+  static const VerificationMeta _workoutTypeMeta = const VerificationMeta(
+    'workoutType',
+  );
+  @override
+  late final GeneratedColumn<String> workoutType = GeneratedColumn<String>(
+    'workout_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _energyKcalMeta = const VerificationMeta(
+    'energyKcal',
+  );
+  @override
+  late final GeneratedColumn<double> energyKcal = GeneratedColumn<double>(
+    'energy_kcal',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _distanceMMeta = const VerificationMeta(
+    'distanceM',
+  );
+  @override
+  late final GeneratedColumn<double> distanceM = GeneratedColumn<double>(
+    'distance_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceNameMeta = const VerificationMeta(
+    'sourceName',
+  );
+  @override
+  late final GeneratedColumn<String> sourceName = GeneratedColumn<String>(
+    'source_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<int> fetchedAt = GeneratedColumn<int>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _removedInSourceAtMeta = const VerificationMeta(
+    'removedInSourceAt',
+  );
+  @override
+  late final GeneratedColumn<int> removedInSourceAt = GeneratedColumn<int>(
+    'removed_in_source_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    platformUuid,
+    sampleType,
+    startUtc,
+    endUtc,
+    tz,
+    tzInferred,
+    sourceBundleId,
+    sleepStage,
+    workoutType,
+    energyKcal,
+    distanceM,
+    sourceName,
+    fetchedAt,
+    removedInSourceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthSample> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('platform_uuid')) {
+      context.handle(
+        _platformUuidMeta,
+        platformUuid.isAcceptableOrUnknown(
+          data['platform_uuid']!,
+          _platformUuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_platformUuidMeta);
+    }
+    if (data.containsKey('start_utc')) {
+      context.handle(
+        _startUtcMeta,
+        startUtc.isAcceptableOrUnknown(data['start_utc']!, _startUtcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startUtcMeta);
+    }
+    if (data.containsKey('end_utc')) {
+      context.handle(
+        _endUtcMeta,
+        endUtc.isAcceptableOrUnknown(data['end_utc']!, _endUtcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endUtcMeta);
+    }
+    if (data.containsKey('tz')) {
+      context.handle(_tzMeta, tz.isAcceptableOrUnknown(data['tz']!, _tzMeta));
+    } else if (isInserting) {
+      context.missing(_tzMeta);
+    }
+    if (data.containsKey('tz_inferred')) {
+      context.handle(
+        _tzInferredMeta,
+        tzInferred.isAcceptableOrUnknown(data['tz_inferred']!, _tzInferredMeta),
+      );
+    }
+    if (data.containsKey('source_bundle_id')) {
+      context.handle(
+        _sourceBundleIdMeta,
+        sourceBundleId.isAcceptableOrUnknown(
+          data['source_bundle_id']!,
+          _sourceBundleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('workout_type')) {
+      context.handle(
+        _workoutTypeMeta,
+        workoutType.isAcceptableOrUnknown(
+          data['workout_type']!,
+          _workoutTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('energy_kcal')) {
+      context.handle(
+        _energyKcalMeta,
+        energyKcal.isAcceptableOrUnknown(data['energy_kcal']!, _energyKcalMeta),
+      );
+    }
+    if (data.containsKey('distance_m')) {
+      context.handle(
+        _distanceMMeta,
+        distanceM.isAcceptableOrUnknown(data['distance_m']!, _distanceMMeta),
+      );
+    }
+    if (data.containsKey('source_name')) {
+      context.handle(
+        _sourceNameMeta,
+        sourceName.isAcceptableOrUnknown(data['source_name']!, _sourceNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceNameMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    if (data.containsKey('removed_in_source_at')) {
+      context.handle(
+        _removedInSourceAtMeta,
+        removedInSourceAt.isAcceptableOrUnknown(
+          data['removed_in_source_at']!,
+          _removedInSourceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HealthSample map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthSample(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      platformUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform_uuid'],
+      )!,
+      sampleType: $HealthSamplesTable.$convertersampleType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sample_type'],
+        )!,
+      ),
+      startUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_utc'],
+      )!,
+      endUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_utc'],
+      )!,
+      tz: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tz'],
+      )!,
+      tzInferred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tz_inferred'],
+      )!,
+      sourceBundleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_bundle_id'],
+      ),
+      sleepStage: $HealthSamplesTable.$convertersleepStagen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sleep_stage'],
+        ),
+      ),
+      workoutType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workout_type'],
+      ),
+      energyKcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}energy_kcal'],
+      ),
+      distanceM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_m'],
+      ),
+      sourceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_name'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+      removedInSourceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}removed_in_source_at'],
+      ),
+    );
+  }
+
+  @override
+  $HealthSamplesTable createAlias(String alias) {
+    return $HealthSamplesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<HealthSampleType, String> $convertersampleType =
+      const EnumConverter(HealthSampleType.values);
+  static TypeConverter<SleepStage, String> $convertersleepStage =
+      const EnumConverter(SleepStage.values);
+  static TypeConverter<SleepStage?, String?> $convertersleepStagen =
+      NullAwareTypeConverter.wrap($convertersleepStage);
+}
+
+class HealthSample extends DataClass implements Insertable<HealthSample> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String platformUuid;
+  final HealthSampleType sampleType;
+  final int startUtc;
+  final int endUtc;
+  final String tz;
+  final bool tzInferred;
+  final String? sourceBundleId;
+  final SleepStage? sleepStage;
+  final String? workoutType;
+  final double? energyKcal;
+  final double? distanceM;
+  final String sourceName;
+  final int fetchedAt;
+  final int? removedInSourceAt;
+  const HealthSample({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.platformUuid,
+    required this.sampleType,
+    required this.startUtc,
+    required this.endUtc,
+    required this.tz,
+    required this.tzInferred,
+    this.sourceBundleId,
+    this.sleepStage,
+    this.workoutType,
+    this.energyKcal,
+    this.distanceM,
+    required this.sourceName,
+    required this.fetchedAt,
+    this.removedInSourceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['platform_uuid'] = Variable<String>(platformUuid);
+    {
+      map['sample_type'] = Variable<String>(
+        $HealthSamplesTable.$convertersampleType.toSql(sampleType),
+      );
+    }
+    map['start_utc'] = Variable<int>(startUtc);
+    map['end_utc'] = Variable<int>(endUtc);
+    map['tz'] = Variable<String>(tz);
+    map['tz_inferred'] = Variable<bool>(tzInferred);
+    if (!nullToAbsent || sourceBundleId != null) {
+      map['source_bundle_id'] = Variable<String>(sourceBundleId);
+    }
+    if (!nullToAbsent || sleepStage != null) {
+      map['sleep_stage'] = Variable<String>(
+        $HealthSamplesTable.$convertersleepStagen.toSql(sleepStage),
+      );
+    }
+    if (!nullToAbsent || workoutType != null) {
+      map['workout_type'] = Variable<String>(workoutType);
+    }
+    if (!nullToAbsent || energyKcal != null) {
+      map['energy_kcal'] = Variable<double>(energyKcal);
+    }
+    if (!nullToAbsent || distanceM != null) {
+      map['distance_m'] = Variable<double>(distanceM);
+    }
+    map['source_name'] = Variable<String>(sourceName);
+    map['fetched_at'] = Variable<int>(fetchedAt);
+    if (!nullToAbsent || removedInSourceAt != null) {
+      map['removed_in_source_at'] = Variable<int>(removedInSourceAt);
+    }
+    return map;
+  }
+
+  HealthSamplesCompanion toCompanion(bool nullToAbsent) {
+    return HealthSamplesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      platformUuid: Value(platformUuid),
+      sampleType: Value(sampleType),
+      startUtc: Value(startUtc),
+      endUtc: Value(endUtc),
+      tz: Value(tz),
+      tzInferred: Value(tzInferred),
+      sourceBundleId: sourceBundleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceBundleId),
+      sleepStage: sleepStage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleepStage),
+      workoutType: workoutType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workoutType),
+      energyKcal: energyKcal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(energyKcal),
+      distanceM: distanceM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceM),
+      sourceName: Value(sourceName),
+      fetchedAt: Value(fetchedAt),
+      removedInSourceAt: removedInSourceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(removedInSourceAt),
+    );
+  }
+
+  factory HealthSample.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthSample(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      platformUuid: serializer.fromJson<String>(json['platformUuid']),
+      sampleType: serializer.fromJson<HealthSampleType>(json['sampleType']),
+      startUtc: serializer.fromJson<int>(json['startUtc']),
+      endUtc: serializer.fromJson<int>(json['endUtc']),
+      tz: serializer.fromJson<String>(json['tz']),
+      tzInferred: serializer.fromJson<bool>(json['tzInferred']),
+      sourceBundleId: serializer.fromJson<String?>(json['sourceBundleId']),
+      sleepStage: serializer.fromJson<SleepStage?>(json['sleepStage']),
+      workoutType: serializer.fromJson<String?>(json['workoutType']),
+      energyKcal: serializer.fromJson<double?>(json['energyKcal']),
+      distanceM: serializer.fromJson<double?>(json['distanceM']),
+      sourceName: serializer.fromJson<String>(json['sourceName']),
+      fetchedAt: serializer.fromJson<int>(json['fetchedAt']),
+      removedInSourceAt: serializer.fromJson<int?>(json['removedInSourceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'platformUuid': serializer.toJson<String>(platformUuid),
+      'sampleType': serializer.toJson<HealthSampleType>(sampleType),
+      'startUtc': serializer.toJson<int>(startUtc),
+      'endUtc': serializer.toJson<int>(endUtc),
+      'tz': serializer.toJson<String>(tz),
+      'tzInferred': serializer.toJson<bool>(tzInferred),
+      'sourceBundleId': serializer.toJson<String?>(sourceBundleId),
+      'sleepStage': serializer.toJson<SleepStage?>(sleepStage),
+      'workoutType': serializer.toJson<String?>(workoutType),
+      'energyKcal': serializer.toJson<double?>(energyKcal),
+      'distanceM': serializer.toJson<double?>(distanceM),
+      'sourceName': serializer.toJson<String>(sourceName),
+      'fetchedAt': serializer.toJson<int>(fetchedAt),
+      'removedInSourceAt': serializer.toJson<int?>(removedInSourceAt),
+    };
+  }
+
+  HealthSample copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? platformUuid,
+    HealthSampleType? sampleType,
+    int? startUtc,
+    int? endUtc,
+    String? tz,
+    bool? tzInferred,
+    Value<String?> sourceBundleId = const Value.absent(),
+    Value<SleepStage?> sleepStage = const Value.absent(),
+    Value<String?> workoutType = const Value.absent(),
+    Value<double?> energyKcal = const Value.absent(),
+    Value<double?> distanceM = const Value.absent(),
+    String? sourceName,
+    int? fetchedAt,
+    Value<int?> removedInSourceAt = const Value.absent(),
+  }) => HealthSample(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    platformUuid: platformUuid ?? this.platformUuid,
+    sampleType: sampleType ?? this.sampleType,
+    startUtc: startUtc ?? this.startUtc,
+    endUtc: endUtc ?? this.endUtc,
+    tz: tz ?? this.tz,
+    tzInferred: tzInferred ?? this.tzInferred,
+    sourceBundleId: sourceBundleId.present
+        ? sourceBundleId.value
+        : this.sourceBundleId,
+    sleepStage: sleepStage.present ? sleepStage.value : this.sleepStage,
+    workoutType: workoutType.present ? workoutType.value : this.workoutType,
+    energyKcal: energyKcal.present ? energyKcal.value : this.energyKcal,
+    distanceM: distanceM.present ? distanceM.value : this.distanceM,
+    sourceName: sourceName ?? this.sourceName,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+    removedInSourceAt: removedInSourceAt.present
+        ? removedInSourceAt.value
+        : this.removedInSourceAt,
+  );
+  HealthSample copyWithCompanion(HealthSamplesCompanion data) {
+    return HealthSample(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      platformUuid: data.platformUuid.present
+          ? data.platformUuid.value
+          : this.platformUuid,
+      sampleType: data.sampleType.present
+          ? data.sampleType.value
+          : this.sampleType,
+      startUtc: data.startUtc.present ? data.startUtc.value : this.startUtc,
+      endUtc: data.endUtc.present ? data.endUtc.value : this.endUtc,
+      tz: data.tz.present ? data.tz.value : this.tz,
+      tzInferred: data.tzInferred.present
+          ? data.tzInferred.value
+          : this.tzInferred,
+      sourceBundleId: data.sourceBundleId.present
+          ? data.sourceBundleId.value
+          : this.sourceBundleId,
+      sleepStage: data.sleepStage.present
+          ? data.sleepStage.value
+          : this.sleepStage,
+      workoutType: data.workoutType.present
+          ? data.workoutType.value
+          : this.workoutType,
+      energyKcal: data.energyKcal.present
+          ? data.energyKcal.value
+          : this.energyKcal,
+      distanceM: data.distanceM.present ? data.distanceM.value : this.distanceM,
+      sourceName: data.sourceName.present
+          ? data.sourceName.value
+          : this.sourceName,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+      removedInSourceAt: data.removedInSourceAt.present
+          ? data.removedInSourceAt.value
+          : this.removedInSourceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthSample(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('platformUuid: $platformUuid, ')
+          ..write('sampleType: $sampleType, ')
+          ..write('startUtc: $startUtc, ')
+          ..write('endUtc: $endUtc, ')
+          ..write('tz: $tz, ')
+          ..write('tzInferred: $tzInferred, ')
+          ..write('sourceBundleId: $sourceBundleId, ')
+          ..write('sleepStage: $sleepStage, ')
+          ..write('workoutType: $workoutType, ')
+          ..write('energyKcal: $energyKcal, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('sourceName: $sourceName, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('removedInSourceAt: $removedInSourceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    platformUuid,
+    sampleType,
+    startUtc,
+    endUtc,
+    tz,
+    tzInferred,
+    sourceBundleId,
+    sleepStage,
+    workoutType,
+    energyKcal,
+    distanceM,
+    sourceName,
+    fetchedAt,
+    removedInSourceAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthSample &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.platformUuid == this.platformUuid &&
+          other.sampleType == this.sampleType &&
+          other.startUtc == this.startUtc &&
+          other.endUtc == this.endUtc &&
+          other.tz == this.tz &&
+          other.tzInferred == this.tzInferred &&
+          other.sourceBundleId == this.sourceBundleId &&
+          other.sleepStage == this.sleepStage &&
+          other.workoutType == this.workoutType &&
+          other.energyKcal == this.energyKcal &&
+          other.distanceM == this.distanceM &&
+          other.sourceName == this.sourceName &&
+          other.fetchedAt == this.fetchedAt &&
+          other.removedInSourceAt == this.removedInSourceAt);
+}
+
+class HealthSamplesCompanion extends UpdateCompanion<HealthSample> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> platformUuid;
+  final Value<HealthSampleType> sampleType;
+  final Value<int> startUtc;
+  final Value<int> endUtc;
+  final Value<String> tz;
+  final Value<bool> tzInferred;
+  final Value<String?> sourceBundleId;
+  final Value<SleepStage?> sleepStage;
+  final Value<String?> workoutType;
+  final Value<double?> energyKcal;
+  final Value<double?> distanceM;
+  final Value<String> sourceName;
+  final Value<int> fetchedAt;
+  final Value<int?> removedInSourceAt;
+  final Value<int> rowid;
+  const HealthSamplesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.platformUuid = const Value.absent(),
+    this.sampleType = const Value.absent(),
+    this.startUtc = const Value.absent(),
+    this.endUtc = const Value.absent(),
+    this.tz = const Value.absent(),
+    this.tzInferred = const Value.absent(),
+    this.sourceBundleId = const Value.absent(),
+    this.sleepStage = const Value.absent(),
+    this.workoutType = const Value.absent(),
+    this.energyKcal = const Value.absent(),
+    this.distanceM = const Value.absent(),
+    this.sourceName = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.removedInSourceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HealthSamplesCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String platformUuid,
+    required HealthSampleType sampleType,
+    required int startUtc,
+    required int endUtc,
+    required String tz,
+    this.tzInferred = const Value.absent(),
+    this.sourceBundleId = const Value.absent(),
+    this.sleepStage = const Value.absent(),
+    this.workoutType = const Value.absent(),
+    this.energyKcal = const Value.absent(),
+    this.distanceM = const Value.absent(),
+    required String sourceName,
+    required int fetchedAt,
+    this.removedInSourceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       platformUuid = Value(platformUuid),
+       sampleType = Value(sampleType),
+       startUtc = Value(startUtc),
+       endUtc = Value(endUtc),
+       tz = Value(tz),
+       sourceName = Value(sourceName),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<HealthSample> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? platformUuid,
+    Expression<String>? sampleType,
+    Expression<int>? startUtc,
+    Expression<int>? endUtc,
+    Expression<String>? tz,
+    Expression<bool>? tzInferred,
+    Expression<String>? sourceBundleId,
+    Expression<String>? sleepStage,
+    Expression<String>? workoutType,
+    Expression<double>? energyKcal,
+    Expression<double>? distanceM,
+    Expression<String>? sourceName,
+    Expression<int>? fetchedAt,
+    Expression<int>? removedInSourceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (platformUuid != null) 'platform_uuid': platformUuid,
+      if (sampleType != null) 'sample_type': sampleType,
+      if (startUtc != null) 'start_utc': startUtc,
+      if (endUtc != null) 'end_utc': endUtc,
+      if (tz != null) 'tz': tz,
+      if (tzInferred != null) 'tz_inferred': tzInferred,
+      if (sourceBundleId != null) 'source_bundle_id': sourceBundleId,
+      if (sleepStage != null) 'sleep_stage': sleepStage,
+      if (workoutType != null) 'workout_type': workoutType,
+      if (energyKcal != null) 'energy_kcal': energyKcal,
+      if (distanceM != null) 'distance_m': distanceM,
+      if (sourceName != null) 'source_name': sourceName,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (removedInSourceAt != null) 'removed_in_source_at': removedInSourceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HealthSamplesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? platformUuid,
+    Value<HealthSampleType>? sampleType,
+    Value<int>? startUtc,
+    Value<int>? endUtc,
+    Value<String>? tz,
+    Value<bool>? tzInferred,
+    Value<String?>? sourceBundleId,
+    Value<SleepStage?>? sleepStage,
+    Value<String?>? workoutType,
+    Value<double?>? energyKcal,
+    Value<double?>? distanceM,
+    Value<String>? sourceName,
+    Value<int>? fetchedAt,
+    Value<int?>? removedInSourceAt,
+    Value<int>? rowid,
+  }) {
+    return HealthSamplesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      platformUuid: platformUuid ?? this.platformUuid,
+      sampleType: sampleType ?? this.sampleType,
+      startUtc: startUtc ?? this.startUtc,
+      endUtc: endUtc ?? this.endUtc,
+      tz: tz ?? this.tz,
+      tzInferred: tzInferred ?? this.tzInferred,
+      sourceBundleId: sourceBundleId ?? this.sourceBundleId,
+      sleepStage: sleepStage ?? this.sleepStage,
+      workoutType: workoutType ?? this.workoutType,
+      energyKcal: energyKcal ?? this.energyKcal,
+      distanceM: distanceM ?? this.distanceM,
+      sourceName: sourceName ?? this.sourceName,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      removedInSourceAt: removedInSourceAt ?? this.removedInSourceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (platformUuid.present) {
+      map['platform_uuid'] = Variable<String>(platformUuid.value);
+    }
+    if (sampleType.present) {
+      map['sample_type'] = Variable<String>(
+        $HealthSamplesTable.$convertersampleType.toSql(sampleType.value),
+      );
+    }
+    if (startUtc.present) {
+      map['start_utc'] = Variable<int>(startUtc.value);
+    }
+    if (endUtc.present) {
+      map['end_utc'] = Variable<int>(endUtc.value);
+    }
+    if (tz.present) {
+      map['tz'] = Variable<String>(tz.value);
+    }
+    if (tzInferred.present) {
+      map['tz_inferred'] = Variable<bool>(tzInferred.value);
+    }
+    if (sourceBundleId.present) {
+      map['source_bundle_id'] = Variable<String>(sourceBundleId.value);
+    }
+    if (sleepStage.present) {
+      map['sleep_stage'] = Variable<String>(
+        $HealthSamplesTable.$convertersleepStagen.toSql(sleepStage.value),
+      );
+    }
+    if (workoutType.present) {
+      map['workout_type'] = Variable<String>(workoutType.value);
+    }
+    if (energyKcal.present) {
+      map['energy_kcal'] = Variable<double>(energyKcal.value);
+    }
+    if (distanceM.present) {
+      map['distance_m'] = Variable<double>(distanceM.value);
+    }
+    if (sourceName.present) {
+      map['source_name'] = Variable<String>(sourceName.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<int>(fetchedAt.value);
+    }
+    if (removedInSourceAt.present) {
+      map['removed_in_source_at'] = Variable<int>(removedInSourceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthSamplesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('platformUuid: $platformUuid, ')
+          ..write('sampleType: $sampleType, ')
+          ..write('startUtc: $startUtc, ')
+          ..write('endUtc: $endUtc, ')
+          ..write('tz: $tz, ')
+          ..write('tzInferred: $tzInferred, ')
+          ..write('sourceBundleId: $sourceBundleId, ')
+          ..write('sleepStage: $sleepStage, ')
+          ..write('workoutType: $workoutType, ')
+          ..write('energyKcal: $energyKcal, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('sourceName: $sourceName, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('removedInSourceAt: $removedInSourceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HealthAnchorsTable extends HealthAnchors
+    with TableInfo<$HealthAnchorsTable, HealthAnchor> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthAnchorsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<HealthSampleType, String>
+  sampleType = GeneratedColumn<String>(
+    'sample_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<HealthSampleType>($HealthAnchorsTable.$convertersampleType);
+  static const VerificationMeta _anchorMeta = const VerificationMeta('anchor');
+  @override
+  late final GeneratedColumn<Uint8List> anchor = GeneratedColumn<Uint8List>(
+    'anchor',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [sampleType, anchor, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_anchors';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthAnchor> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('anchor')) {
+      context.handle(
+        _anchorMeta,
+        anchor.isAcceptableOrUnknown(data['anchor']!, _anchorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_anchorMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sampleType};
+  @override
+  HealthAnchor map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthAnchor(
+      sampleType: $HealthAnchorsTable.$convertersampleType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sample_type'],
+        )!,
+      ),
+      anchor: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}anchor'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HealthAnchorsTable createAlias(String alias) {
+    return $HealthAnchorsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<HealthSampleType, String> $convertersampleType =
+      const EnumConverter(HealthSampleType.values);
+}
+
+class HealthAnchor extends DataClass implements Insertable<HealthAnchor> {
+  final HealthSampleType sampleType;
+  final Uint8List anchor;
+  final int updatedAt;
+  const HealthAnchor({
+    required this.sampleType,
+    required this.anchor,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['sample_type'] = Variable<String>(
+        $HealthAnchorsTable.$convertersampleType.toSql(sampleType),
+      );
+    }
+    map['anchor'] = Variable<Uint8List>(anchor);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  HealthAnchorsCompanion toCompanion(bool nullToAbsent) {
+    return HealthAnchorsCompanion(
+      sampleType: Value(sampleType),
+      anchor: Value(anchor),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory HealthAnchor.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthAnchor(
+      sampleType: serializer.fromJson<HealthSampleType>(json['sampleType']),
+      anchor: serializer.fromJson<Uint8List>(json['anchor']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sampleType': serializer.toJson<HealthSampleType>(sampleType),
+      'anchor': serializer.toJson<Uint8List>(anchor),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  HealthAnchor copyWith({
+    HealthSampleType? sampleType,
+    Uint8List? anchor,
+    int? updatedAt,
+  }) => HealthAnchor(
+    sampleType: sampleType ?? this.sampleType,
+    anchor: anchor ?? this.anchor,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  HealthAnchor copyWithCompanion(HealthAnchorsCompanion data) {
+    return HealthAnchor(
+      sampleType: data.sampleType.present
+          ? data.sampleType.value
+          : this.sampleType,
+      anchor: data.anchor.present ? data.anchor.value : this.anchor,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthAnchor(')
+          ..write('sampleType: $sampleType, ')
+          ..write('anchor: $anchor, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(sampleType, $driftBlobEquality.hash(anchor), updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthAnchor &&
+          other.sampleType == this.sampleType &&
+          $driftBlobEquality.equals(other.anchor, this.anchor) &&
+          other.updatedAt == this.updatedAt);
+}
+
+class HealthAnchorsCompanion extends UpdateCompanion<HealthAnchor> {
+  final Value<HealthSampleType> sampleType;
+  final Value<Uint8List> anchor;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const HealthAnchorsCompanion({
+    this.sampleType = const Value.absent(),
+    this.anchor = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HealthAnchorsCompanion.insert({
+    required HealthSampleType sampleType,
+    required Uint8List anchor,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : sampleType = Value(sampleType),
+       anchor = Value(anchor),
+       updatedAt = Value(updatedAt);
+  static Insertable<HealthAnchor> custom({
+    Expression<String>? sampleType,
+    Expression<Uint8List>? anchor,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sampleType != null) 'sample_type': sampleType,
+      if (anchor != null) 'anchor': anchor,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HealthAnchorsCompanion copyWith({
+    Value<HealthSampleType>? sampleType,
+    Value<Uint8List>? anchor,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return HealthAnchorsCompanion(
+      sampleType: sampleType ?? this.sampleType,
+      anchor: anchor ?? this.anchor,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sampleType.present) {
+      map['sample_type'] = Variable<String>(
+        $HealthAnchorsTable.$convertersampleType.toSql(sampleType.value),
+      );
+    }
+    if (anchor.present) {
+      map['anchor'] = Variable<Uint8List>(anchor.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthAnchorsCompanion(')
+          ..write('sampleType: $sampleType, ')
+          ..write('anchor: $anchor, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HealthDailyTable extends HealthDaily
+    with TableInfo<$HealthDailyTable, HealthDailyData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthDailyTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _localDateMeta = const VerificationMeta(
+    'localDate',
+  );
+  @override
+  late final GeneratedColumn<String> localDate = GeneratedColumn<String>(
+    'local_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _aggTzMeta = const VerificationMeta('aggTz');
+  @override
+  late final GeneratedColumn<String> aggTz = GeneratedColumn<String>(
+    'agg_tz',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intervalStartUtcMeta = const VerificationMeta(
+    'intervalStartUtc',
+  );
+  @override
+  late final GeneratedColumn<int> intervalStartUtc = GeneratedColumn<int>(
+    'interval_start_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intervalEndUtcMeta = const VerificationMeta(
+    'intervalEndUtc',
+  );
+  @override
+  late final GeneratedColumn<int> intervalEndUtc = GeneratedColumn<int>(
+    'interval_end_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<HealthMetric, String> metric =
+      GeneratedColumn<String>(
+        'metric',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<HealthMetric>($HealthDailyTable.$convertermetric);
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<double> value = GeneratedColumn<double>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<int> fetchedAt = GeneratedColumn<int>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    localDate,
+    aggTz,
+    intervalStartUtc,
+    intervalEndUtc,
+    metric,
+    value,
+    fetchedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_daily';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthDailyData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('local_date')) {
+      context.handle(
+        _localDateMeta,
+        localDate.isAcceptableOrUnknown(data['local_date']!, _localDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localDateMeta);
+    }
+    if (data.containsKey('agg_tz')) {
+      context.handle(
+        _aggTzMeta,
+        aggTz.isAcceptableOrUnknown(data['agg_tz']!, _aggTzMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_aggTzMeta);
+    }
+    if (data.containsKey('interval_start_utc')) {
+      context.handle(
+        _intervalStartUtcMeta,
+        intervalStartUtc.isAcceptableOrUnknown(
+          data['interval_start_utc']!,
+          _intervalStartUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_intervalStartUtcMeta);
+    }
+    if (data.containsKey('interval_end_utc')) {
+      context.handle(
+        _intervalEndUtcMeta,
+        intervalEndUtc.isAcceptableOrUnknown(
+          data['interval_end_utc']!,
+          _intervalEndUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_intervalEndUtcMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {localDate, metric},
+  ];
+  @override
+  HealthDailyData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthDailyData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      aggTz: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}agg_tz'],
+      )!,
+      intervalStartUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_start_utc'],
+      )!,
+      intervalEndUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_end_utc'],
+      )!,
+      metric: $HealthDailyTable.$convertermetric.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}metric'],
+        )!,
+      ),
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}value'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HealthDailyTable createAlias(String alias) {
+    return $HealthDailyTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<HealthMetric, String> $convertermetric =
+      const EnumConverter(HealthMetric.values);
+}
+
+class HealthDailyData extends DataClass implements Insertable<HealthDailyData> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String localDate;
+  final String aggTz;
+  final int intervalStartUtc;
+  final int intervalEndUtc;
+  final HealthMetric metric;
+  final double value;
+  final int fetchedAt;
+  const HealthDailyData({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.localDate,
+    required this.aggTz,
+    required this.intervalStartUtc,
+    required this.intervalEndUtc,
+    required this.metric,
+    required this.value,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['local_date'] = Variable<String>(localDate);
+    map['agg_tz'] = Variable<String>(aggTz);
+    map['interval_start_utc'] = Variable<int>(intervalStartUtc);
+    map['interval_end_utc'] = Variable<int>(intervalEndUtc);
+    {
+      map['metric'] = Variable<String>(
+        $HealthDailyTable.$convertermetric.toSql(metric),
+      );
+    }
+    map['value'] = Variable<double>(value);
+    map['fetched_at'] = Variable<int>(fetchedAt);
+    return map;
+  }
+
+  HealthDailyCompanion toCompanion(bool nullToAbsent) {
+    return HealthDailyCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      localDate: Value(localDate),
+      aggTz: Value(aggTz),
+      intervalStartUtc: Value(intervalStartUtc),
+      intervalEndUtc: Value(intervalEndUtc),
+      metric: Value(metric),
+      value: Value(value),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory HealthDailyData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthDailyData(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      aggTz: serializer.fromJson<String>(json['aggTz']),
+      intervalStartUtc: serializer.fromJson<int>(json['intervalStartUtc']),
+      intervalEndUtc: serializer.fromJson<int>(json['intervalEndUtc']),
+      metric: serializer.fromJson<HealthMetric>(json['metric']),
+      value: serializer.fromJson<double>(json['value']),
+      fetchedAt: serializer.fromJson<int>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'localDate': serializer.toJson<String>(localDate),
+      'aggTz': serializer.toJson<String>(aggTz),
+      'intervalStartUtc': serializer.toJson<int>(intervalStartUtc),
+      'intervalEndUtc': serializer.toJson<int>(intervalEndUtc),
+      'metric': serializer.toJson<HealthMetric>(metric),
+      'value': serializer.toJson<double>(value),
+      'fetchedAt': serializer.toJson<int>(fetchedAt),
+    };
+  }
+
+  HealthDailyData copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? localDate,
+    String? aggTz,
+    int? intervalStartUtc,
+    int? intervalEndUtc,
+    HealthMetric? metric,
+    double? value,
+    int? fetchedAt,
+  }) => HealthDailyData(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    localDate: localDate ?? this.localDate,
+    aggTz: aggTz ?? this.aggTz,
+    intervalStartUtc: intervalStartUtc ?? this.intervalStartUtc,
+    intervalEndUtc: intervalEndUtc ?? this.intervalEndUtc,
+    metric: metric ?? this.metric,
+    value: value ?? this.value,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  HealthDailyData copyWithCompanion(HealthDailyCompanion data) {
+    return HealthDailyData(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      aggTz: data.aggTz.present ? data.aggTz.value : this.aggTz,
+      intervalStartUtc: data.intervalStartUtc.present
+          ? data.intervalStartUtc.value
+          : this.intervalStartUtc,
+      intervalEndUtc: data.intervalEndUtc.present
+          ? data.intervalEndUtc.value
+          : this.intervalEndUtc,
+      metric: data.metric.present ? data.metric.value : this.metric,
+      value: data.value.present ? data.value.value : this.value,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthDailyData(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('localDate: $localDate, ')
+          ..write('aggTz: $aggTz, ')
+          ..write('intervalStartUtc: $intervalStartUtc, ')
+          ..write('intervalEndUtc: $intervalEndUtc, ')
+          ..write('metric: $metric, ')
+          ..write('value: $value, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    localDate,
+    aggTz,
+    intervalStartUtc,
+    intervalEndUtc,
+    metric,
+    value,
+    fetchedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthDailyData &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.localDate == this.localDate &&
+          other.aggTz == this.aggTz &&
+          other.intervalStartUtc == this.intervalStartUtc &&
+          other.intervalEndUtc == this.intervalEndUtc &&
+          other.metric == this.metric &&
+          other.value == this.value &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class HealthDailyCompanion extends UpdateCompanion<HealthDailyData> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> localDate;
+  final Value<String> aggTz;
+  final Value<int> intervalStartUtc;
+  final Value<int> intervalEndUtc;
+  final Value<HealthMetric> metric;
+  final Value<double> value;
+  final Value<int> fetchedAt;
+  final Value<int> rowid;
+  const HealthDailyCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.aggTz = const Value.absent(),
+    this.intervalStartUtc = const Value.absent(),
+    this.intervalEndUtc = const Value.absent(),
+    this.metric = const Value.absent(),
+    this.value = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HealthDailyCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String localDate,
+    required String aggTz,
+    required int intervalStartUtc,
+    required int intervalEndUtc,
+    required HealthMetric metric,
+    required double value,
+    required int fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       localDate = Value(localDate),
+       aggTz = Value(aggTz),
+       intervalStartUtc = Value(intervalStartUtc),
+       intervalEndUtc = Value(intervalEndUtc),
+       metric = Value(metric),
+       value = Value(value),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<HealthDailyData> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? localDate,
+    Expression<String>? aggTz,
+    Expression<int>? intervalStartUtc,
+    Expression<int>? intervalEndUtc,
+    Expression<String>? metric,
+    Expression<double>? value,
+    Expression<int>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (localDate != null) 'local_date': localDate,
+      if (aggTz != null) 'agg_tz': aggTz,
+      if (intervalStartUtc != null) 'interval_start_utc': intervalStartUtc,
+      if (intervalEndUtc != null) 'interval_end_utc': intervalEndUtc,
+      if (metric != null) 'metric': metric,
+      if (value != null) 'value': value,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HealthDailyCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? localDate,
+    Value<String>? aggTz,
+    Value<int>? intervalStartUtc,
+    Value<int>? intervalEndUtc,
+    Value<HealthMetric>? metric,
+    Value<double>? value,
+    Value<int>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return HealthDailyCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      localDate: localDate ?? this.localDate,
+      aggTz: aggTz ?? this.aggTz,
+      intervalStartUtc: intervalStartUtc ?? this.intervalStartUtc,
+      intervalEndUtc: intervalEndUtc ?? this.intervalEndUtc,
+      metric: metric ?? this.metric,
+      value: value ?? this.value,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (aggTz.present) {
+      map['agg_tz'] = Variable<String>(aggTz.value);
+    }
+    if (intervalStartUtc.present) {
+      map['interval_start_utc'] = Variable<int>(intervalStartUtc.value);
+    }
+    if (intervalEndUtc.present) {
+      map['interval_end_utc'] = Variable<int>(intervalEndUtc.value);
+    }
+    if (metric.present) {
+      map['metric'] = Variable<String>(
+        $HealthDailyTable.$convertermetric.toSql(metric.value),
+      );
+    }
+    if (value.present) {
+      map['value'] = Variable<double>(value.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<int>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthDailyCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('localDate: $localDate, ')
+          ..write('aggTz: $aggTz, ')
+          ..write('intervalStartUtc: $intervalStartUtc, ')
+          ..write('intervalEndUtc: $intervalEndUtc, ')
+          ..write('metric: $metric, ')
+          ..write('value: $value, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OrganizeRunsTable extends OrganizeRuns
+    with TableInfo<$OrganizeRunsTable, OrganizeRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OrganizeRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<OrganizeTrigger, String> trigger =
+      GeneratedColumn<String>(
+        'trigger',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<OrganizeTrigger>($OrganizeRunsTable.$convertertrigger);
+  static const VerificationMeta _inputSnapshotMeta = const VerificationMeta(
+    'inputSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> inputSnapshot = GeneratedColumn<String>(
+    'input_snapshot',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelConfigIdMeta = const VerificationMeta(
+    'modelConfigId',
+  );
+  @override
+  late final GeneratedColumn<String> modelConfigId = GeneratedColumn<String>(
+    'model_config_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelSnapshotMeta = const VerificationMeta(
+    'modelSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> modelSnapshot = GeneratedColumn<String>(
+    'model_snapshot',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<OrganizeRunStatus, String>
+  status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<OrganizeRunStatus>($OrganizeRunsTable.$converterstatus);
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<int> startedAt = GeneratedColumn<int>(
+    'started_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _finishedAtMeta = const VerificationMeta(
+    'finishedAt',
+  );
+  @override
+  late final GeneratedColumn<int> finishedAt = GeneratedColumn<int>(
+    'finished_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    trigger,
+    inputSnapshot,
+    modelConfigId,
+    modelSnapshot,
+    status,
+    error,
+    startedAt,
+    finishedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'organize_runs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OrganizeRun> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('input_snapshot')) {
+      context.handle(
+        _inputSnapshotMeta,
+        inputSnapshot.isAcceptableOrUnknown(
+          data['input_snapshot']!,
+          _inputSnapshotMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_inputSnapshotMeta);
+    }
+    if (data.containsKey('model_config_id')) {
+      context.handle(
+        _modelConfigIdMeta,
+        modelConfigId.isAcceptableOrUnknown(
+          data['model_config_id']!,
+          _modelConfigIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('model_snapshot')) {
+      context.handle(
+        _modelSnapshotMeta,
+        modelSnapshot.isAcceptableOrUnknown(
+          data['model_snapshot']!,
+          _modelSnapshotMeta,
+        ),
+      );
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('finished_at')) {
+      context.handle(
+        _finishedAtMeta,
+        finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OrganizeRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OrganizeRun(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      trigger: $OrganizeRunsTable.$convertertrigger.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}trigger'],
+        )!,
+      ),
+      inputSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_snapshot'],
+      )!,
+      modelConfigId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_config_id'],
+      ),
+      modelSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_snapshot'],
+      ),
+      status: $OrganizeRunsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}started_at'],
+      ),
+      finishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}finished_at'],
+      ),
+    );
+  }
+
+  @override
+  $OrganizeRunsTable createAlias(String alias) {
+    return $OrganizeRunsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<OrganizeTrigger, String> $convertertrigger =
+      const EnumConverter(OrganizeTrigger.values);
+  static TypeConverter<OrganizeRunStatus, String> $converterstatus =
+      const EnumConverter(OrganizeRunStatus.values);
+}
+
+class OrganizeRun extends DataClass implements Insertable<OrganizeRun> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final OrganizeTrigger trigger;
+  final String inputSnapshot;
+  final String? modelConfigId;
+  final String? modelSnapshot;
+  final OrganizeRunStatus status;
+  final String? error;
+  final int? startedAt;
+  final int? finishedAt;
+  const OrganizeRun({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.trigger,
+    required this.inputSnapshot,
+    this.modelConfigId,
+    this.modelSnapshot,
+    required this.status,
+    this.error,
+    this.startedAt,
+    this.finishedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    {
+      map['trigger'] = Variable<String>(
+        $OrganizeRunsTable.$convertertrigger.toSql(trigger),
+      );
+    }
+    map['input_snapshot'] = Variable<String>(inputSnapshot);
+    if (!nullToAbsent || modelConfigId != null) {
+      map['model_config_id'] = Variable<String>(modelConfigId);
+    }
+    if (!nullToAbsent || modelSnapshot != null) {
+      map['model_snapshot'] = Variable<String>(modelSnapshot);
+    }
+    {
+      map['status'] = Variable<String>(
+        $OrganizeRunsTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    if (!nullToAbsent || startedAt != null) {
+      map['started_at'] = Variable<int>(startedAt);
+    }
+    if (!nullToAbsent || finishedAt != null) {
+      map['finished_at'] = Variable<int>(finishedAt);
+    }
+    return map;
+  }
+
+  OrganizeRunsCompanion toCompanion(bool nullToAbsent) {
+    return OrganizeRunsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      trigger: Value(trigger),
+      inputSnapshot: Value(inputSnapshot),
+      modelConfigId: modelConfigId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelConfigId),
+      modelSnapshot: modelSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelSnapshot),
+      status: Value(status),
+      error: error == null && nullToAbsent
+          ? const Value.absent()
+          : Value(error),
+      startedAt: startedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAt),
+      finishedAt: finishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finishedAt),
+    );
+  }
+
+  factory OrganizeRun.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OrganizeRun(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      trigger: serializer.fromJson<OrganizeTrigger>(json['trigger']),
+      inputSnapshot: serializer.fromJson<String>(json['inputSnapshot']),
+      modelConfigId: serializer.fromJson<String?>(json['modelConfigId']),
+      modelSnapshot: serializer.fromJson<String?>(json['modelSnapshot']),
+      status: serializer.fromJson<OrganizeRunStatus>(json['status']),
+      error: serializer.fromJson<String?>(json['error']),
+      startedAt: serializer.fromJson<int?>(json['startedAt']),
+      finishedAt: serializer.fromJson<int?>(json['finishedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'trigger': serializer.toJson<OrganizeTrigger>(trigger),
+      'inputSnapshot': serializer.toJson<String>(inputSnapshot),
+      'modelConfigId': serializer.toJson<String?>(modelConfigId),
+      'modelSnapshot': serializer.toJson<String?>(modelSnapshot),
+      'status': serializer.toJson<OrganizeRunStatus>(status),
+      'error': serializer.toJson<String?>(error),
+      'startedAt': serializer.toJson<int?>(startedAt),
+      'finishedAt': serializer.toJson<int?>(finishedAt),
+    };
+  }
+
+  OrganizeRun copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    OrganizeTrigger? trigger,
+    String? inputSnapshot,
+    Value<String?> modelConfigId = const Value.absent(),
+    Value<String?> modelSnapshot = const Value.absent(),
+    OrganizeRunStatus? status,
+    Value<String?> error = const Value.absent(),
+    Value<int?> startedAt = const Value.absent(),
+    Value<int?> finishedAt = const Value.absent(),
+  }) => OrganizeRun(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    trigger: trigger ?? this.trigger,
+    inputSnapshot: inputSnapshot ?? this.inputSnapshot,
+    modelConfigId: modelConfigId.present
+        ? modelConfigId.value
+        : this.modelConfigId,
+    modelSnapshot: modelSnapshot.present
+        ? modelSnapshot.value
+        : this.modelSnapshot,
+    status: status ?? this.status,
+    error: error.present ? error.value : this.error,
+    startedAt: startedAt.present ? startedAt.value : this.startedAt,
+    finishedAt: finishedAt.present ? finishedAt.value : this.finishedAt,
+  );
+  OrganizeRun copyWithCompanion(OrganizeRunsCompanion data) {
+    return OrganizeRun(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      trigger: data.trigger.present ? data.trigger.value : this.trigger,
+      inputSnapshot: data.inputSnapshot.present
+          ? data.inputSnapshot.value
+          : this.inputSnapshot,
+      modelConfigId: data.modelConfigId.present
+          ? data.modelConfigId.value
+          : this.modelConfigId,
+      modelSnapshot: data.modelSnapshot.present
+          ? data.modelSnapshot.value
+          : this.modelSnapshot,
+      status: data.status.present ? data.status.value : this.status,
+      error: data.error.present ? data.error.value : this.error,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      finishedAt: data.finishedAt.present
+          ? data.finishedAt.value
+          : this.finishedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrganizeRun(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('trigger: $trigger, ')
+          ..write('inputSnapshot: $inputSnapshot, ')
+          ..write('modelConfigId: $modelConfigId, ')
+          ..write('modelSnapshot: $modelSnapshot, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    trigger,
+    inputSnapshot,
+    modelConfigId,
+    modelSnapshot,
+    status,
+    error,
+    startedAt,
+    finishedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrganizeRun &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.trigger == this.trigger &&
+          other.inputSnapshot == this.inputSnapshot &&
+          other.modelConfigId == this.modelConfigId &&
+          other.modelSnapshot == this.modelSnapshot &&
+          other.status == this.status &&
+          other.error == this.error &&
+          other.startedAt == this.startedAt &&
+          other.finishedAt == this.finishedAt);
+}
+
+class OrganizeRunsCompanion extends UpdateCompanion<OrganizeRun> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<OrganizeTrigger> trigger;
+  final Value<String> inputSnapshot;
+  final Value<String?> modelConfigId;
+  final Value<String?> modelSnapshot;
+  final Value<OrganizeRunStatus> status;
+  final Value<String?> error;
+  final Value<int?> startedAt;
+  final Value<int?> finishedAt;
+  final Value<int> rowid;
+  const OrganizeRunsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.trigger = const Value.absent(),
+    this.inputSnapshot = const Value.absent(),
+    this.modelConfigId = const Value.absent(),
+    this.modelSnapshot = const Value.absent(),
+    this.status = const Value.absent(),
+    this.error = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.finishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OrganizeRunsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required OrganizeTrigger trigger,
+    required String inputSnapshot,
+    this.modelConfigId = const Value.absent(),
+    this.modelSnapshot = const Value.absent(),
+    required OrganizeRunStatus status,
+    this.error = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.finishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       trigger = Value(trigger),
+       inputSnapshot = Value(inputSnapshot),
+       status = Value(status);
+  static Insertable<OrganizeRun> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? trigger,
+    Expression<String>? inputSnapshot,
+    Expression<String>? modelConfigId,
+    Expression<String>? modelSnapshot,
+    Expression<String>? status,
+    Expression<String>? error,
+    Expression<int>? startedAt,
+    Expression<int>? finishedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (trigger != null) 'trigger': trigger,
+      if (inputSnapshot != null) 'input_snapshot': inputSnapshot,
+      if (modelConfigId != null) 'model_config_id': modelConfigId,
+      if (modelSnapshot != null) 'model_snapshot': modelSnapshot,
+      if (status != null) 'status': status,
+      if (error != null) 'error': error,
+      if (startedAt != null) 'started_at': startedAt,
+      if (finishedAt != null) 'finished_at': finishedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OrganizeRunsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<OrganizeTrigger>? trigger,
+    Value<String>? inputSnapshot,
+    Value<String?>? modelConfigId,
+    Value<String?>? modelSnapshot,
+    Value<OrganizeRunStatus>? status,
+    Value<String?>? error,
+    Value<int?>? startedAt,
+    Value<int?>? finishedAt,
+    Value<int>? rowid,
+  }) {
+    return OrganizeRunsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      trigger: trigger ?? this.trigger,
+      inputSnapshot: inputSnapshot ?? this.inputSnapshot,
+      modelConfigId: modelConfigId ?? this.modelConfigId,
+      modelSnapshot: modelSnapshot ?? this.modelSnapshot,
+      status: status ?? this.status,
+      error: error ?? this.error,
+      startedAt: startedAt ?? this.startedAt,
+      finishedAt: finishedAt ?? this.finishedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (trigger.present) {
+      map['trigger'] = Variable<String>(
+        $OrganizeRunsTable.$convertertrigger.toSql(trigger.value),
+      );
+    }
+    if (inputSnapshot.present) {
+      map['input_snapshot'] = Variable<String>(inputSnapshot.value);
+    }
+    if (modelConfigId.present) {
+      map['model_config_id'] = Variable<String>(modelConfigId.value);
+    }
+    if (modelSnapshot.present) {
+      map['model_snapshot'] = Variable<String>(modelSnapshot.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $OrganizeRunsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<int>(startedAt.value);
+    }
+    if (finishedAt.present) {
+      map['finished_at'] = Variable<int>(finishedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrganizeRunsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('trigger: $trigger, ')
+          ..write('inputSnapshot: $inputSnapshot, ')
+          ..write('modelConfigId: $modelConfigId, ')
+          ..write('modelSnapshot: $modelSnapshot, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OrganizeRunItemsTable extends OrganizeRunItems
+    with TableInfo<$OrganizeRunItemsTable, OrganizeRunItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OrganizeRunItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _organizeRunIdMeta = const VerificationMeta(
+    'organizeRunId',
+  );
+  @override
+  late final GeneratedColumn<String> organizeRunId = GeneratedColumn<String>(
+    'organize_run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<OrganizeItemStatus, String>
+  status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<OrganizeItemStatus>($OrganizeRunItemsTable.$converterstatus);
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _correctionSuggestionIdMeta =
+      const VerificationMeta('correctionSuggestionId');
+  @override
+  late final GeneratedColumn<String> correctionSuggestionId =
+      GeneratedColumn<String>(
+        'correction_suggestion_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    organizeRunId,
+    recordId,
+    status,
+    retryCount,
+    correctionSuggestionId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'organize_run_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OrganizeRunItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('organize_run_id')) {
+      context.handle(
+        _organizeRunIdMeta,
+        organizeRunId.isAcceptableOrUnknown(
+          data['organize_run_id']!,
+          _organizeRunIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_organizeRunIdMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
+    if (data.containsKey('correction_suggestion_id')) {
+      context.handle(
+        _correctionSuggestionIdMeta,
+        correctionSuggestionId.isAcceptableOrUnknown(
+          data['correction_suggestion_id']!,
+          _correctionSuggestionIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {organizeRunId, recordId},
+  ];
+  @override
+  OrganizeRunItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OrganizeRunItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      organizeRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organize_run_id'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      status: $OrganizeRunItemsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
+      correctionSuggestionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}correction_suggestion_id'],
+      ),
+    );
+  }
+
+  @override
+  $OrganizeRunItemsTable createAlias(String alias) {
+    return $OrganizeRunItemsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<OrganizeItemStatus, String> $converterstatus =
+      const EnumConverter(OrganizeItemStatus.values);
+}
+
+class OrganizeRunItem extends DataClass implements Insertable<OrganizeRunItem> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String organizeRunId;
+  final String recordId;
+  final OrganizeItemStatus status;
+  final int retryCount;
+  final String? correctionSuggestionId;
+  const OrganizeRunItem({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.organizeRunId,
+    required this.recordId,
+    required this.status,
+    required this.retryCount,
+    this.correctionSuggestionId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['organize_run_id'] = Variable<String>(organizeRunId);
+    map['record_id'] = Variable<String>(recordId);
+    {
+      map['status'] = Variable<String>(
+        $OrganizeRunItemsTable.$converterstatus.toSql(status),
+      );
+    }
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || correctionSuggestionId != null) {
+      map['correction_suggestion_id'] = Variable<String>(
+        correctionSuggestionId,
+      );
+    }
+    return map;
+  }
+
+  OrganizeRunItemsCompanion toCompanion(bool nullToAbsent) {
+    return OrganizeRunItemsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      organizeRunId: Value(organizeRunId),
+      recordId: Value(recordId),
+      status: Value(status),
+      retryCount: Value(retryCount),
+      correctionSuggestionId: correctionSuggestionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correctionSuggestionId),
+    );
+  }
+
+  factory OrganizeRunItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OrganizeRunItem(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      organizeRunId: serializer.fromJson<String>(json['organizeRunId']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      status: serializer.fromJson<OrganizeItemStatus>(json['status']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      correctionSuggestionId: serializer.fromJson<String?>(
+        json['correctionSuggestionId'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'organizeRunId': serializer.toJson<String>(organizeRunId),
+      'recordId': serializer.toJson<String>(recordId),
+      'status': serializer.toJson<OrganizeItemStatus>(status),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'correctionSuggestionId': serializer.toJson<String?>(
+        correctionSuggestionId,
+      ),
+    };
+  }
+
+  OrganizeRunItem copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? organizeRunId,
+    String? recordId,
+    OrganizeItemStatus? status,
+    int? retryCount,
+    Value<String?> correctionSuggestionId = const Value.absent(),
+  }) => OrganizeRunItem(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    organizeRunId: organizeRunId ?? this.organizeRunId,
+    recordId: recordId ?? this.recordId,
+    status: status ?? this.status,
+    retryCount: retryCount ?? this.retryCount,
+    correctionSuggestionId: correctionSuggestionId.present
+        ? correctionSuggestionId.value
+        : this.correctionSuggestionId,
+  );
+  OrganizeRunItem copyWithCompanion(OrganizeRunItemsCompanion data) {
+    return OrganizeRunItem(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      organizeRunId: data.organizeRunId.present
+          ? data.organizeRunId.value
+          : this.organizeRunId,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      status: data.status.present ? data.status.value : this.status,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
+      correctionSuggestionId: data.correctionSuggestionId.present
+          ? data.correctionSuggestionId.value
+          : this.correctionSuggestionId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrganizeRunItem(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('recordId: $recordId, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('correctionSuggestionId: $correctionSuggestionId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    organizeRunId,
+    recordId,
+    status,
+    retryCount,
+    correctionSuggestionId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrganizeRunItem &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.organizeRunId == this.organizeRunId &&
+          other.recordId == this.recordId &&
+          other.status == this.status &&
+          other.retryCount == this.retryCount &&
+          other.correctionSuggestionId == this.correctionSuggestionId);
+}
+
+class OrganizeRunItemsCompanion extends UpdateCompanion<OrganizeRunItem> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> organizeRunId;
+  final Value<String> recordId;
+  final Value<OrganizeItemStatus> status;
+  final Value<int> retryCount;
+  final Value<String?> correctionSuggestionId;
+  final Value<int> rowid;
+  const OrganizeRunItemsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.organizeRunId = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.correctionSuggestionId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OrganizeRunItemsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String organizeRunId,
+    required String recordId,
+    required OrganizeItemStatus status,
+    this.retryCount = const Value.absent(),
+    this.correctionSuggestionId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       organizeRunId = Value(organizeRunId),
+       recordId = Value(recordId),
+       status = Value(status);
+  static Insertable<OrganizeRunItem> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? organizeRunId,
+    Expression<String>? recordId,
+    Expression<String>? status,
+    Expression<int>? retryCount,
+    Expression<String>? correctionSuggestionId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (organizeRunId != null) 'organize_run_id': organizeRunId,
+      if (recordId != null) 'record_id': recordId,
+      if (status != null) 'status': status,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (correctionSuggestionId != null)
+        'correction_suggestion_id': correctionSuggestionId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OrganizeRunItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? organizeRunId,
+    Value<String>? recordId,
+    Value<OrganizeItemStatus>? status,
+    Value<int>? retryCount,
+    Value<String?>? correctionSuggestionId,
+    Value<int>? rowid,
+  }) {
+    return OrganizeRunItemsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      organizeRunId: organizeRunId ?? this.organizeRunId,
+      recordId: recordId ?? this.recordId,
+      status: status ?? this.status,
+      retryCount: retryCount ?? this.retryCount,
+      correctionSuggestionId:
+          correctionSuggestionId ?? this.correctionSuggestionId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (organizeRunId.present) {
+      map['organize_run_id'] = Variable<String>(organizeRunId.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $OrganizeRunItemsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (correctionSuggestionId.present) {
+      map['correction_suggestion_id'] = Variable<String>(
+        correctionSuggestionId.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrganizeRunItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('recordId: $recordId, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('correctionSuggestionId: $correctionSuggestionId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ModelCallsTable extends ModelCalls
+    with TableInfo<$ModelCallsTable, ModelCall> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ModelCallsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _organizeRunIdMeta = const VerificationMeta(
+    'organizeRunId',
+  );
+  @override
+  late final GeneratedColumn<String> organizeRunId = GeneratedColumn<String>(
+    'organize_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelConfigIdMeta = const VerificationMeta(
+    'modelConfigId',
+  );
+  @override
+  late final GeneratedColumn<String> modelConfigId = GeneratedColumn<String>(
+    'model_config_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DataBoundary, String>
+  dataBoundary = GeneratedColumn<String>(
+    'data_boundary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<DataBoundary>($ModelCallsTable.$converterdataBoundary);
+  static const VerificationMeta _sentMessageIdsMeta = const VerificationMeta(
+    'sentMessageIds',
+  );
+  @override
+  late final GeneratedColumn<String> sentMessageIds = GeneratedColumn<String>(
+    'sent_message_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sentAttachmentIdsMeta = const VerificationMeta(
+    'sentAttachmentIds',
+  );
+  @override
+  late final GeneratedColumn<String> sentAttachmentIds =
+      GeneratedColumn<String>(
+        'sent_attachment_ids',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _requestAtMeta = const VerificationMeta(
+    'requestAt',
+  );
+  @override
+  late final GeneratedColumn<int> requestAt = GeneratedColumn<int>(
+    'request_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _responseAtMeta = const VerificationMeta(
+    'responseAt',
+  );
+  @override
+  late final GeneratedColumn<int> responseAt = GeneratedColumn<int>(
+    'response_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ModelCallStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ModelCallStatus>($ModelCallsTable.$converterstatus);
+  static const VerificationMeta _tokensInMeta = const VerificationMeta(
+    'tokensIn',
+  );
+  @override
+  late final GeneratedColumn<int> tokensIn = GeneratedColumn<int>(
+    'tokens_in',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tokensOutMeta = const VerificationMeta(
+    'tokensOut',
+  );
+  @override
+  late final GeneratedColumn<int> tokensOut = GeneratedColumn<int>(
+    'tokens_out',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _responseTextMeta = const VerificationMeta(
+    'responseText',
+  );
+  @override
+  late final GeneratedColumn<String> responseText = GeneratedColumn<String>(
+    'response_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ModelCaller, String> caller =
+      GeneratedColumn<String>(
+        'caller',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ModelCaller>($ModelCallsTable.$convertercaller);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    organizeRunId,
+    modelConfigId,
+    dataBoundary,
+    sentMessageIds,
+    sentAttachmentIds,
+    requestAt,
+    responseAt,
+    status,
+    tokensIn,
+    tokensOut,
+    responseText,
+    caller,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'model_calls';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ModelCall> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('organize_run_id')) {
+      context.handle(
+        _organizeRunIdMeta,
+        organizeRunId.isAcceptableOrUnknown(
+          data['organize_run_id']!,
+          _organizeRunIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('model_config_id')) {
+      context.handle(
+        _modelConfigIdMeta,
+        modelConfigId.isAcceptableOrUnknown(
+          data['model_config_id']!,
+          _modelConfigIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_modelConfigIdMeta);
+    }
+    if (data.containsKey('sent_message_ids')) {
+      context.handle(
+        _sentMessageIdsMeta,
+        sentMessageIds.isAcceptableOrUnknown(
+          data['sent_message_ids']!,
+          _sentMessageIdsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sentMessageIdsMeta);
+    }
+    if (data.containsKey('sent_attachment_ids')) {
+      context.handle(
+        _sentAttachmentIdsMeta,
+        sentAttachmentIds.isAcceptableOrUnknown(
+          data['sent_attachment_ids']!,
+          _sentAttachmentIdsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sentAttachmentIdsMeta);
+    }
+    if (data.containsKey('request_at')) {
+      context.handle(
+        _requestAtMeta,
+        requestAt.isAcceptableOrUnknown(data['request_at']!, _requestAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_requestAtMeta);
+    }
+    if (data.containsKey('response_at')) {
+      context.handle(
+        _responseAtMeta,
+        responseAt.isAcceptableOrUnknown(data['response_at']!, _responseAtMeta),
+      );
+    }
+    if (data.containsKey('tokens_in')) {
+      context.handle(
+        _tokensInMeta,
+        tokensIn.isAcceptableOrUnknown(data['tokens_in']!, _tokensInMeta),
+      );
+    }
+    if (data.containsKey('tokens_out')) {
+      context.handle(
+        _tokensOutMeta,
+        tokensOut.isAcceptableOrUnknown(data['tokens_out']!, _tokensOutMeta),
+      );
+    }
+    if (data.containsKey('response_text')) {
+      context.handle(
+        _responseTextMeta,
+        responseText.isAcceptableOrUnknown(
+          data['response_text']!,
+          _responseTextMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ModelCall map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ModelCall(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      organizeRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organize_run_id'],
+      ),
+      modelConfigId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_config_id'],
+      )!,
+      dataBoundary: $ModelCallsTable.$converterdataBoundary.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}data_boundary'],
+        )!,
+      ),
+      sentMessageIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sent_message_ids'],
+      )!,
+      sentAttachmentIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sent_attachment_ids'],
+      )!,
+      requestAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}request_at'],
+      )!,
+      responseAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}response_at'],
+      ),
+      status: $ModelCallsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      tokensIn: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tokens_in'],
+      ),
+      tokensOut: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tokens_out'],
+      ),
+      responseText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}response_text'],
+      ),
+      caller: $ModelCallsTable.$convertercaller.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}caller'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $ModelCallsTable createAlias(String alias) {
+    return $ModelCallsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DataBoundary, String> $converterdataBoundary =
+      const EnumConverter(DataBoundary.values);
+  static TypeConverter<ModelCallStatus, String> $converterstatus =
+      const EnumConverter(ModelCallStatus.values);
+  static TypeConverter<ModelCaller, String> $convertercaller =
+      const EnumConverter(ModelCaller.values);
+}
+
+class ModelCall extends DataClass implements Insertable<ModelCall> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String? organizeRunId;
+  final String modelConfigId;
+  final DataBoundary dataBoundary;
+  final String sentMessageIds;
+  final String sentAttachmentIds;
+  final int requestAt;
+  final int? responseAt;
+  final ModelCallStatus status;
+  final int? tokensIn;
+  final int? tokensOut;
+  final String? responseText;
+  final ModelCaller caller;
+  const ModelCall({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    this.organizeRunId,
+    required this.modelConfigId,
+    required this.dataBoundary,
+    required this.sentMessageIds,
+    required this.sentAttachmentIds,
+    required this.requestAt,
+    this.responseAt,
+    required this.status,
+    this.tokensIn,
+    this.tokensOut,
+    this.responseText,
+    required this.caller,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    if (!nullToAbsent || organizeRunId != null) {
+      map['organize_run_id'] = Variable<String>(organizeRunId);
+    }
+    map['model_config_id'] = Variable<String>(modelConfigId);
+    {
+      map['data_boundary'] = Variable<String>(
+        $ModelCallsTable.$converterdataBoundary.toSql(dataBoundary),
+      );
+    }
+    map['sent_message_ids'] = Variable<String>(sentMessageIds);
+    map['sent_attachment_ids'] = Variable<String>(sentAttachmentIds);
+    map['request_at'] = Variable<int>(requestAt);
+    if (!nullToAbsent || responseAt != null) {
+      map['response_at'] = Variable<int>(responseAt);
+    }
+    {
+      map['status'] = Variable<String>(
+        $ModelCallsTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || tokensIn != null) {
+      map['tokens_in'] = Variable<int>(tokensIn);
+    }
+    if (!nullToAbsent || tokensOut != null) {
+      map['tokens_out'] = Variable<int>(tokensOut);
+    }
+    if (!nullToAbsent || responseText != null) {
+      map['response_text'] = Variable<String>(responseText);
+    }
+    {
+      map['caller'] = Variable<String>(
+        $ModelCallsTable.$convertercaller.toSql(caller),
+      );
+    }
+    return map;
+  }
+
+  ModelCallsCompanion toCompanion(bool nullToAbsent) {
+    return ModelCallsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      organizeRunId: organizeRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(organizeRunId),
+      modelConfigId: Value(modelConfigId),
+      dataBoundary: Value(dataBoundary),
+      sentMessageIds: Value(sentMessageIds),
+      sentAttachmentIds: Value(sentAttachmentIds),
+      requestAt: Value(requestAt),
+      responseAt: responseAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(responseAt),
+      status: Value(status),
+      tokensIn: tokensIn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tokensIn),
+      tokensOut: tokensOut == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tokensOut),
+      responseText: responseText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(responseText),
+      caller: Value(caller),
+    );
+  }
+
+  factory ModelCall.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ModelCall(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      organizeRunId: serializer.fromJson<String?>(json['organizeRunId']),
+      modelConfigId: serializer.fromJson<String>(json['modelConfigId']),
+      dataBoundary: serializer.fromJson<DataBoundary>(json['dataBoundary']),
+      sentMessageIds: serializer.fromJson<String>(json['sentMessageIds']),
+      sentAttachmentIds: serializer.fromJson<String>(json['sentAttachmentIds']),
+      requestAt: serializer.fromJson<int>(json['requestAt']),
+      responseAt: serializer.fromJson<int?>(json['responseAt']),
+      status: serializer.fromJson<ModelCallStatus>(json['status']),
+      tokensIn: serializer.fromJson<int?>(json['tokensIn']),
+      tokensOut: serializer.fromJson<int?>(json['tokensOut']),
+      responseText: serializer.fromJson<String?>(json['responseText']),
+      caller: serializer.fromJson<ModelCaller>(json['caller']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'organizeRunId': serializer.toJson<String?>(organizeRunId),
+      'modelConfigId': serializer.toJson<String>(modelConfigId),
+      'dataBoundary': serializer.toJson<DataBoundary>(dataBoundary),
+      'sentMessageIds': serializer.toJson<String>(sentMessageIds),
+      'sentAttachmentIds': serializer.toJson<String>(sentAttachmentIds),
+      'requestAt': serializer.toJson<int>(requestAt),
+      'responseAt': serializer.toJson<int?>(responseAt),
+      'status': serializer.toJson<ModelCallStatus>(status),
+      'tokensIn': serializer.toJson<int?>(tokensIn),
+      'tokensOut': serializer.toJson<int?>(tokensOut),
+      'responseText': serializer.toJson<String?>(responseText),
+      'caller': serializer.toJson<ModelCaller>(caller),
+    };
+  }
+
+  ModelCall copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    Value<String?> organizeRunId = const Value.absent(),
+    String? modelConfigId,
+    DataBoundary? dataBoundary,
+    String? sentMessageIds,
+    String? sentAttachmentIds,
+    int? requestAt,
+    Value<int?> responseAt = const Value.absent(),
+    ModelCallStatus? status,
+    Value<int?> tokensIn = const Value.absent(),
+    Value<int?> tokensOut = const Value.absent(),
+    Value<String?> responseText = const Value.absent(),
+    ModelCaller? caller,
+  }) => ModelCall(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    organizeRunId: organizeRunId.present
+        ? organizeRunId.value
+        : this.organizeRunId,
+    modelConfigId: modelConfigId ?? this.modelConfigId,
+    dataBoundary: dataBoundary ?? this.dataBoundary,
+    sentMessageIds: sentMessageIds ?? this.sentMessageIds,
+    sentAttachmentIds: sentAttachmentIds ?? this.sentAttachmentIds,
+    requestAt: requestAt ?? this.requestAt,
+    responseAt: responseAt.present ? responseAt.value : this.responseAt,
+    status: status ?? this.status,
+    tokensIn: tokensIn.present ? tokensIn.value : this.tokensIn,
+    tokensOut: tokensOut.present ? tokensOut.value : this.tokensOut,
+    responseText: responseText.present ? responseText.value : this.responseText,
+    caller: caller ?? this.caller,
+  );
+  ModelCall copyWithCompanion(ModelCallsCompanion data) {
+    return ModelCall(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      organizeRunId: data.organizeRunId.present
+          ? data.organizeRunId.value
+          : this.organizeRunId,
+      modelConfigId: data.modelConfigId.present
+          ? data.modelConfigId.value
+          : this.modelConfigId,
+      dataBoundary: data.dataBoundary.present
+          ? data.dataBoundary.value
+          : this.dataBoundary,
+      sentMessageIds: data.sentMessageIds.present
+          ? data.sentMessageIds.value
+          : this.sentMessageIds,
+      sentAttachmentIds: data.sentAttachmentIds.present
+          ? data.sentAttachmentIds.value
+          : this.sentAttachmentIds,
+      requestAt: data.requestAt.present ? data.requestAt.value : this.requestAt,
+      responseAt: data.responseAt.present
+          ? data.responseAt.value
+          : this.responseAt,
+      status: data.status.present ? data.status.value : this.status,
+      tokensIn: data.tokensIn.present ? data.tokensIn.value : this.tokensIn,
+      tokensOut: data.tokensOut.present ? data.tokensOut.value : this.tokensOut,
+      responseText: data.responseText.present
+          ? data.responseText.value
+          : this.responseText,
+      caller: data.caller.present ? data.caller.value : this.caller,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModelCall(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('modelConfigId: $modelConfigId, ')
+          ..write('dataBoundary: $dataBoundary, ')
+          ..write('sentMessageIds: $sentMessageIds, ')
+          ..write('sentAttachmentIds: $sentAttachmentIds, ')
+          ..write('requestAt: $requestAt, ')
+          ..write('responseAt: $responseAt, ')
+          ..write('status: $status, ')
+          ..write('tokensIn: $tokensIn, ')
+          ..write('tokensOut: $tokensOut, ')
+          ..write('responseText: $responseText, ')
+          ..write('caller: $caller')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    organizeRunId,
+    modelConfigId,
+    dataBoundary,
+    sentMessageIds,
+    sentAttachmentIds,
+    requestAt,
+    responseAt,
+    status,
+    tokensIn,
+    tokensOut,
+    responseText,
+    caller,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ModelCall &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.organizeRunId == this.organizeRunId &&
+          other.modelConfigId == this.modelConfigId &&
+          other.dataBoundary == this.dataBoundary &&
+          other.sentMessageIds == this.sentMessageIds &&
+          other.sentAttachmentIds == this.sentAttachmentIds &&
+          other.requestAt == this.requestAt &&
+          other.responseAt == this.responseAt &&
+          other.status == this.status &&
+          other.tokensIn == this.tokensIn &&
+          other.tokensOut == this.tokensOut &&
+          other.responseText == this.responseText &&
+          other.caller == this.caller);
+}
+
+class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String?> organizeRunId;
+  final Value<String> modelConfigId;
+  final Value<DataBoundary> dataBoundary;
+  final Value<String> sentMessageIds;
+  final Value<String> sentAttachmentIds;
+  final Value<int> requestAt;
+  final Value<int?> responseAt;
+  final Value<ModelCallStatus> status;
+  final Value<int?> tokensIn;
+  final Value<int?> tokensOut;
+  final Value<String?> responseText;
+  final Value<ModelCaller> caller;
+  final Value<int> rowid;
+  const ModelCallsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.organizeRunId = const Value.absent(),
+    this.modelConfigId = const Value.absent(),
+    this.dataBoundary = const Value.absent(),
+    this.sentMessageIds = const Value.absent(),
+    this.sentAttachmentIds = const Value.absent(),
+    this.requestAt = const Value.absent(),
+    this.responseAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.tokensIn = const Value.absent(),
+    this.tokensOut = const Value.absent(),
+    this.responseText = const Value.absent(),
+    this.caller = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ModelCallsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.organizeRunId = const Value.absent(),
+    required String modelConfigId,
+    required DataBoundary dataBoundary,
+    required String sentMessageIds,
+    required String sentAttachmentIds,
+    required int requestAt,
+    this.responseAt = const Value.absent(),
+    required ModelCallStatus status,
+    this.tokensIn = const Value.absent(),
+    this.tokensOut = const Value.absent(),
+    this.responseText = const Value.absent(),
+    required ModelCaller caller,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       modelConfigId = Value(modelConfigId),
+       dataBoundary = Value(dataBoundary),
+       sentMessageIds = Value(sentMessageIds),
+       sentAttachmentIds = Value(sentAttachmentIds),
+       requestAt = Value(requestAt),
+       status = Value(status),
+       caller = Value(caller);
+  static Insertable<ModelCall> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? organizeRunId,
+    Expression<String>? modelConfigId,
+    Expression<String>? dataBoundary,
+    Expression<String>? sentMessageIds,
+    Expression<String>? sentAttachmentIds,
+    Expression<int>? requestAt,
+    Expression<int>? responseAt,
+    Expression<String>? status,
+    Expression<int>? tokensIn,
+    Expression<int>? tokensOut,
+    Expression<String>? responseText,
+    Expression<String>? caller,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (organizeRunId != null) 'organize_run_id': organizeRunId,
+      if (modelConfigId != null) 'model_config_id': modelConfigId,
+      if (dataBoundary != null) 'data_boundary': dataBoundary,
+      if (sentMessageIds != null) 'sent_message_ids': sentMessageIds,
+      if (sentAttachmentIds != null) 'sent_attachment_ids': sentAttachmentIds,
+      if (requestAt != null) 'request_at': requestAt,
+      if (responseAt != null) 'response_at': responseAt,
+      if (status != null) 'status': status,
+      if (tokensIn != null) 'tokens_in': tokensIn,
+      if (tokensOut != null) 'tokens_out': tokensOut,
+      if (responseText != null) 'response_text': responseText,
+      if (caller != null) 'caller': caller,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ModelCallsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String?>? organizeRunId,
+    Value<String>? modelConfigId,
+    Value<DataBoundary>? dataBoundary,
+    Value<String>? sentMessageIds,
+    Value<String>? sentAttachmentIds,
+    Value<int>? requestAt,
+    Value<int?>? responseAt,
+    Value<ModelCallStatus>? status,
+    Value<int?>? tokensIn,
+    Value<int?>? tokensOut,
+    Value<String?>? responseText,
+    Value<ModelCaller>? caller,
+    Value<int>? rowid,
+  }) {
+    return ModelCallsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      organizeRunId: organizeRunId ?? this.organizeRunId,
+      modelConfigId: modelConfigId ?? this.modelConfigId,
+      dataBoundary: dataBoundary ?? this.dataBoundary,
+      sentMessageIds: sentMessageIds ?? this.sentMessageIds,
+      sentAttachmentIds: sentAttachmentIds ?? this.sentAttachmentIds,
+      requestAt: requestAt ?? this.requestAt,
+      responseAt: responseAt ?? this.responseAt,
+      status: status ?? this.status,
+      tokensIn: tokensIn ?? this.tokensIn,
+      tokensOut: tokensOut ?? this.tokensOut,
+      responseText: responseText ?? this.responseText,
+      caller: caller ?? this.caller,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (organizeRunId.present) {
+      map['organize_run_id'] = Variable<String>(organizeRunId.value);
+    }
+    if (modelConfigId.present) {
+      map['model_config_id'] = Variable<String>(modelConfigId.value);
+    }
+    if (dataBoundary.present) {
+      map['data_boundary'] = Variable<String>(
+        $ModelCallsTable.$converterdataBoundary.toSql(dataBoundary.value),
+      );
+    }
+    if (sentMessageIds.present) {
+      map['sent_message_ids'] = Variable<String>(sentMessageIds.value);
+    }
+    if (sentAttachmentIds.present) {
+      map['sent_attachment_ids'] = Variable<String>(sentAttachmentIds.value);
+    }
+    if (requestAt.present) {
+      map['request_at'] = Variable<int>(requestAt.value);
+    }
+    if (responseAt.present) {
+      map['response_at'] = Variable<int>(responseAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $ModelCallsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (tokensIn.present) {
+      map['tokens_in'] = Variable<int>(tokensIn.value);
+    }
+    if (tokensOut.present) {
+      map['tokens_out'] = Variable<int>(tokensOut.value);
+    }
+    if (responseText.present) {
+      map['response_text'] = Variable<String>(responseText.value);
+    }
+    if (caller.present) {
+      map['caller'] = Variable<String>(
+        $ModelCallsTable.$convertercaller.toSql(caller.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModelCallsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('organizeRunId: $organizeRunId, ')
+          ..write('modelConfigId: $modelConfigId, ')
+          ..write('dataBoundary: $dataBoundary, ')
+          ..write('sentMessageIds: $sentMessageIds, ')
+          ..write('sentAttachmentIds: $sentAttachmentIds, ')
+          ..write('requestAt: $requestAt, ')
+          ..write('responseAt: $responseAt, ')
+          ..write('status: $status, ')
+          ..write('tokensIn: $tokensIn, ')
+          ..write('tokensOut: $tokensOut, ')
+          ..write('responseText: $responseText, ')
+          ..write('caller: $caller, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecordsTable extends Records with TableInfo<$RecordsTable, RecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RecordType, String> recordType =
+      GeneratedColumn<String>(
+        'record_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<RecordType>($RecordsTable.$converterrecordType);
+  static const VerificationMeta _currentRevisionIdMeta = const VerificationMeta(
+    'currentRevisionId',
+  );
+  @override
+  late final GeneratedColumn<String> currentRevisionId =
+      GeneratedColumn<String>(
+        'current_revision_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _localDateMeta = const VerificationMeta(
+    'localDate',
+  );
+  @override
+  late final GeneratedColumn<String> localDate = GeneratedColumn<String>(
+    'local_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordType,
+    currentRevisionId,
+    localDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('current_revision_id')) {
+      context.handle(
+        _currentRevisionIdMeta,
+        currentRevisionId.isAcceptableOrUnknown(
+          data['current_revision_id']!,
+          _currentRevisionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('local_date')) {
+      context.handle(
+        _localDateMeta,
+        localDate.isAcceptableOrUnknown(data['local_date']!, _localDateMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      recordType: $RecordsTable.$converterrecordType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}record_type'],
+        )!,
+      ),
+      currentRevisionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}current_revision_id'],
+      ),
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      ),
+    );
+  }
+
+  @override
+  $RecordsTable createAlias(String alias) {
+    return $RecordsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<RecordType, String> $converterrecordType =
+      const EnumConverter(RecordType.values);
+}
+
+class RecordRow extends DataClass implements Insertable<RecordRow> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final RecordType recordType;
+  final String? currentRevisionId;
+  final String? localDate;
+  const RecordRow({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.recordType,
+    this.currentRevisionId,
+    this.localDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    {
+      map['record_type'] = Variable<String>(
+        $RecordsTable.$converterrecordType.toSql(recordType),
+      );
+    }
+    if (!nullToAbsent || currentRevisionId != null) {
+      map['current_revision_id'] = Variable<String>(currentRevisionId);
+    }
+    if (!nullToAbsent || localDate != null) {
+      map['local_date'] = Variable<String>(localDate);
+    }
+    return map;
+  }
+
+  RecordsCompanion toCompanion(bool nullToAbsent) {
+    return RecordsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      recordType: Value(recordType),
+      currentRevisionId: currentRevisionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentRevisionId),
+      localDate: localDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localDate),
+    );
+  }
+
+  factory RecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordRow(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      recordType: serializer.fromJson<RecordType>(json['recordType']),
+      currentRevisionId: serializer.fromJson<String?>(
+        json['currentRevisionId'],
+      ),
+      localDate: serializer.fromJson<String?>(json['localDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'recordType': serializer.toJson<RecordType>(recordType),
+      'currentRevisionId': serializer.toJson<String?>(currentRevisionId),
+      'localDate': serializer.toJson<String?>(localDate),
+    };
+  }
+
+  RecordRow copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    RecordType? recordType,
+    Value<String?> currentRevisionId = const Value.absent(),
+    Value<String?> localDate = const Value.absent(),
+  }) => RecordRow(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    recordType: recordType ?? this.recordType,
+    currentRevisionId: currentRevisionId.present
+        ? currentRevisionId.value
+        : this.currentRevisionId,
+    localDate: localDate.present ? localDate.value : this.localDate,
+  );
+  RecordRow copyWithCompanion(RecordsCompanion data) {
+    return RecordRow(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      recordType: data.recordType.present
+          ? data.recordType.value
+          : this.recordType,
+      currentRevisionId: data.currentRevisionId.present
+          ? data.currentRevisionId.value
+          : this.currentRevisionId,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordRow(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordType: $recordType, ')
+          ..write('currentRevisionId: $currentRevisionId, ')
+          ..write('localDate: $localDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordType,
+    currentRevisionId,
+    localDate,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordRow &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.recordType == this.recordType &&
+          other.currentRevisionId == this.currentRevisionId &&
+          other.localDate == this.localDate);
+}
+
+class RecordsCompanion extends UpdateCompanion<RecordRow> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<RecordType> recordType;
+  final Value<String?> currentRevisionId;
+  final Value<String?> localDate;
+  final Value<int> rowid;
+  const RecordsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.recordType = const Value.absent(),
+    this.currentRevisionId = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecordsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required RecordType recordType,
+    this.currentRevisionId = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       recordType = Value(recordType);
+  static Insertable<RecordRow> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? recordType,
+    Expression<String>? currentRevisionId,
+    Expression<String>? localDate,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (recordType != null) 'record_type': recordType,
+      if (currentRevisionId != null) 'current_revision_id': currentRevisionId,
+      if (localDate != null) 'local_date': localDate,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<RecordType>? recordType,
+    Value<String?>? currentRevisionId,
+    Value<String?>? localDate,
+    Value<int>? rowid,
+  }) {
+    return RecordsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      recordType: recordType ?? this.recordType,
+      currentRevisionId: currentRevisionId ?? this.currentRevisionId,
+      localDate: localDate ?? this.localDate,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (recordType.present) {
+      map['record_type'] = Variable<String>(
+        $RecordsTable.$converterrecordType.toSql(recordType.value),
+      );
+    }
+    if (currentRevisionId.present) {
+      map['current_revision_id'] = Variable<String>(currentRevisionId.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordType: $recordType, ')
+          ..write('currentRevisionId: $currentRevisionId, ')
+          ..write('localDate: $localDate, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecordRevisionsTable extends RecordRevisions
+    with TableInfo<$RecordRevisionsTable, RecordRevision> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordRevisionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordVersionMeta = const VerificationMeta(
+    'recordVersion',
+  );
+  @override
+  late final GeneratedColumn<int> recordVersion = GeneratedColumn<int>(
+    'record_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseVersionMeta = const VerificationMeta(
+    'baseVersion',
+  );
+  @override
+  late final GeneratedColumn<int> baseVersion = GeneratedColumn<int>(
+    'base_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _occurredMeta = const VerificationMeta(
+    'occurred',
+  );
+  @override
+  late final GeneratedColumn<String> occurred = GeneratedColumn<String>(
+    'occurred',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _occurredEndMeta = const VerificationMeta(
+    'occurredEnd',
+  );
+  @override
+  late final GeneratedColumn<String> occurredEnd = GeneratedColumn<String>(
+    'occurred_end',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<String> data = GeneratedColumn<String>(
+    'data',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _producedByMeta = const VerificationMeta(
+    'producedBy',
+  );
+  @override
+  late final GeneratedColumn<String> producedBy = GeneratedColumn<String>(
+    'produced_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fieldMetaMeta = const VerificationMeta(
+    'fieldMeta',
+  );
+  @override
+  late final GeneratedColumn<String> fieldMeta = GeneratedColumn<String>(
+    'field_meta',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordId,
+    recordVersion,
+    baseVersion,
+    occurred,
+    occurredEnd,
+    data,
+    producedBy,
+    fieldMeta,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'record_revisions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecordRevision> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('record_version')) {
+      context.handle(
+        _recordVersionMeta,
+        recordVersion.isAcceptableOrUnknown(
+          data['record_version']!,
+          _recordVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordVersionMeta);
+    }
+    if (data.containsKey('base_version')) {
+      context.handle(
+        _baseVersionMeta,
+        baseVersion.isAcceptableOrUnknown(
+          data['base_version']!,
+          _baseVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('occurred')) {
+      context.handle(
+        _occurredMeta,
+        occurred.isAcceptableOrUnknown(data['occurred']!, _occurredMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredMeta);
+    }
+    if (data.containsKey('occurred_end')) {
+      context.handle(
+        _occurredEndMeta,
+        occurredEnd.isAcceptableOrUnknown(
+          data['occurred_end']!,
+          _occurredEndMeta,
+        ),
+      );
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+        _dataMeta,
+        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    if (data.containsKey('produced_by')) {
+      context.handle(
+        _producedByMeta,
+        producedBy.isAcceptableOrUnknown(data['produced_by']!, _producedByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_producedByMeta);
+    }
+    if (data.containsKey('field_meta')) {
+      context.handle(
+        _fieldMetaMeta,
+        fieldMeta.isAcceptableOrUnknown(data['field_meta']!, _fieldMetaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fieldMetaMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {recordId, recordVersion},
+  ];
+  @override
+  RecordRevision map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordRevision(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      recordVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}record_version'],
+      )!,
+      baseVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}base_version'],
+      ),
+      occurred: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}occurred'],
+      )!,
+      occurredEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}occurred_end'],
+      ),
+      data: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data'],
+      )!,
+      producedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}produced_by'],
+      )!,
+      fieldMeta: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}field_meta'],
+      )!,
+    );
+  }
+
+  @override
+  $RecordRevisionsTable createAlias(String alias) {
+    return $RecordRevisionsTable(attachedDatabase, alias);
+  }
+}
+
+class RecordRevision extends DataClass implements Insertable<RecordRevision> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String recordId;
+  final int recordVersion;
+  final int? baseVersion;
+  final String occurred;
+  final String? occurredEnd;
+  final String data;
+  final String producedBy;
+  final String fieldMeta;
+  const RecordRevision({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.recordId,
+    required this.recordVersion,
+    this.baseVersion,
+    required this.occurred,
+    this.occurredEnd,
+    required this.data,
+    required this.producedBy,
+    required this.fieldMeta,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['record_version'] = Variable<int>(recordVersion);
+    if (!nullToAbsent || baseVersion != null) {
+      map['base_version'] = Variable<int>(baseVersion);
+    }
+    map['occurred'] = Variable<String>(occurred);
+    if (!nullToAbsent || occurredEnd != null) {
+      map['occurred_end'] = Variable<String>(occurredEnd);
+    }
+    map['data'] = Variable<String>(data);
+    map['produced_by'] = Variable<String>(producedBy);
+    map['field_meta'] = Variable<String>(fieldMeta);
+    return map;
+  }
+
+  RecordRevisionsCompanion toCompanion(bool nullToAbsent) {
+    return RecordRevisionsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      recordId: Value(recordId),
+      recordVersion: Value(recordVersion),
+      baseVersion: baseVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseVersion),
+      occurred: Value(occurred),
+      occurredEnd: occurredEnd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(occurredEnd),
+      data: Value(data),
+      producedBy: Value(producedBy),
+      fieldMeta: Value(fieldMeta),
+    );
+  }
+
+  factory RecordRevision.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordRevision(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      recordVersion: serializer.fromJson<int>(json['recordVersion']),
+      baseVersion: serializer.fromJson<int?>(json['baseVersion']),
+      occurred: serializer.fromJson<String>(json['occurred']),
+      occurredEnd: serializer.fromJson<String?>(json['occurredEnd']),
+      data: serializer.fromJson<String>(json['data']),
+      producedBy: serializer.fromJson<String>(json['producedBy']),
+      fieldMeta: serializer.fromJson<String>(json['fieldMeta']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'recordId': serializer.toJson<String>(recordId),
+      'recordVersion': serializer.toJson<int>(recordVersion),
+      'baseVersion': serializer.toJson<int?>(baseVersion),
+      'occurred': serializer.toJson<String>(occurred),
+      'occurredEnd': serializer.toJson<String?>(occurredEnd),
+      'data': serializer.toJson<String>(data),
+      'producedBy': serializer.toJson<String>(producedBy),
+      'fieldMeta': serializer.toJson<String>(fieldMeta),
+    };
+  }
+
+  RecordRevision copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? recordId,
+    int? recordVersion,
+    Value<int?> baseVersion = const Value.absent(),
+    String? occurred,
+    Value<String?> occurredEnd = const Value.absent(),
+    String? data,
+    String? producedBy,
+    String? fieldMeta,
+  }) => RecordRevision(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    recordId: recordId ?? this.recordId,
+    recordVersion: recordVersion ?? this.recordVersion,
+    baseVersion: baseVersion.present ? baseVersion.value : this.baseVersion,
+    occurred: occurred ?? this.occurred,
+    occurredEnd: occurredEnd.present ? occurredEnd.value : this.occurredEnd,
+    data: data ?? this.data,
+    producedBy: producedBy ?? this.producedBy,
+    fieldMeta: fieldMeta ?? this.fieldMeta,
+  );
+  RecordRevision copyWithCompanion(RecordRevisionsCompanion data) {
+    return RecordRevision(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      recordVersion: data.recordVersion.present
+          ? data.recordVersion.value
+          : this.recordVersion,
+      baseVersion: data.baseVersion.present
+          ? data.baseVersion.value
+          : this.baseVersion,
+      occurred: data.occurred.present ? data.occurred.value : this.occurred,
+      occurredEnd: data.occurredEnd.present
+          ? data.occurredEnd.value
+          : this.occurredEnd,
+      data: data.data.present ? data.data.value : this.data,
+      producedBy: data.producedBy.present
+          ? data.producedBy.value
+          : this.producedBy,
+      fieldMeta: data.fieldMeta.present ? data.fieldMeta.value : this.fieldMeta,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordRevision(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordId: $recordId, ')
+          ..write('recordVersion: $recordVersion, ')
+          ..write('baseVersion: $baseVersion, ')
+          ..write('occurred: $occurred, ')
+          ..write('occurredEnd: $occurredEnd, ')
+          ..write('data: $data, ')
+          ..write('producedBy: $producedBy, ')
+          ..write('fieldMeta: $fieldMeta')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordId,
+    recordVersion,
+    baseVersion,
+    occurred,
+    occurredEnd,
+    data,
+    producedBy,
+    fieldMeta,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordRevision &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.recordId == this.recordId &&
+          other.recordVersion == this.recordVersion &&
+          other.baseVersion == this.baseVersion &&
+          other.occurred == this.occurred &&
+          other.occurredEnd == this.occurredEnd &&
+          other.data == this.data &&
+          other.producedBy == this.producedBy &&
+          other.fieldMeta == this.fieldMeta);
+}
+
+class RecordRevisionsCompanion extends UpdateCompanion<RecordRevision> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> recordId;
+  final Value<int> recordVersion;
+  final Value<int?> baseVersion;
+  final Value<String> occurred;
+  final Value<String?> occurredEnd;
+  final Value<String> data;
+  final Value<String> producedBy;
+  final Value<String> fieldMeta;
+  final Value<int> rowid;
+  const RecordRevisionsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.recordVersion = const Value.absent(),
+    this.baseVersion = const Value.absent(),
+    this.occurred = const Value.absent(),
+    this.occurredEnd = const Value.absent(),
+    this.data = const Value.absent(),
+    this.producedBy = const Value.absent(),
+    this.fieldMeta = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecordRevisionsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String recordId,
+    required int recordVersion,
+    this.baseVersion = const Value.absent(),
+    required String occurred,
+    this.occurredEnd = const Value.absent(),
+    required String data,
+    required String producedBy,
+    required String fieldMeta,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       recordId = Value(recordId),
+       recordVersion = Value(recordVersion),
+       occurred = Value(occurred),
+       data = Value(data),
+       producedBy = Value(producedBy),
+       fieldMeta = Value(fieldMeta);
+  static Insertable<RecordRevision> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? recordId,
+    Expression<int>? recordVersion,
+    Expression<int>? baseVersion,
+    Expression<String>? occurred,
+    Expression<String>? occurredEnd,
+    Expression<String>? data,
+    Expression<String>? producedBy,
+    Expression<String>? fieldMeta,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (recordId != null) 'record_id': recordId,
+      if (recordVersion != null) 'record_version': recordVersion,
+      if (baseVersion != null) 'base_version': baseVersion,
+      if (occurred != null) 'occurred': occurred,
+      if (occurredEnd != null) 'occurred_end': occurredEnd,
+      if (data != null) 'data': data,
+      if (producedBy != null) 'produced_by': producedBy,
+      if (fieldMeta != null) 'field_meta': fieldMeta,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecordRevisionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? recordId,
+    Value<int>? recordVersion,
+    Value<int?>? baseVersion,
+    Value<String>? occurred,
+    Value<String?>? occurredEnd,
+    Value<String>? data,
+    Value<String>? producedBy,
+    Value<String>? fieldMeta,
+    Value<int>? rowid,
+  }) {
+    return RecordRevisionsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      recordId: recordId ?? this.recordId,
+      recordVersion: recordVersion ?? this.recordVersion,
+      baseVersion: baseVersion ?? this.baseVersion,
+      occurred: occurred ?? this.occurred,
+      occurredEnd: occurredEnd ?? this.occurredEnd,
+      data: data ?? this.data,
+      producedBy: producedBy ?? this.producedBy,
+      fieldMeta: fieldMeta ?? this.fieldMeta,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (recordVersion.present) {
+      map['record_version'] = Variable<int>(recordVersion.value);
+    }
+    if (baseVersion.present) {
+      map['base_version'] = Variable<int>(baseVersion.value);
+    }
+    if (occurred.present) {
+      map['occurred'] = Variable<String>(occurred.value);
+    }
+    if (occurredEnd.present) {
+      map['occurred_end'] = Variable<String>(occurredEnd.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<String>(data.value);
+    }
+    if (producedBy.present) {
+      map['produced_by'] = Variable<String>(producedBy.value);
+    }
+    if (fieldMeta.present) {
+      map['field_meta'] = Variable<String>(fieldMeta.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordRevisionsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordId: $recordId, ')
+          ..write('recordVersion: $recordVersion, ')
+          ..write('baseVersion: $baseVersion, ')
+          ..write('occurred: $occurred, ')
+          ..write('occurredEnd: $occurredEnd, ')
+          ..write('data: $data, ')
+          ..write('producedBy: $producedBy, ')
+          ..write('fieldMeta: $fieldMeta, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecordSourcesTable extends RecordSources
+    with TableInfo<$RecordSourcesTable, RecordSource> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordSourcesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recordRevisionIdMeta = const VerificationMeta(
+    'recordRevisionId',
+  );
+  @override
+  late final GeneratedColumn<String> recordRevisionId = GeneratedColumn<String>(
+    'record_revision_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fieldPathMeta = const VerificationMeta(
+    'fieldPath',
+  );
+  @override
+  late final GeneratedColumn<String> fieldPath = GeneratedColumn<String>(
+    'field_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RecordSourceKind, String>
+  sourceKind = GeneratedColumn<String>(
+    'source_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<RecordSourceKind>($RecordSourcesTable.$convertersourceKind);
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageRevisionNoMeta = const VerificationMeta(
+    'messageRevisionNo',
+  );
+  @override
+  late final GeneratedColumn<int> messageRevisionNo = GeneratedColumn<int>(
+    'message_revision_no',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _spanMeta = const VerificationMeta('span');
+  @override
+  late final GeneratedColumn<String> span = GeneratedColumn<String>(
+    'span',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordRevisionId,
+    fieldPath,
+    sourceKind,
+    sourceId,
+    messageRevisionNo,
+    span,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'record_sources';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecordSource> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('record_revision_id')) {
+      context.handle(
+        _recordRevisionIdMeta,
+        recordRevisionId.isAcceptableOrUnknown(
+          data['record_revision_id']!,
+          _recordRevisionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordRevisionIdMeta);
+    }
+    if (data.containsKey('field_path')) {
+      context.handle(
+        _fieldPathMeta,
+        fieldPath.isAcceptableOrUnknown(data['field_path']!, _fieldPathMeta),
+      );
+    }
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceIdMeta);
+    }
+    if (data.containsKey('message_revision_no')) {
+      context.handle(
+        _messageRevisionNoMeta,
+        messageRevisionNo.isAcceptableOrUnknown(
+          data['message_revision_no']!,
+          _messageRevisionNoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('span')) {
+      context.handle(
+        _spanMeta,
+        span.isAcceptableOrUnknown(data['span']!, _spanMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecordSource map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordSource(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      recordRevisionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_revision_id'],
+      )!,
+      fieldPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}field_path'],
+      ),
+      sourceKind: $RecordSourcesTable.$convertersourceKind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}source_kind'],
+        )!,
+      ),
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_id'],
+      )!,
+      messageRevisionNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}message_revision_no'],
+      ),
+      span: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}span'],
+      ),
+    );
+  }
+
+  @override
+  $RecordSourcesTable createAlias(String alias) {
+    return $RecordSourcesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<RecordSourceKind, String> $convertersourceKind =
+      const EnumConverter(RecordSourceKind.values);
+}
+
+class RecordSource extends DataClass implements Insertable<RecordSource> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String recordRevisionId;
+  final String? fieldPath;
+  final RecordSourceKind sourceKind;
+  final String sourceId;
+  final int? messageRevisionNo;
+  final String? span;
+  const RecordSource({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.recordRevisionId,
+    this.fieldPath,
+    required this.sourceKind,
+    required this.sourceId,
+    this.messageRevisionNo,
+    this.span,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['record_revision_id'] = Variable<String>(recordRevisionId);
+    if (!nullToAbsent || fieldPath != null) {
+      map['field_path'] = Variable<String>(fieldPath);
+    }
+    {
+      map['source_kind'] = Variable<String>(
+        $RecordSourcesTable.$convertersourceKind.toSql(sourceKind),
+      );
+    }
+    map['source_id'] = Variable<String>(sourceId);
+    if (!nullToAbsent || messageRevisionNo != null) {
+      map['message_revision_no'] = Variable<int>(messageRevisionNo);
+    }
+    if (!nullToAbsent || span != null) {
+      map['span'] = Variable<String>(span);
+    }
+    return map;
+  }
+
+  RecordSourcesCompanion toCompanion(bool nullToAbsent) {
+    return RecordSourcesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      recordRevisionId: Value(recordRevisionId),
+      fieldPath: fieldPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fieldPath),
+      sourceKind: Value(sourceKind),
+      sourceId: Value(sourceId),
+      messageRevisionNo: messageRevisionNo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(messageRevisionNo),
+      span: span == null && nullToAbsent ? const Value.absent() : Value(span),
+    );
+  }
+
+  factory RecordSource.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordSource(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      recordRevisionId: serializer.fromJson<String>(json['recordRevisionId']),
+      fieldPath: serializer.fromJson<String?>(json['fieldPath']),
+      sourceKind: serializer.fromJson<RecordSourceKind>(json['sourceKind']),
+      sourceId: serializer.fromJson<String>(json['sourceId']),
+      messageRevisionNo: serializer.fromJson<int?>(json['messageRevisionNo']),
+      span: serializer.fromJson<String?>(json['span']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'recordRevisionId': serializer.toJson<String>(recordRevisionId),
+      'fieldPath': serializer.toJson<String?>(fieldPath),
+      'sourceKind': serializer.toJson<RecordSourceKind>(sourceKind),
+      'sourceId': serializer.toJson<String>(sourceId),
+      'messageRevisionNo': serializer.toJson<int?>(messageRevisionNo),
+      'span': serializer.toJson<String?>(span),
+    };
+  }
+
+  RecordSource copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? recordRevisionId,
+    Value<String?> fieldPath = const Value.absent(),
+    RecordSourceKind? sourceKind,
+    String? sourceId,
+    Value<int?> messageRevisionNo = const Value.absent(),
+    Value<String?> span = const Value.absent(),
+  }) => RecordSource(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    recordRevisionId: recordRevisionId ?? this.recordRevisionId,
+    fieldPath: fieldPath.present ? fieldPath.value : this.fieldPath,
+    sourceKind: sourceKind ?? this.sourceKind,
+    sourceId: sourceId ?? this.sourceId,
+    messageRevisionNo: messageRevisionNo.present
+        ? messageRevisionNo.value
+        : this.messageRevisionNo,
+    span: span.present ? span.value : this.span,
+  );
+  RecordSource copyWithCompanion(RecordSourcesCompanion data) {
+    return RecordSource(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      recordRevisionId: data.recordRevisionId.present
+          ? data.recordRevisionId.value
+          : this.recordRevisionId,
+      fieldPath: data.fieldPath.present ? data.fieldPath.value : this.fieldPath,
+      sourceKind: data.sourceKind.present
+          ? data.sourceKind.value
+          : this.sourceKind,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      messageRevisionNo: data.messageRevisionNo.present
+          ? data.messageRevisionNo.value
+          : this.messageRevisionNo,
+      span: data.span.present ? data.span.value : this.span,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordSource(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordRevisionId: $recordRevisionId, ')
+          ..write('fieldPath: $fieldPath, ')
+          ..write('sourceKind: $sourceKind, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('messageRevisionNo: $messageRevisionNo, ')
+          ..write('span: $span')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    recordRevisionId,
+    fieldPath,
+    sourceKind,
+    sourceId,
+    messageRevisionNo,
+    span,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordSource &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.recordRevisionId == this.recordRevisionId &&
+          other.fieldPath == this.fieldPath &&
+          other.sourceKind == this.sourceKind &&
+          other.sourceId == this.sourceId &&
+          other.messageRevisionNo == this.messageRevisionNo &&
+          other.span == this.span);
+}
+
+class RecordSourcesCompanion extends UpdateCompanion<RecordSource> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> recordRevisionId;
+  final Value<String?> fieldPath;
+  final Value<RecordSourceKind> sourceKind;
+  final Value<String> sourceId;
+  final Value<int?> messageRevisionNo;
+  final Value<String?> span;
+  final Value<int> rowid;
+  const RecordSourcesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.recordRevisionId = const Value.absent(),
+    this.fieldPath = const Value.absent(),
+    this.sourceKind = const Value.absent(),
+    this.sourceId = const Value.absent(),
+    this.messageRevisionNo = const Value.absent(),
+    this.span = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecordSourcesCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String recordRevisionId,
+    this.fieldPath = const Value.absent(),
+    required RecordSourceKind sourceKind,
+    required String sourceId,
+    this.messageRevisionNo = const Value.absent(),
+    this.span = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       recordRevisionId = Value(recordRevisionId),
+       sourceKind = Value(sourceKind),
+       sourceId = Value(sourceId);
+  static Insertable<RecordSource> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? recordRevisionId,
+    Expression<String>? fieldPath,
+    Expression<String>? sourceKind,
+    Expression<String>? sourceId,
+    Expression<int>? messageRevisionNo,
+    Expression<String>? span,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (recordRevisionId != null) 'record_revision_id': recordRevisionId,
+      if (fieldPath != null) 'field_path': fieldPath,
+      if (sourceKind != null) 'source_kind': sourceKind,
+      if (sourceId != null) 'source_id': sourceId,
+      if (messageRevisionNo != null) 'message_revision_no': messageRevisionNo,
+      if (span != null) 'span': span,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecordSourcesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? recordRevisionId,
+    Value<String?>? fieldPath,
+    Value<RecordSourceKind>? sourceKind,
+    Value<String>? sourceId,
+    Value<int?>? messageRevisionNo,
+    Value<String?>? span,
+    Value<int>? rowid,
+  }) {
+    return RecordSourcesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      recordRevisionId: recordRevisionId ?? this.recordRevisionId,
+      fieldPath: fieldPath ?? this.fieldPath,
+      sourceKind: sourceKind ?? this.sourceKind,
+      sourceId: sourceId ?? this.sourceId,
+      messageRevisionNo: messageRevisionNo ?? this.messageRevisionNo,
+      span: span ?? this.span,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (recordRevisionId.present) {
+      map['record_revision_id'] = Variable<String>(recordRevisionId.value);
+    }
+    if (fieldPath.present) {
+      map['field_path'] = Variable<String>(fieldPath.value);
+    }
+    if (sourceKind.present) {
+      map['source_kind'] = Variable<String>(
+        $RecordSourcesTable.$convertersourceKind.toSql(sourceKind.value),
+      );
+    }
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    if (messageRevisionNo.present) {
+      map['message_revision_no'] = Variable<int>(messageRevisionNo.value);
+    }
+    if (span.present) {
+      map['span'] = Variable<String>(span.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordSourcesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recordRevisionId: $recordRevisionId, ')
+          ..write('fieldPath: $fieldPath, ')
+          ..write('sourceKind: $sourceKind, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('messageRevisionNo: $messageRevisionNo, ')
+          ..write('span: $span, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ModelConfigsTable extends ModelConfigs
+    with TableInfo<$ModelConfigsTable, ModelConfig> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ModelConfigsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ModelPreset, String> preset =
+      GeneratedColumn<String>(
+        'preset',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ModelPreset>($ModelConfigsTable.$converterpreset);
+  @override
+  late final GeneratedColumnWithTypeConverter<ModelProtocol, String> protocol =
+      GeneratedColumn<String>(
+        'protocol',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ModelProtocol>($ModelConfigsTable.$converterprotocol);
+  static const VerificationMeta _baseUrlMeta = const VerificationMeta(
+    'baseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> baseUrl = GeneratedColumn<String>(
+    'base_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _capabilitiesMeta = const VerificationMeta(
+    'capabilities',
+  );
+  @override
+  late final GeneratedColumn<String> capabilities = GeneratedColumn<String>(
+    'capabilities',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DataBoundary, String>
+  dataBoundary = GeneratedColumn<String>(
+    'data_boundary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<DataBoundary>($ModelConfigsTable.$converterdataBoundary);
+  static const VerificationMeta _keychainRefMeta = const VerificationMeta(
+    'keychainRef',
+  );
+  @override
+  late final GeneratedColumn<String> keychainRef = GeneratedColumn<String>(
+    'keychain_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastTestAtMeta = const VerificationMeta(
+    'lastTestAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastTestAt = GeneratedColumn<int>(
+    'last_test_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastTestResultMeta = const VerificationMeta(
+    'lastTestResult',
+  );
+  @override
+  late final GeneratedColumn<String> lastTestResult = GeneratedColumn<String>(
+    'last_test_result',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    preset,
+    protocol,
+    baseUrl,
+    model,
+    capabilities,
+    dataBoundary,
+    keychainRef,
+    isDefault,
+    lastTestAt,
+    lastTestResult,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'model_configs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ModelConfig> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('base_url')) {
+      context.handle(
+        _baseUrlMeta,
+        baseUrl.isAcceptableOrUnknown(data['base_url']!, _baseUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseUrlMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('capabilities')) {
+      context.handle(
+        _capabilitiesMeta,
+        capabilities.isAcceptableOrUnknown(
+          data['capabilities']!,
+          _capabilitiesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('keychain_ref')) {
+      context.handle(
+        _keychainRefMeta,
+        keychainRef.isAcceptableOrUnknown(
+          data['keychain_ref']!,
+          _keychainRefMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_keychainRefMeta);
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
+    if (data.containsKey('last_test_at')) {
+      context.handle(
+        _lastTestAtMeta,
+        lastTestAt.isAcceptableOrUnknown(
+          data['last_test_at']!,
+          _lastTestAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_test_result')) {
+      context.handle(
+        _lastTestResultMeta,
+        lastTestResult.isAcceptableOrUnknown(
+          data['last_test_result']!,
+          _lastTestResultMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ModelConfig map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ModelConfig(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      preset: $ModelConfigsTable.$converterpreset.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}preset'],
+        )!,
+      ),
+      protocol: $ModelConfigsTable.$converterprotocol.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}protocol'],
+        )!,
+      ),
+      baseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_url'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      capabilities: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capabilities'],
+      )!,
+      dataBoundary: $ModelConfigsTable.$converterdataBoundary.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}data_boundary'],
+        )!,
+      ),
+      keychainRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}keychain_ref'],
+      )!,
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
+      lastTestAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_test_at'],
+      ),
+      lastTestResult: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_test_result'],
+      ),
+    );
+  }
+
+  @override
+  $ModelConfigsTable createAlias(String alias) {
+    return $ModelConfigsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<ModelPreset, String> $converterpreset =
+      const EnumConverter(ModelPreset.values);
+  static TypeConverter<ModelProtocol, String> $converterprotocol =
+      const EnumConverter(ModelProtocol.values);
+  static TypeConverter<DataBoundary, String> $converterdataBoundary =
+      const EnumConverter(DataBoundary.values);
+}
+
+class ModelConfig extends DataClass implements Insertable<ModelConfig> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final ModelPreset preset;
+  final ModelProtocol protocol;
+  final String baseUrl;
+  final String model;
+  final String capabilities;
+  final DataBoundary dataBoundary;
+  final String keychainRef;
+  final bool isDefault;
+  final int? lastTestAt;
+  final String? lastTestResult;
+  const ModelConfig({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.preset,
+    required this.protocol,
+    required this.baseUrl,
+    required this.model,
+    required this.capabilities,
+    required this.dataBoundary,
+    required this.keychainRef,
+    required this.isDefault,
+    this.lastTestAt,
+    this.lastTestResult,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    {
+      map['preset'] = Variable<String>(
+        $ModelConfigsTable.$converterpreset.toSql(preset),
+      );
+    }
+    {
+      map['protocol'] = Variable<String>(
+        $ModelConfigsTable.$converterprotocol.toSql(protocol),
+      );
+    }
+    map['base_url'] = Variable<String>(baseUrl);
+    map['model'] = Variable<String>(model);
+    map['capabilities'] = Variable<String>(capabilities);
+    {
+      map['data_boundary'] = Variable<String>(
+        $ModelConfigsTable.$converterdataBoundary.toSql(dataBoundary),
+      );
+    }
+    map['keychain_ref'] = Variable<String>(keychainRef);
+    map['is_default'] = Variable<bool>(isDefault);
+    if (!nullToAbsent || lastTestAt != null) {
+      map['last_test_at'] = Variable<int>(lastTestAt);
+    }
+    if (!nullToAbsent || lastTestResult != null) {
+      map['last_test_result'] = Variable<String>(lastTestResult);
+    }
+    return map;
+  }
+
+  ModelConfigsCompanion toCompanion(bool nullToAbsent) {
+    return ModelConfigsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      preset: Value(preset),
+      protocol: Value(protocol),
+      baseUrl: Value(baseUrl),
+      model: Value(model),
+      capabilities: Value(capabilities),
+      dataBoundary: Value(dataBoundary),
+      keychainRef: Value(keychainRef),
+      isDefault: Value(isDefault),
+      lastTestAt: lastTestAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestAt),
+      lastTestResult: lastTestResult == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestResult),
+    );
+  }
+
+  factory ModelConfig.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ModelConfig(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      preset: serializer.fromJson<ModelPreset>(json['preset']),
+      protocol: serializer.fromJson<ModelProtocol>(json['protocol']),
+      baseUrl: serializer.fromJson<String>(json['baseUrl']),
+      model: serializer.fromJson<String>(json['model']),
+      capabilities: serializer.fromJson<String>(json['capabilities']),
+      dataBoundary: serializer.fromJson<DataBoundary>(json['dataBoundary']),
+      keychainRef: serializer.fromJson<String>(json['keychainRef']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      lastTestAt: serializer.fromJson<int?>(json['lastTestAt']),
+      lastTestResult: serializer.fromJson<String?>(json['lastTestResult']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'preset': serializer.toJson<ModelPreset>(preset),
+      'protocol': serializer.toJson<ModelProtocol>(protocol),
+      'baseUrl': serializer.toJson<String>(baseUrl),
+      'model': serializer.toJson<String>(model),
+      'capabilities': serializer.toJson<String>(capabilities),
+      'dataBoundary': serializer.toJson<DataBoundary>(dataBoundary),
+      'keychainRef': serializer.toJson<String>(keychainRef),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'lastTestAt': serializer.toJson<int?>(lastTestAt),
+      'lastTestResult': serializer.toJson<String?>(lastTestResult),
+    };
+  }
+
+  ModelConfig copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    ModelPreset? preset,
+    ModelProtocol? protocol,
+    String? baseUrl,
+    String? model,
+    String? capabilities,
+    DataBoundary? dataBoundary,
+    String? keychainRef,
+    bool? isDefault,
+    Value<int?> lastTestAt = const Value.absent(),
+    Value<String?> lastTestResult = const Value.absent(),
+  }) => ModelConfig(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    preset: preset ?? this.preset,
+    protocol: protocol ?? this.protocol,
+    baseUrl: baseUrl ?? this.baseUrl,
+    model: model ?? this.model,
+    capabilities: capabilities ?? this.capabilities,
+    dataBoundary: dataBoundary ?? this.dataBoundary,
+    keychainRef: keychainRef ?? this.keychainRef,
+    isDefault: isDefault ?? this.isDefault,
+    lastTestAt: lastTestAt.present ? lastTestAt.value : this.lastTestAt,
+    lastTestResult: lastTestResult.present
+        ? lastTestResult.value
+        : this.lastTestResult,
+  );
+  ModelConfig copyWithCompanion(ModelConfigsCompanion data) {
+    return ModelConfig(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      preset: data.preset.present ? data.preset.value : this.preset,
+      protocol: data.protocol.present ? data.protocol.value : this.protocol,
+      baseUrl: data.baseUrl.present ? data.baseUrl.value : this.baseUrl,
+      model: data.model.present ? data.model.value : this.model,
+      capabilities: data.capabilities.present
+          ? data.capabilities.value
+          : this.capabilities,
+      dataBoundary: data.dataBoundary.present
+          ? data.dataBoundary.value
+          : this.dataBoundary,
+      keychainRef: data.keychainRef.present
+          ? data.keychainRef.value
+          : this.keychainRef,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      lastTestAt: data.lastTestAt.present
+          ? data.lastTestAt.value
+          : this.lastTestAt,
+      lastTestResult: data.lastTestResult.present
+          ? data.lastTestResult.value
+          : this.lastTestResult,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModelConfig(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('preset: $preset, ')
+          ..write('protocol: $protocol, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('model: $model, ')
+          ..write('capabilities: $capabilities, ')
+          ..write('dataBoundary: $dataBoundary, ')
+          ..write('keychainRef: $keychainRef, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('lastTestAt: $lastTestAt, ')
+          ..write('lastTestResult: $lastTestResult')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    preset,
+    protocol,
+    baseUrl,
+    model,
+    capabilities,
+    dataBoundary,
+    keychainRef,
+    isDefault,
+    lastTestAt,
+    lastTestResult,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ModelConfig &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.preset == this.preset &&
+          other.protocol == this.protocol &&
+          other.baseUrl == this.baseUrl &&
+          other.model == this.model &&
+          other.capabilities == this.capabilities &&
+          other.dataBoundary == this.dataBoundary &&
+          other.keychainRef == this.keychainRef &&
+          other.isDefault == this.isDefault &&
+          other.lastTestAt == this.lastTestAt &&
+          other.lastTestResult == this.lastTestResult);
+}
+
+class ModelConfigsCompanion extends UpdateCompanion<ModelConfig> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<ModelPreset> preset;
+  final Value<ModelProtocol> protocol;
+  final Value<String> baseUrl;
+  final Value<String> model;
+  final Value<String> capabilities;
+  final Value<DataBoundary> dataBoundary;
+  final Value<String> keychainRef;
+  final Value<bool> isDefault;
+  final Value<int?> lastTestAt;
+  final Value<String?> lastTestResult;
+  final Value<int> rowid;
+  const ModelConfigsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.preset = const Value.absent(),
+    this.protocol = const Value.absent(),
+    this.baseUrl = const Value.absent(),
+    this.model = const Value.absent(),
+    this.capabilities = const Value.absent(),
+    this.dataBoundary = const Value.absent(),
+    this.keychainRef = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.lastTestAt = const Value.absent(),
+    this.lastTestResult = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ModelConfigsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required ModelPreset preset,
+    required ModelProtocol protocol,
+    required String baseUrl,
+    required String model,
+    this.capabilities = const Value.absent(),
+    required DataBoundary dataBoundary,
+    required String keychainRef,
+    this.isDefault = const Value.absent(),
+    this.lastTestAt = const Value.absent(),
+    this.lastTestResult = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       preset = Value(preset),
+       protocol = Value(protocol),
+       baseUrl = Value(baseUrl),
+       model = Value(model),
+       dataBoundary = Value(dataBoundary),
+       keychainRef = Value(keychainRef);
+  static Insertable<ModelConfig> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? preset,
+    Expression<String>? protocol,
+    Expression<String>? baseUrl,
+    Expression<String>? model,
+    Expression<String>? capabilities,
+    Expression<String>? dataBoundary,
+    Expression<String>? keychainRef,
+    Expression<bool>? isDefault,
+    Expression<int>? lastTestAt,
+    Expression<String>? lastTestResult,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (preset != null) 'preset': preset,
+      if (protocol != null) 'protocol': protocol,
+      if (baseUrl != null) 'base_url': baseUrl,
+      if (model != null) 'model': model,
+      if (capabilities != null) 'capabilities': capabilities,
+      if (dataBoundary != null) 'data_boundary': dataBoundary,
+      if (keychainRef != null) 'keychain_ref': keychainRef,
+      if (isDefault != null) 'is_default': isDefault,
+      if (lastTestAt != null) 'last_test_at': lastTestAt,
+      if (lastTestResult != null) 'last_test_result': lastTestResult,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ModelConfigsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<ModelPreset>? preset,
+    Value<ModelProtocol>? protocol,
+    Value<String>? baseUrl,
+    Value<String>? model,
+    Value<String>? capabilities,
+    Value<DataBoundary>? dataBoundary,
+    Value<String>? keychainRef,
+    Value<bool>? isDefault,
+    Value<int?>? lastTestAt,
+    Value<String?>? lastTestResult,
+    Value<int>? rowid,
+  }) {
+    return ModelConfigsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      preset: preset ?? this.preset,
+      protocol: protocol ?? this.protocol,
+      baseUrl: baseUrl ?? this.baseUrl,
+      model: model ?? this.model,
+      capabilities: capabilities ?? this.capabilities,
+      dataBoundary: dataBoundary ?? this.dataBoundary,
+      keychainRef: keychainRef ?? this.keychainRef,
+      isDefault: isDefault ?? this.isDefault,
+      lastTestAt: lastTestAt ?? this.lastTestAt,
+      lastTestResult: lastTestResult ?? this.lastTestResult,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (preset.present) {
+      map['preset'] = Variable<String>(
+        $ModelConfigsTable.$converterpreset.toSql(preset.value),
+      );
+    }
+    if (protocol.present) {
+      map['protocol'] = Variable<String>(
+        $ModelConfigsTable.$converterprotocol.toSql(protocol.value),
+      );
+    }
+    if (baseUrl.present) {
+      map['base_url'] = Variable<String>(baseUrl.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (capabilities.present) {
+      map['capabilities'] = Variable<String>(capabilities.value);
+    }
+    if (dataBoundary.present) {
+      map['data_boundary'] = Variable<String>(
+        $ModelConfigsTable.$converterdataBoundary.toSql(dataBoundary.value),
+      );
+    }
+    if (keychainRef.present) {
+      map['keychain_ref'] = Variable<String>(keychainRef.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (lastTestAt.present) {
+      map['last_test_at'] = Variable<int>(lastTestAt.value);
+    }
+    if (lastTestResult.present) {
+      map['last_test_result'] = Variable<String>(lastTestResult.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModelConfigsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('preset: $preset, ')
+          ..write('protocol: $protocol, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('model: $model, ')
+          ..write('capabilities: $capabilities, ')
+          ..write('dataBoundary: $dataBoundary, ')
+          ..write('keychainRef: $keychainRef, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('lastTestAt: $lastTestAt, ')
+          ..write('lastTestResult: $lastTestResult, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReviewPromptsTable extends ReviewPrompts
+    with TableInfo<$ReviewPromptsTable, ReviewPrompt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewPromptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reviewDateMeta = const VerificationMeta(
+    'reviewDate',
+  );
+  @override
+  late final GeneratedColumn<String> reviewDate = GeneratedColumn<String>(
+    'review_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptMessageIdMeta = const VerificationMeta(
+    'promptMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> promptMessageId = GeneratedColumn<String>(
+    'prompt_message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _gapKeyMeta = const VerificationMeta('gapKey');
+  @override
+  late final GeneratedColumn<String> gapKey = GeneratedColumn<String>(
+    'gap_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _templateIdMeta = const VerificationMeta(
+    'templateId',
+  );
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+    'template_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ReviewOutcome?, String> outcome =
+      GeneratedColumn<String>(
+        'outcome',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<ReviewOutcome?>($ReviewPromptsTable.$converteroutcomen);
+  static const VerificationMeta _answeredMessageIdMeta = const VerificationMeta(
+    'answeredMessageId',
+  );
+  @override
+  late final GeneratedColumn<String> answeredMessageId =
+      GeneratedColumn<String>(
+        'answered_message_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    reviewDate,
+    promptMessageId,
+    gapKey,
+    templateId,
+    outcome,
+    answeredMessageId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'review_prompts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewPrompt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('review_date')) {
+      context.handle(
+        _reviewDateMeta,
+        reviewDate.isAcceptableOrUnknown(data['review_date']!, _reviewDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reviewDateMeta);
+    }
+    if (data.containsKey('prompt_message_id')) {
+      context.handle(
+        _promptMessageIdMeta,
+        promptMessageId.isAcceptableOrUnknown(
+          data['prompt_message_id']!,
+          _promptMessageIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_promptMessageIdMeta);
+    }
+    if (data.containsKey('gap_key')) {
+      context.handle(
+        _gapKeyMeta,
+        gapKey.isAcceptableOrUnknown(data['gap_key']!, _gapKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_gapKeyMeta);
+    }
+    if (data.containsKey('template_id')) {
+      context.handle(
+        _templateIdMeta,
+        templateId.isAcceptableOrUnknown(data['template_id']!, _templateIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_templateIdMeta);
+    }
+    if (data.containsKey('answered_message_id')) {
+      context.handle(
+        _answeredMessageIdMeta,
+        answeredMessageId.isAcceptableOrUnknown(
+          data['answered_message_id']!,
+          _answeredMessageIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReviewPrompt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewPrompt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      reviewDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}review_date'],
+      )!,
+      promptMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_message_id'],
+      )!,
+      gapKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gap_key'],
+      )!,
+      templateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template_id'],
+      )!,
+      outcome: $ReviewPromptsTable.$converteroutcomen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}outcome'],
+        ),
+      ),
+      answeredMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answered_message_id'],
+      ),
+    );
+  }
+
+  @override
+  $ReviewPromptsTable createAlias(String alias) {
+    return $ReviewPromptsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<ReviewOutcome, String> $converteroutcome =
+      const EnumConverter(ReviewOutcome.values);
+  static TypeConverter<ReviewOutcome?, String?> $converteroutcomen =
+      NullAwareTypeConverter.wrap($converteroutcome);
+}
+
+class ReviewPrompt extends DataClass implements Insertable<ReviewPrompt> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final String reviewDate;
+  final String promptMessageId;
+  final String gapKey;
+  final String templateId;
+  final ReviewOutcome? outcome;
+  final String? answeredMessageId;
+  const ReviewPrompt({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.reviewDate,
+    required this.promptMessageId,
+    required this.gapKey,
+    required this.templateId,
+    this.outcome,
+    this.answeredMessageId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['review_date'] = Variable<String>(reviewDate);
+    map['prompt_message_id'] = Variable<String>(promptMessageId);
+    map['gap_key'] = Variable<String>(gapKey);
+    map['template_id'] = Variable<String>(templateId);
+    if (!nullToAbsent || outcome != null) {
+      map['outcome'] = Variable<String>(
+        $ReviewPromptsTable.$converteroutcomen.toSql(outcome),
+      );
+    }
+    if (!nullToAbsent || answeredMessageId != null) {
+      map['answered_message_id'] = Variable<String>(answeredMessageId);
+    }
+    return map;
+  }
+
+  ReviewPromptsCompanion toCompanion(bool nullToAbsent) {
+    return ReviewPromptsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      reviewDate: Value(reviewDate),
+      promptMessageId: Value(promptMessageId),
+      gapKey: Value(gapKey),
+      templateId: Value(templateId),
+      outcome: outcome == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outcome),
+      answeredMessageId: answeredMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(answeredMessageId),
+    );
+  }
+
+  factory ReviewPrompt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewPrompt(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      reviewDate: serializer.fromJson<String>(json['reviewDate']),
+      promptMessageId: serializer.fromJson<String>(json['promptMessageId']),
+      gapKey: serializer.fromJson<String>(json['gapKey']),
+      templateId: serializer.fromJson<String>(json['templateId']),
+      outcome: serializer.fromJson<ReviewOutcome?>(json['outcome']),
+      answeredMessageId: serializer.fromJson<String?>(
+        json['answeredMessageId'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'reviewDate': serializer.toJson<String>(reviewDate),
+      'promptMessageId': serializer.toJson<String>(promptMessageId),
+      'gapKey': serializer.toJson<String>(gapKey),
+      'templateId': serializer.toJson<String>(templateId),
+      'outcome': serializer.toJson<ReviewOutcome?>(outcome),
+      'answeredMessageId': serializer.toJson<String?>(answeredMessageId),
+    };
+  }
+
+  ReviewPrompt copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? reviewDate,
+    String? promptMessageId,
+    String? gapKey,
+    String? templateId,
+    Value<ReviewOutcome?> outcome = const Value.absent(),
+    Value<String?> answeredMessageId = const Value.absent(),
+  }) => ReviewPrompt(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    reviewDate: reviewDate ?? this.reviewDate,
+    promptMessageId: promptMessageId ?? this.promptMessageId,
+    gapKey: gapKey ?? this.gapKey,
+    templateId: templateId ?? this.templateId,
+    outcome: outcome.present ? outcome.value : this.outcome,
+    answeredMessageId: answeredMessageId.present
+        ? answeredMessageId.value
+        : this.answeredMessageId,
+  );
+  ReviewPrompt copyWithCompanion(ReviewPromptsCompanion data) {
+    return ReviewPrompt(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      reviewDate: data.reviewDate.present
+          ? data.reviewDate.value
+          : this.reviewDate,
+      promptMessageId: data.promptMessageId.present
+          ? data.promptMessageId.value
+          : this.promptMessageId,
+      gapKey: data.gapKey.present ? data.gapKey.value : this.gapKey,
+      templateId: data.templateId.present
+          ? data.templateId.value
+          : this.templateId,
+      outcome: data.outcome.present ? data.outcome.value : this.outcome,
+      answeredMessageId: data.answeredMessageId.present
+          ? data.answeredMessageId.value
+          : this.answeredMessageId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewPrompt(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('promptMessageId: $promptMessageId, ')
+          ..write('gapKey: $gapKey, ')
+          ..write('templateId: $templateId, ')
+          ..write('outcome: $outcome, ')
+          ..write('answeredMessageId: $answeredMessageId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    reviewDate,
+    promptMessageId,
+    gapKey,
+    templateId,
+    outcome,
+    answeredMessageId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewPrompt &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.reviewDate == this.reviewDate &&
+          other.promptMessageId == this.promptMessageId &&
+          other.gapKey == this.gapKey &&
+          other.templateId == this.templateId &&
+          other.outcome == this.outcome &&
+          other.answeredMessageId == this.answeredMessageId);
+}
+
+class ReviewPromptsCompanion extends UpdateCompanion<ReviewPrompt> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> reviewDate;
+  final Value<String> promptMessageId;
+  final Value<String> gapKey;
+  final Value<String> templateId;
+  final Value<ReviewOutcome?> outcome;
+  final Value<String?> answeredMessageId;
+  final Value<int> rowid;
+  const ReviewPromptsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.reviewDate = const Value.absent(),
+    this.promptMessageId = const Value.absent(),
+    this.gapKey = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.outcome = const Value.absent(),
+    this.answeredMessageId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReviewPromptsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String reviewDate,
+    required String promptMessageId,
+    required String gapKey,
+    required String templateId,
+    this.outcome = const Value.absent(),
+    this.answeredMessageId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       reviewDate = Value(reviewDate),
+       promptMessageId = Value(promptMessageId),
+       gapKey = Value(gapKey),
+       templateId = Value(templateId);
+  static Insertable<ReviewPrompt> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? reviewDate,
+    Expression<String>? promptMessageId,
+    Expression<String>? gapKey,
+    Expression<String>? templateId,
+    Expression<String>? outcome,
+    Expression<String>? answeredMessageId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (reviewDate != null) 'review_date': reviewDate,
+      if (promptMessageId != null) 'prompt_message_id': promptMessageId,
+      if (gapKey != null) 'gap_key': gapKey,
+      if (templateId != null) 'template_id': templateId,
+      if (outcome != null) 'outcome': outcome,
+      if (answeredMessageId != null) 'answered_message_id': answeredMessageId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReviewPromptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? reviewDate,
+    Value<String>? promptMessageId,
+    Value<String>? gapKey,
+    Value<String>? templateId,
+    Value<ReviewOutcome?>? outcome,
+    Value<String?>? answeredMessageId,
+    Value<int>? rowid,
+  }) {
+    return ReviewPromptsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      reviewDate: reviewDate ?? this.reviewDate,
+      promptMessageId: promptMessageId ?? this.promptMessageId,
+      gapKey: gapKey ?? this.gapKey,
+      templateId: templateId ?? this.templateId,
+      outcome: outcome ?? this.outcome,
+      answeredMessageId: answeredMessageId ?? this.answeredMessageId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (reviewDate.present) {
+      map['review_date'] = Variable<String>(reviewDate.value);
+    }
+    if (promptMessageId.present) {
+      map['prompt_message_id'] = Variable<String>(promptMessageId.value);
+    }
+    if (gapKey.present) {
+      map['gap_key'] = Variable<String>(gapKey.value);
+    }
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (outcome.present) {
+      map['outcome'] = Variable<String>(
+        $ReviewPromptsTable.$converteroutcomen.toSql(outcome.value),
+      );
+    }
+    if (answeredMessageId.present) {
+      map['answered_message_id'] = Variable<String>(answeredMessageId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewPromptsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('promptMessageId: $promptMessageId, ')
+          ..write('gapKey: $gapKey, ')
+          ..write('templateId: $templateId, ')
+          ..write('outcome: $outcome, ')
+          ..write('answeredMessageId: $answeredMessageId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5082,6 +14050,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $MessageAttachmentsTable(this);
   late final $ProfileFieldsTable profileFields = $ProfileFieldsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $HealthSamplesTable healthSamples = $HealthSamplesTable(this);
+  late final $HealthAnchorsTable healthAnchors = $HealthAnchorsTable(this);
+  late final $HealthDailyTable healthDaily = $HealthDailyTable(this);
+  late final $OrganizeRunsTable organizeRuns = $OrganizeRunsTable(this);
+  late final $OrganizeRunItemsTable organizeRunItems = $OrganizeRunItemsTable(
+    this,
+  );
+  late final $ModelCallsTable modelCalls = $ModelCallsTable(this);
+  late final $RecordsTable records = $RecordsTable(this);
+  late final $RecordRevisionsTable recordRevisions = $RecordRevisionsTable(
+    this,
+  );
+  late final $RecordSourcesTable recordSources = $RecordSourcesTable(this);
+  late final $ModelConfigsTable modelConfigs = $ModelConfigsTable(this);
+  late final $ReviewPromptsTable reviewPrompts = $ReviewPromptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5094,6 +14077,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     messageAttachments,
     profileFields,
     settings,
+    healthSamples,
+    healthAnchors,
+    healthDaily,
+    organizeRuns,
+    organizeRunItems,
+    modelCalls,
+    records,
+    recordRevisions,
+    recordSources,
+    modelConfigs,
+    reviewPrompts,
   ];
 }
 
@@ -7510,6 +16504,4183 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$HealthSamplesTableCreateCompanionBuilder =
+    HealthSamplesCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String platformUuid,
+      required HealthSampleType sampleType,
+      required int startUtc,
+      required int endUtc,
+      required String tz,
+      Value<bool> tzInferred,
+      Value<String?> sourceBundleId,
+      Value<SleepStage?> sleepStage,
+      Value<String?> workoutType,
+      Value<double?> energyKcal,
+      Value<double?> distanceM,
+      required String sourceName,
+      required int fetchedAt,
+      Value<int?> removedInSourceAt,
+      Value<int> rowid,
+    });
+typedef $$HealthSamplesTableUpdateCompanionBuilder =
+    HealthSamplesCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> platformUuid,
+      Value<HealthSampleType> sampleType,
+      Value<int> startUtc,
+      Value<int> endUtc,
+      Value<String> tz,
+      Value<bool> tzInferred,
+      Value<String?> sourceBundleId,
+      Value<SleepStage?> sleepStage,
+      Value<String?> workoutType,
+      Value<double?> energyKcal,
+      Value<double?> distanceM,
+      Value<String> sourceName,
+      Value<int> fetchedAt,
+      Value<int?> removedInSourceAt,
+      Value<int> rowid,
+    });
+
+class $$HealthSamplesTableFilterComposer
+    extends Composer<_$AppDatabase, $HealthSamplesTable> {
+  $$HealthSamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platformUuid => $composableBuilder(
+    column: $table.platformUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<HealthSampleType, HealthSampleType, String>
+  get sampleType => $composableBuilder(
+    column: $table.sampleType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get startUtc => $composableBuilder(
+    column: $table.startUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endUtc => $composableBuilder(
+    column: $table.endUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tz => $composableBuilder(
+    column: $table.tz,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tzInferred => $composableBuilder(
+    column: $table.tzInferred,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceBundleId => $composableBuilder(
+    column: $table.sourceBundleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<SleepStage?, SleepStage, String>
+  get sleepStage => $composableBuilder(
+    column: $table.sleepStage,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get workoutType => $composableBuilder(
+    column: $table.workoutType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get energyKcal => $composableBuilder(
+    column: $table.energyKcal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceName => $composableBuilder(
+    column: $table.sourceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get removedInSourceAt => $composableBuilder(
+    column: $table.removedInSourceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthSamplesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HealthSamplesTable> {
+  $$HealthSamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platformUuid => $composableBuilder(
+    column: $table.platformUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sampleType => $composableBuilder(
+    column: $table.sampleType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startUtc => $composableBuilder(
+    column: $table.startUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endUtc => $composableBuilder(
+    column: $table.endUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tz => $composableBuilder(
+    column: $table.tz,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get tzInferred => $composableBuilder(
+    column: $table.tzInferred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceBundleId => $composableBuilder(
+    column: $table.sourceBundleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sleepStage => $composableBuilder(
+    column: $table.sleepStage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workoutType => $composableBuilder(
+    column: $table.workoutType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get energyKcal => $composableBuilder(
+    column: $table.energyKcal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceName => $composableBuilder(
+    column: $table.sourceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get removedInSourceAt => $composableBuilder(
+    column: $table.removedInSourceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthSamplesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HealthSamplesTable> {
+  $$HealthSamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get platformUuid => $composableBuilder(
+    column: $table.platformUuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<HealthSampleType, String> get sampleType =>
+      $composableBuilder(
+        column: $table.sampleType,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get startUtc =>
+      $composableBuilder(column: $table.startUtc, builder: (column) => column);
+
+  GeneratedColumn<int> get endUtc =>
+      $composableBuilder(column: $table.endUtc, builder: (column) => column);
+
+  GeneratedColumn<String> get tz =>
+      $composableBuilder(column: $table.tz, builder: (column) => column);
+
+  GeneratedColumn<bool> get tzInferred => $composableBuilder(
+    column: $table.tzInferred,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceBundleId => $composableBuilder(
+    column: $table.sourceBundleId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<SleepStage?, String> get sleepStage =>
+      $composableBuilder(
+        column: $table.sleepStage,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get workoutType => $composableBuilder(
+    column: $table.workoutType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get energyKcal => $composableBuilder(
+    column: $table.energyKcal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get distanceM =>
+      $composableBuilder(column: $table.distanceM, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceName => $composableBuilder(
+    column: $table.sourceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get removedInSourceAt => $composableBuilder(
+    column: $table.removedInSourceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$HealthSamplesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HealthSamplesTable,
+          HealthSample,
+          $$HealthSamplesTableFilterComposer,
+          $$HealthSamplesTableOrderingComposer,
+          $$HealthSamplesTableAnnotationComposer,
+          $$HealthSamplesTableCreateCompanionBuilder,
+          $$HealthSamplesTableUpdateCompanionBuilder,
+          (
+            HealthSample,
+            BaseReferences<_$AppDatabase, $HealthSamplesTable, HealthSample>,
+          ),
+          HealthSample,
+          PrefetchHooks Function()
+        > {
+  $$HealthSamplesTableTableManager(_$AppDatabase db, $HealthSamplesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthSamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthSamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthSamplesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> platformUuid = const Value.absent(),
+                Value<HealthSampleType> sampleType = const Value.absent(),
+                Value<int> startUtc = const Value.absent(),
+                Value<int> endUtc = const Value.absent(),
+                Value<String> tz = const Value.absent(),
+                Value<bool> tzInferred = const Value.absent(),
+                Value<String?> sourceBundleId = const Value.absent(),
+                Value<SleepStage?> sleepStage = const Value.absent(),
+                Value<String?> workoutType = const Value.absent(),
+                Value<double?> energyKcal = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
+                Value<String> sourceName = const Value.absent(),
+                Value<int> fetchedAt = const Value.absent(),
+                Value<int?> removedInSourceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthSamplesCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                platformUuid: platformUuid,
+                sampleType: sampleType,
+                startUtc: startUtc,
+                endUtc: endUtc,
+                tz: tz,
+                tzInferred: tzInferred,
+                sourceBundleId: sourceBundleId,
+                sleepStage: sleepStage,
+                workoutType: workoutType,
+                energyKcal: energyKcal,
+                distanceM: distanceM,
+                sourceName: sourceName,
+                fetchedAt: fetchedAt,
+                removedInSourceAt: removedInSourceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String platformUuid,
+                required HealthSampleType sampleType,
+                required int startUtc,
+                required int endUtc,
+                required String tz,
+                Value<bool> tzInferred = const Value.absent(),
+                Value<String?> sourceBundleId = const Value.absent(),
+                Value<SleepStage?> sleepStage = const Value.absent(),
+                Value<String?> workoutType = const Value.absent(),
+                Value<double?> energyKcal = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
+                required String sourceName,
+                required int fetchedAt,
+                Value<int?> removedInSourceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthSamplesCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                platformUuid: platformUuid,
+                sampleType: sampleType,
+                startUtc: startUtc,
+                endUtc: endUtc,
+                tz: tz,
+                tzInferred: tzInferred,
+                sourceBundleId: sourceBundleId,
+                sleepStage: sleepStage,
+                workoutType: workoutType,
+                energyKcal: energyKcal,
+                distanceM: distanceM,
+                sourceName: sourceName,
+                fetchedAt: fetchedAt,
+                removedInSourceAt: removedInSourceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthSamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HealthSamplesTable,
+      HealthSample,
+      $$HealthSamplesTableFilterComposer,
+      $$HealthSamplesTableOrderingComposer,
+      $$HealthSamplesTableAnnotationComposer,
+      $$HealthSamplesTableCreateCompanionBuilder,
+      $$HealthSamplesTableUpdateCompanionBuilder,
+      (
+        HealthSample,
+        BaseReferences<_$AppDatabase, $HealthSamplesTable, HealthSample>,
+      ),
+      HealthSample,
+      PrefetchHooks Function()
+    >;
+typedef $$HealthAnchorsTableCreateCompanionBuilder =
+    HealthAnchorsCompanion Function({
+      required HealthSampleType sampleType,
+      required Uint8List anchor,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$HealthAnchorsTableUpdateCompanionBuilder =
+    HealthAnchorsCompanion Function({
+      Value<HealthSampleType> sampleType,
+      Value<Uint8List> anchor,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$HealthAnchorsTableFilterComposer
+    extends Composer<_$AppDatabase, $HealthAnchorsTable> {
+  $$HealthAnchorsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<HealthSampleType, HealthSampleType, String>
+  get sampleType => $composableBuilder(
+    column: $table.sampleType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get anchor => $composableBuilder(
+    column: $table.anchor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthAnchorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $HealthAnchorsTable> {
+  $$HealthAnchorsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get sampleType => $composableBuilder(
+    column: $table.sampleType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get anchor => $composableBuilder(
+    column: $table.anchor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthAnchorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HealthAnchorsTable> {
+  $$HealthAnchorsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<HealthSampleType, String> get sampleType =>
+      $composableBuilder(
+        column: $table.sampleType,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<Uint8List> get anchor =>
+      $composableBuilder(column: $table.anchor, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$HealthAnchorsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HealthAnchorsTable,
+          HealthAnchor,
+          $$HealthAnchorsTableFilterComposer,
+          $$HealthAnchorsTableOrderingComposer,
+          $$HealthAnchorsTableAnnotationComposer,
+          $$HealthAnchorsTableCreateCompanionBuilder,
+          $$HealthAnchorsTableUpdateCompanionBuilder,
+          (
+            HealthAnchor,
+            BaseReferences<_$AppDatabase, $HealthAnchorsTable, HealthAnchor>,
+          ),
+          HealthAnchor,
+          PrefetchHooks Function()
+        > {
+  $$HealthAnchorsTableTableManager(_$AppDatabase db, $HealthAnchorsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthAnchorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthAnchorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthAnchorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<HealthSampleType> sampleType = const Value.absent(),
+                Value<Uint8List> anchor = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthAnchorsCompanion(
+                sampleType: sampleType,
+                anchor: anchor,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required HealthSampleType sampleType,
+                required Uint8List anchor,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HealthAnchorsCompanion.insert(
+                sampleType: sampleType,
+                anchor: anchor,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthAnchorsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HealthAnchorsTable,
+      HealthAnchor,
+      $$HealthAnchorsTableFilterComposer,
+      $$HealthAnchorsTableOrderingComposer,
+      $$HealthAnchorsTableAnnotationComposer,
+      $$HealthAnchorsTableCreateCompanionBuilder,
+      $$HealthAnchorsTableUpdateCompanionBuilder,
+      (
+        HealthAnchor,
+        BaseReferences<_$AppDatabase, $HealthAnchorsTable, HealthAnchor>,
+      ),
+      HealthAnchor,
+      PrefetchHooks Function()
+    >;
+typedef $$HealthDailyTableCreateCompanionBuilder =
+    HealthDailyCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String localDate,
+      required String aggTz,
+      required int intervalStartUtc,
+      required int intervalEndUtc,
+      required HealthMetric metric,
+      required double value,
+      required int fetchedAt,
+      Value<int> rowid,
+    });
+typedef $$HealthDailyTableUpdateCompanionBuilder =
+    HealthDailyCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> localDate,
+      Value<String> aggTz,
+      Value<int> intervalStartUtc,
+      Value<int> intervalEndUtc,
+      Value<HealthMetric> metric,
+      Value<double> value,
+      Value<int> fetchedAt,
+      Value<int> rowid,
+    });
+
+class $$HealthDailyTableFilterComposer
+    extends Composer<_$AppDatabase, $HealthDailyTable> {
+  $$HealthDailyTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get aggTz => $composableBuilder(
+    column: $table.aggTz,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intervalStartUtc => $composableBuilder(
+    column: $table.intervalStartUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intervalEndUtc => $composableBuilder(
+    column: $table.intervalEndUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<HealthMetric, HealthMetric, String>
+  get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthDailyTableOrderingComposer
+    extends Composer<_$AppDatabase, $HealthDailyTable> {
+  $$HealthDailyTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get aggTz => $composableBuilder(
+    column: $table.aggTz,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervalStartUtc => $composableBuilder(
+    column: $table.intervalStartUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervalEndUtc => $composableBuilder(
+    column: $table.intervalEndUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthDailyTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HealthDailyTable> {
+  $$HealthDailyTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get localDate =>
+      $composableBuilder(column: $table.localDate, builder: (column) => column);
+
+  GeneratedColumn<String> get aggTz =>
+      $composableBuilder(column: $table.aggTz, builder: (column) => column);
+
+  GeneratedColumn<int> get intervalStartUtc => $composableBuilder(
+    column: $table.intervalStartUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get intervalEndUtc => $composableBuilder(
+    column: $table.intervalEndUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<HealthMetric, String> get metric =>
+      $composableBuilder(column: $table.metric, builder: (column) => column);
+
+  GeneratedColumn<double> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<int> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$HealthDailyTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HealthDailyTable,
+          HealthDailyData,
+          $$HealthDailyTableFilterComposer,
+          $$HealthDailyTableOrderingComposer,
+          $$HealthDailyTableAnnotationComposer,
+          $$HealthDailyTableCreateCompanionBuilder,
+          $$HealthDailyTableUpdateCompanionBuilder,
+          (
+            HealthDailyData,
+            BaseReferences<_$AppDatabase, $HealthDailyTable, HealthDailyData>,
+          ),
+          HealthDailyData,
+          PrefetchHooks Function()
+        > {
+  $$HealthDailyTableTableManager(_$AppDatabase db, $HealthDailyTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthDailyTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthDailyTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthDailyTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> localDate = const Value.absent(),
+                Value<String> aggTz = const Value.absent(),
+                Value<int> intervalStartUtc = const Value.absent(),
+                Value<int> intervalEndUtc = const Value.absent(),
+                Value<HealthMetric> metric = const Value.absent(),
+                Value<double> value = const Value.absent(),
+                Value<int> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthDailyCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                localDate: localDate,
+                aggTz: aggTz,
+                intervalStartUtc: intervalStartUtc,
+                intervalEndUtc: intervalEndUtc,
+                metric: metric,
+                value: value,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String localDate,
+                required String aggTz,
+                required int intervalStartUtc,
+                required int intervalEndUtc,
+                required HealthMetric metric,
+                required double value,
+                required int fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HealthDailyCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                localDate: localDate,
+                aggTz: aggTz,
+                intervalStartUtc: intervalStartUtc,
+                intervalEndUtc: intervalEndUtc,
+                metric: metric,
+                value: value,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthDailyTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HealthDailyTable,
+      HealthDailyData,
+      $$HealthDailyTableFilterComposer,
+      $$HealthDailyTableOrderingComposer,
+      $$HealthDailyTableAnnotationComposer,
+      $$HealthDailyTableCreateCompanionBuilder,
+      $$HealthDailyTableUpdateCompanionBuilder,
+      (
+        HealthDailyData,
+        BaseReferences<_$AppDatabase, $HealthDailyTable, HealthDailyData>,
+      ),
+      HealthDailyData,
+      PrefetchHooks Function()
+    >;
+typedef $$OrganizeRunsTableCreateCompanionBuilder =
+    OrganizeRunsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required OrganizeTrigger trigger,
+      required String inputSnapshot,
+      Value<String?> modelConfigId,
+      Value<String?> modelSnapshot,
+      required OrganizeRunStatus status,
+      Value<String?> error,
+      Value<int?> startedAt,
+      Value<int?> finishedAt,
+      Value<int> rowid,
+    });
+typedef $$OrganizeRunsTableUpdateCompanionBuilder =
+    OrganizeRunsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<OrganizeTrigger> trigger,
+      Value<String> inputSnapshot,
+      Value<String?> modelConfigId,
+      Value<String?> modelSnapshot,
+      Value<OrganizeRunStatus> status,
+      Value<String?> error,
+      Value<int?> startedAt,
+      Value<int?> finishedAt,
+      Value<int> rowid,
+    });
+
+class $$OrganizeRunsTableFilterComposer
+    extends Composer<_$AppDatabase, $OrganizeRunsTable> {
+  $$OrganizeRunsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<OrganizeTrigger, OrganizeTrigger, String>
+  get trigger => $composableBuilder(
+    column: $table.trigger,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get inputSnapshot => $composableBuilder(
+    column: $table.inputSnapshot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelSnapshot => $composableBuilder(
+    column: $table.modelSnapshot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<OrganizeRunStatus, OrganizeRunStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OrganizeRunsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OrganizeRunsTable> {
+  $$OrganizeRunsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trigger => $composableBuilder(
+    column: $table.trigger,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inputSnapshot => $composableBuilder(
+    column: $table.inputSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelSnapshot => $composableBuilder(
+    column: $table.modelSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OrganizeRunsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OrganizeRunsTable> {
+  $$OrganizeRunsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<OrganizeTrigger, String> get trigger =>
+      $composableBuilder(column: $table.trigger, builder: (column) => column);
+
+  GeneratedColumn<String> get inputSnapshot => $composableBuilder(
+    column: $table.inputSnapshot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelSnapshot => $composableBuilder(
+    column: $table.modelSnapshot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<OrganizeRunStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<int> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get finishedAt => $composableBuilder(
+    column: $table.finishedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$OrganizeRunsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OrganizeRunsTable,
+          OrganizeRun,
+          $$OrganizeRunsTableFilterComposer,
+          $$OrganizeRunsTableOrderingComposer,
+          $$OrganizeRunsTableAnnotationComposer,
+          $$OrganizeRunsTableCreateCompanionBuilder,
+          $$OrganizeRunsTableUpdateCompanionBuilder,
+          (
+            OrganizeRun,
+            BaseReferences<_$AppDatabase, $OrganizeRunsTable, OrganizeRun>,
+          ),
+          OrganizeRun,
+          PrefetchHooks Function()
+        > {
+  $$OrganizeRunsTableTableManager(_$AppDatabase db, $OrganizeRunsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OrganizeRunsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OrganizeRunsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OrganizeRunsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<OrganizeTrigger> trigger = const Value.absent(),
+                Value<String> inputSnapshot = const Value.absent(),
+                Value<String?> modelConfigId = const Value.absent(),
+                Value<String?> modelSnapshot = const Value.absent(),
+                Value<OrganizeRunStatus> status = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                Value<int?> startedAt = const Value.absent(),
+                Value<int?> finishedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrganizeRunsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                trigger: trigger,
+                inputSnapshot: inputSnapshot,
+                modelConfigId: modelConfigId,
+                modelSnapshot: modelSnapshot,
+                status: status,
+                error: error,
+                startedAt: startedAt,
+                finishedAt: finishedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required OrganizeTrigger trigger,
+                required String inputSnapshot,
+                Value<String?> modelConfigId = const Value.absent(),
+                Value<String?> modelSnapshot = const Value.absent(),
+                required OrganizeRunStatus status,
+                Value<String?> error = const Value.absent(),
+                Value<int?> startedAt = const Value.absent(),
+                Value<int?> finishedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrganizeRunsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                trigger: trigger,
+                inputSnapshot: inputSnapshot,
+                modelConfigId: modelConfigId,
+                modelSnapshot: modelSnapshot,
+                status: status,
+                error: error,
+                startedAt: startedAt,
+                finishedAt: finishedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OrganizeRunsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OrganizeRunsTable,
+      OrganizeRun,
+      $$OrganizeRunsTableFilterComposer,
+      $$OrganizeRunsTableOrderingComposer,
+      $$OrganizeRunsTableAnnotationComposer,
+      $$OrganizeRunsTableCreateCompanionBuilder,
+      $$OrganizeRunsTableUpdateCompanionBuilder,
+      (
+        OrganizeRun,
+        BaseReferences<_$AppDatabase, $OrganizeRunsTable, OrganizeRun>,
+      ),
+      OrganizeRun,
+      PrefetchHooks Function()
+    >;
+typedef $$OrganizeRunItemsTableCreateCompanionBuilder =
+    OrganizeRunItemsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String organizeRunId,
+      required String recordId,
+      required OrganizeItemStatus status,
+      Value<int> retryCount,
+      Value<String?> correctionSuggestionId,
+      Value<int> rowid,
+    });
+typedef $$OrganizeRunItemsTableUpdateCompanionBuilder =
+    OrganizeRunItemsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> organizeRunId,
+      Value<String> recordId,
+      Value<OrganizeItemStatus> status,
+      Value<int> retryCount,
+      Value<String?> correctionSuggestionId,
+      Value<int> rowid,
+    });
+
+class $$OrganizeRunItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $OrganizeRunItemsTable> {
+  $$OrganizeRunItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<OrganizeItemStatus, OrganizeItemStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get correctionSuggestionId => $composableBuilder(
+    column: $table.correctionSuggestionId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OrganizeRunItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OrganizeRunItemsTable> {
+  $$OrganizeRunItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get correctionSuggestionId => $composableBuilder(
+    column: $table.correctionSuggestionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OrganizeRunItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OrganizeRunItemsTable> {
+  $$OrganizeRunItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<OrganizeItemStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get correctionSuggestionId => $composableBuilder(
+    column: $table.correctionSuggestionId,
+    builder: (column) => column,
+  );
+}
+
+class $$OrganizeRunItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OrganizeRunItemsTable,
+          OrganizeRunItem,
+          $$OrganizeRunItemsTableFilterComposer,
+          $$OrganizeRunItemsTableOrderingComposer,
+          $$OrganizeRunItemsTableAnnotationComposer,
+          $$OrganizeRunItemsTableCreateCompanionBuilder,
+          $$OrganizeRunItemsTableUpdateCompanionBuilder,
+          (
+            OrganizeRunItem,
+            BaseReferences<
+              _$AppDatabase,
+              $OrganizeRunItemsTable,
+              OrganizeRunItem
+            >,
+          ),
+          OrganizeRunItem,
+          PrefetchHooks Function()
+        > {
+  $$OrganizeRunItemsTableTableManager(
+    _$AppDatabase db,
+    $OrganizeRunItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OrganizeRunItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OrganizeRunItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OrganizeRunItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> organizeRunId = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<OrganizeItemStatus> status = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> correctionSuggestionId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrganizeRunItemsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                organizeRunId: organizeRunId,
+                recordId: recordId,
+                status: status,
+                retryCount: retryCount,
+                correctionSuggestionId: correctionSuggestionId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String organizeRunId,
+                required String recordId,
+                required OrganizeItemStatus status,
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> correctionSuggestionId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrganizeRunItemsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                organizeRunId: organizeRunId,
+                recordId: recordId,
+                status: status,
+                retryCount: retryCount,
+                correctionSuggestionId: correctionSuggestionId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OrganizeRunItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OrganizeRunItemsTable,
+      OrganizeRunItem,
+      $$OrganizeRunItemsTableFilterComposer,
+      $$OrganizeRunItemsTableOrderingComposer,
+      $$OrganizeRunItemsTableAnnotationComposer,
+      $$OrganizeRunItemsTableCreateCompanionBuilder,
+      $$OrganizeRunItemsTableUpdateCompanionBuilder,
+      (
+        OrganizeRunItem,
+        BaseReferences<_$AppDatabase, $OrganizeRunItemsTable, OrganizeRunItem>,
+      ),
+      OrganizeRunItem,
+      PrefetchHooks Function()
+    >;
+typedef $$ModelCallsTableCreateCompanionBuilder =
+    ModelCallsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String?> organizeRunId,
+      required String modelConfigId,
+      required DataBoundary dataBoundary,
+      required String sentMessageIds,
+      required String sentAttachmentIds,
+      required int requestAt,
+      Value<int?> responseAt,
+      required ModelCallStatus status,
+      Value<int?> tokensIn,
+      Value<int?> tokensOut,
+      Value<String?> responseText,
+      required ModelCaller caller,
+      Value<int> rowid,
+    });
+typedef $$ModelCallsTableUpdateCompanionBuilder =
+    ModelCallsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String?> organizeRunId,
+      Value<String> modelConfigId,
+      Value<DataBoundary> dataBoundary,
+      Value<String> sentMessageIds,
+      Value<String> sentAttachmentIds,
+      Value<int> requestAt,
+      Value<int?> responseAt,
+      Value<ModelCallStatus> status,
+      Value<int?> tokensIn,
+      Value<int?> tokensOut,
+      Value<String?> responseText,
+      Value<ModelCaller> caller,
+      Value<int> rowid,
+    });
+
+class $$ModelCallsTableFilterComposer
+    extends Composer<_$AppDatabase, $ModelCallsTable> {
+  $$ModelCallsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DataBoundary, DataBoundary, String>
+  get dataBoundary => $composableBuilder(
+    column: $table.dataBoundary,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get sentMessageIds => $composableBuilder(
+    column: $table.sentMessageIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sentAttachmentIds => $composableBuilder(
+    column: $table.sentAttachmentIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get requestAt => $composableBuilder(
+    column: $table.requestAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get responseAt => $composableBuilder(
+    column: $table.responseAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ModelCallStatus, ModelCallStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get tokensIn => $composableBuilder(
+    column: $table.tokensIn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tokensOut => $composableBuilder(
+    column: $table.tokensOut,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ModelCaller, ModelCaller, String> get caller =>
+      $composableBuilder(
+        column: $table.caller,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$ModelCallsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ModelCallsTable> {
+  $$ModelCallsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataBoundary => $composableBuilder(
+    column: $table.dataBoundary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sentMessageIds => $composableBuilder(
+    column: $table.sentMessageIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sentAttachmentIds => $composableBuilder(
+    column: $table.sentAttachmentIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get requestAt => $composableBuilder(
+    column: $table.requestAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get responseAt => $composableBuilder(
+    column: $table.responseAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tokensIn => $composableBuilder(
+    column: $table.tokensIn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tokensOut => $composableBuilder(
+    column: $table.tokensOut,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caller => $composableBuilder(
+    column: $table.caller,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ModelCallsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ModelCallsTable> {
+  $$ModelCallsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get organizeRunId => $composableBuilder(
+    column: $table.organizeRunId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelConfigId => $composableBuilder(
+    column: $table.modelConfigId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DataBoundary, String> get dataBoundary =>
+      $composableBuilder(
+        column: $table.dataBoundary,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get sentMessageIds => $composableBuilder(
+    column: $table.sentMessageIds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sentAttachmentIds => $composableBuilder(
+    column: $table.sentAttachmentIds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get requestAt =>
+      $composableBuilder(column: $table.requestAt, builder: (column) => column);
+
+  GeneratedColumn<int> get responseAt => $composableBuilder(
+    column: $table.responseAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<ModelCallStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get tokensIn =>
+      $composableBuilder(column: $table.tokensIn, builder: (column) => column);
+
+  GeneratedColumn<int> get tokensOut =>
+      $composableBuilder(column: $table.tokensOut, builder: (column) => column);
+
+  GeneratedColumn<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<ModelCaller, String> get caller =>
+      $composableBuilder(column: $table.caller, builder: (column) => column);
+}
+
+class $$ModelCallsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ModelCallsTable,
+          ModelCall,
+          $$ModelCallsTableFilterComposer,
+          $$ModelCallsTableOrderingComposer,
+          $$ModelCallsTableAnnotationComposer,
+          $$ModelCallsTableCreateCompanionBuilder,
+          $$ModelCallsTableUpdateCompanionBuilder,
+          (
+            ModelCall,
+            BaseReferences<_$AppDatabase, $ModelCallsTable, ModelCall>,
+          ),
+          ModelCall,
+          PrefetchHooks Function()
+        > {
+  $$ModelCallsTableTableManager(_$AppDatabase db, $ModelCallsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ModelCallsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ModelCallsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ModelCallsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String?> organizeRunId = const Value.absent(),
+                Value<String> modelConfigId = const Value.absent(),
+                Value<DataBoundary> dataBoundary = const Value.absent(),
+                Value<String> sentMessageIds = const Value.absent(),
+                Value<String> sentAttachmentIds = const Value.absent(),
+                Value<int> requestAt = const Value.absent(),
+                Value<int?> responseAt = const Value.absent(),
+                Value<ModelCallStatus> status = const Value.absent(),
+                Value<int?> tokensIn = const Value.absent(),
+                Value<int?> tokensOut = const Value.absent(),
+                Value<String?> responseText = const Value.absent(),
+                Value<ModelCaller> caller = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ModelCallsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                organizeRunId: organizeRunId,
+                modelConfigId: modelConfigId,
+                dataBoundary: dataBoundary,
+                sentMessageIds: sentMessageIds,
+                sentAttachmentIds: sentAttachmentIds,
+                requestAt: requestAt,
+                responseAt: responseAt,
+                status: status,
+                tokensIn: tokensIn,
+                tokensOut: tokensOut,
+                responseText: responseText,
+                caller: caller,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String?> organizeRunId = const Value.absent(),
+                required String modelConfigId,
+                required DataBoundary dataBoundary,
+                required String sentMessageIds,
+                required String sentAttachmentIds,
+                required int requestAt,
+                Value<int?> responseAt = const Value.absent(),
+                required ModelCallStatus status,
+                Value<int?> tokensIn = const Value.absent(),
+                Value<int?> tokensOut = const Value.absent(),
+                Value<String?> responseText = const Value.absent(),
+                required ModelCaller caller,
+                Value<int> rowid = const Value.absent(),
+              }) => ModelCallsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                organizeRunId: organizeRunId,
+                modelConfigId: modelConfigId,
+                dataBoundary: dataBoundary,
+                sentMessageIds: sentMessageIds,
+                sentAttachmentIds: sentAttachmentIds,
+                requestAt: requestAt,
+                responseAt: responseAt,
+                status: status,
+                tokensIn: tokensIn,
+                tokensOut: tokensOut,
+                responseText: responseText,
+                caller: caller,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ModelCallsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ModelCallsTable,
+      ModelCall,
+      $$ModelCallsTableFilterComposer,
+      $$ModelCallsTableOrderingComposer,
+      $$ModelCallsTableAnnotationComposer,
+      $$ModelCallsTableCreateCompanionBuilder,
+      $$ModelCallsTableUpdateCompanionBuilder,
+      (ModelCall, BaseReferences<_$AppDatabase, $ModelCallsTable, ModelCall>),
+      ModelCall,
+      PrefetchHooks Function()
+    >;
+typedef $$RecordsTableCreateCompanionBuilder =
+    RecordsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required RecordType recordType,
+      Value<String?> currentRevisionId,
+      Value<String?> localDate,
+      Value<int> rowid,
+    });
+typedef $$RecordsTableUpdateCompanionBuilder =
+    RecordsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<RecordType> recordType,
+      Value<String?> currentRevisionId,
+      Value<String?> localDate,
+      Value<int> rowid,
+    });
+
+class $$RecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordsTable> {
+  $$RecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<RecordType, RecordType, String>
+  get recordType => $composableBuilder(
+    column: $table.recordType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get currentRevisionId => $composableBuilder(
+    column: $table.currentRevisionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordsTable> {
+  $$RecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordType => $composableBuilder(
+    column: $table.recordType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currentRevisionId => $composableBuilder(
+    column: $table.currentRevisionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localDate => $composableBuilder(
+    column: $table.localDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordsTable> {
+  $$RecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<RecordType, String> get recordType =>
+      $composableBuilder(
+        column: $table.recordType,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get currentRevisionId => $composableBuilder(
+    column: $table.currentRevisionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get localDate =>
+      $composableBuilder(column: $table.localDate, builder: (column) => column);
+}
+
+class $$RecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecordsTable,
+          RecordRow,
+          $$RecordsTableFilterComposer,
+          $$RecordsTableOrderingComposer,
+          $$RecordsTableAnnotationComposer,
+          $$RecordsTableCreateCompanionBuilder,
+          $$RecordsTableUpdateCompanionBuilder,
+          (RecordRow, BaseReferences<_$AppDatabase, $RecordsTable, RecordRow>),
+          RecordRow,
+          PrefetchHooks Function()
+        > {
+  $$RecordsTableTableManager(_$AppDatabase db, $RecordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<RecordType> recordType = const Value.absent(),
+                Value<String?> currentRevisionId = const Value.absent(),
+                Value<String?> localDate = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecordsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordType: recordType,
+                currentRevisionId: currentRevisionId,
+                localDate: localDate,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required RecordType recordType,
+                Value<String?> currentRevisionId = const Value.absent(),
+                Value<String?> localDate = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecordsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordType: recordType,
+                currentRevisionId: currentRevisionId,
+                localDate: localDate,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecordsTable,
+      RecordRow,
+      $$RecordsTableFilterComposer,
+      $$RecordsTableOrderingComposer,
+      $$RecordsTableAnnotationComposer,
+      $$RecordsTableCreateCompanionBuilder,
+      $$RecordsTableUpdateCompanionBuilder,
+      (RecordRow, BaseReferences<_$AppDatabase, $RecordsTable, RecordRow>),
+      RecordRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RecordRevisionsTableCreateCompanionBuilder =
+    RecordRevisionsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String recordId,
+      required int recordVersion,
+      Value<int?> baseVersion,
+      required String occurred,
+      Value<String?> occurredEnd,
+      required String data,
+      required String producedBy,
+      required String fieldMeta,
+      Value<int> rowid,
+    });
+typedef $$RecordRevisionsTableUpdateCompanionBuilder =
+    RecordRevisionsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> recordId,
+      Value<int> recordVersion,
+      Value<int?> baseVersion,
+      Value<String> occurred,
+      Value<String?> occurredEnd,
+      Value<String> data,
+      Value<String> producedBy,
+      Value<String> fieldMeta,
+      Value<int> rowid,
+    });
+
+class $$RecordRevisionsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordRevisionsTable> {
+  $$RecordRevisionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordVersion => $composableBuilder(
+    column: $table.recordVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get occurred => $composableBuilder(
+    column: $table.occurred,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get occurredEnd => $composableBuilder(
+    column: $table.occurredEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get producedBy => $composableBuilder(
+    column: $table.producedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fieldMeta => $composableBuilder(
+    column: $table.fieldMeta,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecordRevisionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordRevisionsTable> {
+  $$RecordRevisionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordVersion => $composableBuilder(
+    column: $table.recordVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get occurred => $composableBuilder(
+    column: $table.occurred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get occurredEnd => $composableBuilder(
+    column: $table.occurredEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get producedBy => $composableBuilder(
+    column: $table.producedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fieldMeta => $composableBuilder(
+    column: $table.fieldMeta,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecordRevisionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordRevisionsTable> {
+  $$RecordRevisionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<int> get recordVersion => $composableBuilder(
+    column: $table.recordVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get occurred =>
+      $composableBuilder(column: $table.occurred, builder: (column) => column);
+
+  GeneratedColumn<String> get occurredEnd => $composableBuilder(
+    column: $table.occurredEnd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  GeneratedColumn<String> get producedBy => $composableBuilder(
+    column: $table.producedBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fieldMeta =>
+      $composableBuilder(column: $table.fieldMeta, builder: (column) => column);
+}
+
+class $$RecordRevisionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecordRevisionsTable,
+          RecordRevision,
+          $$RecordRevisionsTableFilterComposer,
+          $$RecordRevisionsTableOrderingComposer,
+          $$RecordRevisionsTableAnnotationComposer,
+          $$RecordRevisionsTableCreateCompanionBuilder,
+          $$RecordRevisionsTableUpdateCompanionBuilder,
+          (
+            RecordRevision,
+            BaseReferences<
+              _$AppDatabase,
+              $RecordRevisionsTable,
+              RecordRevision
+            >,
+          ),
+          RecordRevision,
+          PrefetchHooks Function()
+        > {
+  $$RecordRevisionsTableTableManager(
+    _$AppDatabase db,
+    $RecordRevisionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordRevisionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordRevisionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordRevisionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<int> recordVersion = const Value.absent(),
+                Value<int?> baseVersion = const Value.absent(),
+                Value<String> occurred = const Value.absent(),
+                Value<String?> occurredEnd = const Value.absent(),
+                Value<String> data = const Value.absent(),
+                Value<String> producedBy = const Value.absent(),
+                Value<String> fieldMeta = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecordRevisionsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordId: recordId,
+                recordVersion: recordVersion,
+                baseVersion: baseVersion,
+                occurred: occurred,
+                occurredEnd: occurredEnd,
+                data: data,
+                producedBy: producedBy,
+                fieldMeta: fieldMeta,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String recordId,
+                required int recordVersion,
+                Value<int?> baseVersion = const Value.absent(),
+                required String occurred,
+                Value<String?> occurredEnd = const Value.absent(),
+                required String data,
+                required String producedBy,
+                required String fieldMeta,
+                Value<int> rowid = const Value.absent(),
+              }) => RecordRevisionsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordId: recordId,
+                recordVersion: recordVersion,
+                baseVersion: baseVersion,
+                occurred: occurred,
+                occurredEnd: occurredEnd,
+                data: data,
+                producedBy: producedBy,
+                fieldMeta: fieldMeta,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecordRevisionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecordRevisionsTable,
+      RecordRevision,
+      $$RecordRevisionsTableFilterComposer,
+      $$RecordRevisionsTableOrderingComposer,
+      $$RecordRevisionsTableAnnotationComposer,
+      $$RecordRevisionsTableCreateCompanionBuilder,
+      $$RecordRevisionsTableUpdateCompanionBuilder,
+      (
+        RecordRevision,
+        BaseReferences<_$AppDatabase, $RecordRevisionsTable, RecordRevision>,
+      ),
+      RecordRevision,
+      PrefetchHooks Function()
+    >;
+typedef $$RecordSourcesTableCreateCompanionBuilder =
+    RecordSourcesCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String recordRevisionId,
+      Value<String?> fieldPath,
+      required RecordSourceKind sourceKind,
+      required String sourceId,
+      Value<int?> messageRevisionNo,
+      Value<String?> span,
+      Value<int> rowid,
+    });
+typedef $$RecordSourcesTableUpdateCompanionBuilder =
+    RecordSourcesCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> recordRevisionId,
+      Value<String?> fieldPath,
+      Value<RecordSourceKind> sourceKind,
+      Value<String> sourceId,
+      Value<int?> messageRevisionNo,
+      Value<String?> span,
+      Value<int> rowid,
+    });
+
+class $$RecordSourcesTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordSourcesTable> {
+  $$RecordSourcesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordRevisionId => $composableBuilder(
+    column: $table.recordRevisionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fieldPath => $composableBuilder(
+    column: $table.fieldPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<RecordSourceKind, RecordSourceKind, String>
+  get sourceKind => $composableBuilder(
+    column: $table.sourceKind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get messageRevisionNo => $composableBuilder(
+    column: $table.messageRevisionNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get span => $composableBuilder(
+    column: $table.span,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecordSourcesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordSourcesTable> {
+  $$RecordSourcesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordRevisionId => $composableBuilder(
+    column: $table.recordRevisionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fieldPath => $composableBuilder(
+    column: $table.fieldPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceKind => $composableBuilder(
+    column: $table.sourceKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get messageRevisionNo => $composableBuilder(
+    column: $table.messageRevisionNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get span => $composableBuilder(
+    column: $table.span,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecordSourcesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordSourcesTable> {
+  $$RecordSourcesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get recordRevisionId => $composableBuilder(
+    column: $table.recordRevisionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fieldPath =>
+      $composableBuilder(column: $table.fieldPath, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<RecordSourceKind, String> get sourceKind =>
+      $composableBuilder(
+        column: $table.sourceKind,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
+
+  GeneratedColumn<int> get messageRevisionNo => $composableBuilder(
+    column: $table.messageRevisionNo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get span =>
+      $composableBuilder(column: $table.span, builder: (column) => column);
+}
+
+class $$RecordSourcesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecordSourcesTable,
+          RecordSource,
+          $$RecordSourcesTableFilterComposer,
+          $$RecordSourcesTableOrderingComposer,
+          $$RecordSourcesTableAnnotationComposer,
+          $$RecordSourcesTableCreateCompanionBuilder,
+          $$RecordSourcesTableUpdateCompanionBuilder,
+          (
+            RecordSource,
+            BaseReferences<_$AppDatabase, $RecordSourcesTable, RecordSource>,
+          ),
+          RecordSource,
+          PrefetchHooks Function()
+        > {
+  $$RecordSourcesTableTableManager(_$AppDatabase db, $RecordSourcesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordSourcesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordSourcesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordSourcesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> recordRevisionId = const Value.absent(),
+                Value<String?> fieldPath = const Value.absent(),
+                Value<RecordSourceKind> sourceKind = const Value.absent(),
+                Value<String> sourceId = const Value.absent(),
+                Value<int?> messageRevisionNo = const Value.absent(),
+                Value<String?> span = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecordSourcesCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordRevisionId: recordRevisionId,
+                fieldPath: fieldPath,
+                sourceKind: sourceKind,
+                sourceId: sourceId,
+                messageRevisionNo: messageRevisionNo,
+                span: span,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String recordRevisionId,
+                Value<String?> fieldPath = const Value.absent(),
+                required RecordSourceKind sourceKind,
+                required String sourceId,
+                Value<int?> messageRevisionNo = const Value.absent(),
+                Value<String?> span = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecordSourcesCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                recordRevisionId: recordRevisionId,
+                fieldPath: fieldPath,
+                sourceKind: sourceKind,
+                sourceId: sourceId,
+                messageRevisionNo: messageRevisionNo,
+                span: span,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecordSourcesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecordSourcesTable,
+      RecordSource,
+      $$RecordSourcesTableFilterComposer,
+      $$RecordSourcesTableOrderingComposer,
+      $$RecordSourcesTableAnnotationComposer,
+      $$RecordSourcesTableCreateCompanionBuilder,
+      $$RecordSourcesTableUpdateCompanionBuilder,
+      (
+        RecordSource,
+        BaseReferences<_$AppDatabase, $RecordSourcesTable, RecordSource>,
+      ),
+      RecordSource,
+      PrefetchHooks Function()
+    >;
+typedef $$ModelConfigsTableCreateCompanionBuilder =
+    ModelConfigsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required ModelPreset preset,
+      required ModelProtocol protocol,
+      required String baseUrl,
+      required String model,
+      Value<String> capabilities,
+      required DataBoundary dataBoundary,
+      required String keychainRef,
+      Value<bool> isDefault,
+      Value<int?> lastTestAt,
+      Value<String?> lastTestResult,
+      Value<int> rowid,
+    });
+typedef $$ModelConfigsTableUpdateCompanionBuilder =
+    ModelConfigsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<ModelPreset> preset,
+      Value<ModelProtocol> protocol,
+      Value<String> baseUrl,
+      Value<String> model,
+      Value<String> capabilities,
+      Value<DataBoundary> dataBoundary,
+      Value<String> keychainRef,
+      Value<bool> isDefault,
+      Value<int?> lastTestAt,
+      Value<String?> lastTestResult,
+      Value<int> rowid,
+    });
+
+class $$ModelConfigsTableFilterComposer
+    extends Composer<_$AppDatabase, $ModelConfigsTable> {
+  $$ModelConfigsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ModelPreset, ModelPreset, String> get preset =>
+      $composableBuilder(
+        column: $table.preset,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<ModelProtocol, ModelProtocol, String>
+  get protocol => $composableBuilder(
+    column: $table.protocol,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get capabilities => $composableBuilder(
+    column: $table.capabilities,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DataBoundary, DataBoundary, String>
+  get dataBoundary => $composableBuilder(
+    column: $table.dataBoundary,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get keychainRef => $composableBuilder(
+    column: $table.keychainRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastTestAt => $composableBuilder(
+    column: $table.lastTestAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastTestResult => $composableBuilder(
+    column: $table.lastTestResult,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ModelConfigsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ModelConfigsTable> {
+  $$ModelConfigsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preset => $composableBuilder(
+    column: $table.preset,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get protocol => $composableBuilder(
+    column: $table.protocol,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get capabilities => $composableBuilder(
+    column: $table.capabilities,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataBoundary => $composableBuilder(
+    column: $table.dataBoundary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get keychainRef => $composableBuilder(
+    column: $table.keychainRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastTestAt => $composableBuilder(
+    column: $table.lastTestAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastTestResult => $composableBuilder(
+    column: $table.lastTestResult,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ModelConfigsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ModelConfigsTable> {
+  $$ModelConfigsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ModelPreset, String> get preset =>
+      $composableBuilder(column: $table.preset, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ModelProtocol, String> get protocol =>
+      $composableBuilder(column: $table.protocol, builder: (column) => column);
+
+  GeneratedColumn<String> get baseUrl =>
+      $composableBuilder(column: $table.baseUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<String> get capabilities => $composableBuilder(
+    column: $table.capabilities,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DataBoundary, String> get dataBoundary =>
+      $composableBuilder(
+        column: $table.dataBoundary,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get keychainRef => $composableBuilder(
+    column: $table.keychainRef,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<int> get lastTestAt => $composableBuilder(
+    column: $table.lastTestAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastTestResult => $composableBuilder(
+    column: $table.lastTestResult,
+    builder: (column) => column,
+  );
+}
+
+class $$ModelConfigsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ModelConfigsTable,
+          ModelConfig,
+          $$ModelConfigsTableFilterComposer,
+          $$ModelConfigsTableOrderingComposer,
+          $$ModelConfigsTableAnnotationComposer,
+          $$ModelConfigsTableCreateCompanionBuilder,
+          $$ModelConfigsTableUpdateCompanionBuilder,
+          (
+            ModelConfig,
+            BaseReferences<_$AppDatabase, $ModelConfigsTable, ModelConfig>,
+          ),
+          ModelConfig,
+          PrefetchHooks Function()
+        > {
+  $$ModelConfigsTableTableManager(_$AppDatabase db, $ModelConfigsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ModelConfigsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ModelConfigsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ModelConfigsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<ModelPreset> preset = const Value.absent(),
+                Value<ModelProtocol> protocol = const Value.absent(),
+                Value<String> baseUrl = const Value.absent(),
+                Value<String> model = const Value.absent(),
+                Value<String> capabilities = const Value.absent(),
+                Value<DataBoundary> dataBoundary = const Value.absent(),
+                Value<String> keychainRef = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<int?> lastTestAt = const Value.absent(),
+                Value<String?> lastTestResult = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ModelConfigsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                preset: preset,
+                protocol: protocol,
+                baseUrl: baseUrl,
+                model: model,
+                capabilities: capabilities,
+                dataBoundary: dataBoundary,
+                keychainRef: keychainRef,
+                isDefault: isDefault,
+                lastTestAt: lastTestAt,
+                lastTestResult: lastTestResult,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required ModelPreset preset,
+                required ModelProtocol protocol,
+                required String baseUrl,
+                required String model,
+                Value<String> capabilities = const Value.absent(),
+                required DataBoundary dataBoundary,
+                required String keychainRef,
+                Value<bool> isDefault = const Value.absent(),
+                Value<int?> lastTestAt = const Value.absent(),
+                Value<String?> lastTestResult = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ModelConfigsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                preset: preset,
+                protocol: protocol,
+                baseUrl: baseUrl,
+                model: model,
+                capabilities: capabilities,
+                dataBoundary: dataBoundary,
+                keychainRef: keychainRef,
+                isDefault: isDefault,
+                lastTestAt: lastTestAt,
+                lastTestResult: lastTestResult,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ModelConfigsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ModelConfigsTable,
+      ModelConfig,
+      $$ModelConfigsTableFilterComposer,
+      $$ModelConfigsTableOrderingComposer,
+      $$ModelConfigsTableAnnotationComposer,
+      $$ModelConfigsTableCreateCompanionBuilder,
+      $$ModelConfigsTableUpdateCompanionBuilder,
+      (
+        ModelConfig,
+        BaseReferences<_$AppDatabase, $ModelConfigsTable, ModelConfig>,
+      ),
+      ModelConfig,
+      PrefetchHooks Function()
+    >;
+typedef $$ReviewPromptsTableCreateCompanionBuilder =
+    ReviewPromptsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String reviewDate,
+      required String promptMessageId,
+      required String gapKey,
+      required String templateId,
+      Value<ReviewOutcome?> outcome,
+      Value<String?> answeredMessageId,
+      Value<int> rowid,
+    });
+typedef $$ReviewPromptsTableUpdateCompanionBuilder =
+    ReviewPromptsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> reviewDate,
+      Value<String> promptMessageId,
+      Value<String> gapKey,
+      Value<String> templateId,
+      Value<ReviewOutcome?> outcome,
+      Value<String?> answeredMessageId,
+      Value<int> rowid,
+    });
+
+class $$ReviewPromptsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReviewPromptsTable> {
+  $$ReviewPromptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get promptMessageId => $composableBuilder(
+    column: $table.promptMessageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gapKey => $composableBuilder(
+    column: $table.gapKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ReviewOutcome?, ReviewOutcome, String>
+  get outcome => $composableBuilder(
+    column: $table.outcome,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get answeredMessageId => $composableBuilder(
+    column: $table.answeredMessageId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReviewPromptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReviewPromptsTable> {
+  $$ReviewPromptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get promptMessageId => $composableBuilder(
+    column: $table.promptMessageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gapKey => $composableBuilder(
+    column: $table.gapKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get outcome => $composableBuilder(
+    column: $table.outcome,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answeredMessageId => $composableBuilder(
+    column: $table.answeredMessageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReviewPromptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReviewPromptsTable> {
+  $$ReviewPromptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get promptMessageId => $composableBuilder(
+    column: $table.promptMessageId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get gapKey =>
+      $composableBuilder(column: $table.gapKey, builder: (column) => column);
+
+  GeneratedColumn<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<ReviewOutcome?, String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => column);
+
+  GeneratedColumn<String> get answeredMessageId => $composableBuilder(
+    column: $table.answeredMessageId,
+    builder: (column) => column,
+  );
+}
+
+class $$ReviewPromptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReviewPromptsTable,
+          ReviewPrompt,
+          $$ReviewPromptsTableFilterComposer,
+          $$ReviewPromptsTableOrderingComposer,
+          $$ReviewPromptsTableAnnotationComposer,
+          $$ReviewPromptsTableCreateCompanionBuilder,
+          $$ReviewPromptsTableUpdateCompanionBuilder,
+          (
+            ReviewPrompt,
+            BaseReferences<_$AppDatabase, $ReviewPromptsTable, ReviewPrompt>,
+          ),
+          ReviewPrompt,
+          PrefetchHooks Function()
+        > {
+  $$ReviewPromptsTableTableManager(_$AppDatabase db, $ReviewPromptsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReviewPromptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReviewPromptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReviewPromptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> reviewDate = const Value.absent(),
+                Value<String> promptMessageId = const Value.absent(),
+                Value<String> gapKey = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<ReviewOutcome?> outcome = const Value.absent(),
+                Value<String?> answeredMessageId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReviewPromptsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                reviewDate: reviewDate,
+                promptMessageId: promptMessageId,
+                gapKey: gapKey,
+                templateId: templateId,
+                outcome: outcome,
+                answeredMessageId: answeredMessageId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String reviewDate,
+                required String promptMessageId,
+                required String gapKey,
+                required String templateId,
+                Value<ReviewOutcome?> outcome = const Value.absent(),
+                Value<String?> answeredMessageId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReviewPromptsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                reviewDate: reviewDate,
+                promptMessageId: promptMessageId,
+                gapKey: gapKey,
+                templateId: templateId,
+                outcome: outcome,
+                answeredMessageId: answeredMessageId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReviewPromptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReviewPromptsTable,
+      ReviewPrompt,
+      $$ReviewPromptsTableFilterComposer,
+      $$ReviewPromptsTableOrderingComposer,
+      $$ReviewPromptsTableAnnotationComposer,
+      $$ReviewPromptsTableCreateCompanionBuilder,
+      $$ReviewPromptsTableUpdateCompanionBuilder,
+      (
+        ReviewPrompt,
+        BaseReferences<_$AppDatabase, $ReviewPromptsTable, ReviewPrompt>,
+      ),
+      ReviewPrompt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7528,4 +20699,26 @@ class $AppDatabaseManager {
       $$ProfileFieldsTableTableManager(_db, _db.profileFields);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$HealthSamplesTableTableManager get healthSamples =>
+      $$HealthSamplesTableTableManager(_db, _db.healthSamples);
+  $$HealthAnchorsTableTableManager get healthAnchors =>
+      $$HealthAnchorsTableTableManager(_db, _db.healthAnchors);
+  $$HealthDailyTableTableManager get healthDaily =>
+      $$HealthDailyTableTableManager(_db, _db.healthDaily);
+  $$OrganizeRunsTableTableManager get organizeRuns =>
+      $$OrganizeRunsTableTableManager(_db, _db.organizeRuns);
+  $$OrganizeRunItemsTableTableManager get organizeRunItems =>
+      $$OrganizeRunItemsTableTableManager(_db, _db.organizeRunItems);
+  $$ModelCallsTableTableManager get modelCalls =>
+      $$ModelCallsTableTableManager(_db, _db.modelCalls);
+  $$RecordsTableTableManager get records =>
+      $$RecordsTableTableManager(_db, _db.records);
+  $$RecordRevisionsTableTableManager get recordRevisions =>
+      $$RecordRevisionsTableTableManager(_db, _db.recordRevisions);
+  $$RecordSourcesTableTableManager get recordSources =>
+      $$RecordSourcesTableTableManager(_db, _db.recordSources);
+  $$ModelConfigsTableTableManager get modelConfigs =>
+      $$ModelConfigsTableTableManager(_db, _db.modelConfigs);
+  $$ReviewPromptsTableTableManager get reviewPrompts =>
+      $$ReviewPromptsTableTableManager(_db, _db.reviewPrompts);
 }
