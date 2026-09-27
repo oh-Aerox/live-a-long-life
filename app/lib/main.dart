@@ -19,6 +19,12 @@ Future<void> main() async {
   // Mac 端（V3-M0）：只读副本 + 同步接收，不初始化手机专属插件
   // （通知、HealthKit、整理触发都属于手机，D-12）。
   if (Platform.isMacOS) {
+    // 日视图的设备数据区只读数据库，不会调用 HealthKit。
+    services.healthService = HealthService(
+      repository: services.health,
+      settings: services.settings,
+      tz: 'Asia/Shanghai',
+    );
     runApp(MacApp(services: services));
     return;
   }

@@ -6,6 +6,8 @@ import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
+import 'day_view_page.dart';
+import 'mac_messages_page.dart';
 
 /// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
 /// Mac 只保存手机同步来的副本，不能编辑（D-12）；
@@ -133,6 +135,33 @@ class _MacHomePageState extends State<MacHomePage> {
                     Text('接收服务：端口 ${_server!.port}',
                         style:
                             const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                        label: const Text('浏览消息'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  MacMessagesPage(services: widget.services)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_today_outlined,
+                            size: 18),
+                        label: const Text('按日查看'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => DayViewPage(
+                                  services: widget.services, readOnly: true)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

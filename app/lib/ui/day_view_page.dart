@@ -11,10 +11,14 @@ import 'record_ui.dart';
 /// 按日视图（product-spec §4）：日期切换，显示当天的记录。
 /// 设备数据与缺口显示在 V2-M4 / V2-M5 加入。
 class DayViewPage extends StatefulWidget {
-  const DayViewPage({super.key, required this.services, this.initialDate});
+  const DayViewPage(
+      {super.key, required this.services, this.initialDate, this.readOnly = false});
 
   final AppServices services;
   final String? initialDate;
+
+  /// Mac 副本只读（D-12：只有手机能修改记录）。
+  final bool readOnly;
 
   @override
   State<DayViewPage> createState() => _DayViewPageState();
@@ -214,7 +218,9 @@ class _DayViewPageState extends State<DayViewPage> {
           context,
           MaterialPageRoute(
               builder: (_) => RecordDetailPage(
-                  services: widget.services, recordId: record.id)),
+                  services: widget.services,
+                  recordId: record.id,
+                  readOnly: widget.readOnly)),
         );
         await _load();
       },

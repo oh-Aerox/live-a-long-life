@@ -12,10 +12,16 @@ import 'record_ui.dart';
 /// 修正后字段状态变为"用户已修改"，整理不再覆盖它（D-05、A-25）。
 class RecordDetailPage extends StatefulWidget {
   const RecordDetailPage(
-      {super.key, required this.services, required this.recordId});
+      {super.key,
+      required this.services,
+      required this.recordId,
+      this.readOnly = false});
 
   final AppServices services;
   final String recordId;
+
+  /// Mac 副本只读（D-12）。
+  final bool readOnly;
 
   @override
   State<RecordDetailPage> createState() => _RecordDetailPageState();
@@ -162,10 +168,12 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
             title: const Text('发生时间'),
             subtitle: Text(timeValueText(occurred) +
                 (occurred.dateAmbiguous ? ' · 日期待确认' : '')),
-            trailing: TextButton(
-              onPressed: _confirmDate,
-              child: Text(occurred.dateAmbiguous ? '确认日期' : '改日期'),
-            ),
+            trailing: widget.readOnly
+                ? null
+                : TextButton(
+                    onPressed: _confirmDate,
+                    child: Text(occurred.dateAmbiguous ? '确认日期' : '改日期'),
+                  ),
           ),
           const Divider(),
           for (final entry in data.entries)
@@ -178,7 +186,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                   _metaText(meta[entry.key]),
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
-                onTap: entry.value is String || entry.value is num
+                onTap: !widget.readOnly &&
+                        (entry.value is String || entry.value is num)
                     ? () => _editField(entry.key, entry.value)
                     : null,
               ),

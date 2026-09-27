@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../app_services.dart';
+import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_client.dart';
@@ -21,6 +22,58 @@ class PairMacPage extends StatefulWidget {
 class _PairMacPageState extends State<PairMacPage> {
   bool _busy = false;
   String? _status;
+  List<Peer> _paired = [];
+  SyncState? _pushState;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final peers = await widget.services.peerRepo.all();
+    final push = await (widget.services.db.select(widget.services.db.syncStates)
+          ..where((t) => t.direction.equalsValue(SyncDirection.push))
+          ..limit(1))
+        .getSingleOrNull();
+    if (mounted) {
+      setState(() {
+        _paired = peers;
+        _pushState = push;
+      });
+    }
+  }
+
+  Future<void> _syncNow() async {
+    setState(() => _busy = true);
+    final result = await widget.services.syncService.syncNow();
+    if (mounted) {
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(result.ok
+              ? '已同步 ${result.sent} 条变更'
+              : '同步失败：${result.error}')));
+    }
+    await _loadState();
+  }
+
+  String get _stateText {
+    final s = _pushState;
+    if (s == null) return '还没同步过';
+    final parts = <String>[
+      '已确认到第 ${s.ackedContiguousSeq} 条',
+      if (s.pendingCount > 0) '待传 ${s.pendingCount} 条',
+      if (s.lastSuccessAt != null)
+        () {
+          final t =
+              DateTime.fromMillisecondsSinceEpoch(s.lastSuccessAt!).toLocal();
+          return '最近成功 ${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+        }(),
+      if (s.lastError != null) '错误：${s.lastError}',
+    ];
+    return parts.join(' · ');
+  }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_busy) return;
@@ -66,10 +119,24 @@ class _PairMacPageState extends State<PairMacPage> {
       appBar: AppBar(title: const Text('连接 Mac')),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('在 Mac 上打开 长寿记 → 点「开始配对」，'
-                '然后用下面的取景框对准屏幕上的二维码。'),
+          if (_paired.isNotEmpty)
+            Card(
+              margin: const EdgeInsets.all(12),
+              child: ListTile(
+                leading: const Icon(Icons.laptop_mac),
+                title: Text(_paired.map((peer) => peer.displayName).join('、')),
+                subtitle: Text(_stateText),
+                trailing: FilledButton.tonal(
+                  onPressed: _busy ? null : _syncNow,
+                  child: const Text('立即同步'),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(_paired.isEmpty
+                ? '在 Mac 上打开 长寿记 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
+                : '重新配对：在 Mac 上点「重新配对」后扫新的二维码。'),
           ),
           Expanded(child: MobileScanner(onDetect: _onDetect)),
           if (_status != null)
