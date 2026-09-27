@@ -90,6 +90,8 @@ enum ChangeOp { upsert, delete }
 
 enum SyncDirection { push, pull }
 
+enum AnalysisKind { weeklyReview, visitTimeline, trend }
+
 /// 所有实体共有的字段（schema.md §1.1）。
 /// 时间一律存 UTC 毫秒；`change_seq` 到 v0.3 建 change_log 时才使用。
 mixin CommonColumns on Table {
@@ -368,6 +370,23 @@ class CorrectionSuggestions extends Table with CommonColumns {
   TextColumn get reason => text()();
   TextColumn get status =>
       text().map(const EnumConverter(SuggestionStatus.values))();
+}
+
+/// schema.md §6.1：分析结果（Mac 生成，回传手机）。
+/// `is_stale` 实时计算不存储。
+class AnalysisArtifacts extends Table with CommonColumns {
+  TextColumn get kind =>
+      text().map(const EnumConverter(AnalysisKind.values))();
+  TextColumn get periodStart => text()();
+  TextColumn get periodEnd => text()();
+  TextColumn get dataGeneration => text()();
+  IntColumn get dataCutoffSeq => integer()();
+  TextColumn get dependsOn => text()(); // JSON（D-14）
+  IntColumn get generatedAt => integer()();
+  TextColumn get generator => text()(); // JSON（方式/版本/模型配置，D-20）
+  TextColumn get modelCallIds => text()(); // JSON 数组
+  TextColumn get contentMd => text()();
+  TextColumn get citations => text()(); // JSON（A-17）
 }
 
 /// schema.md §7.3：同步进度。push = 本机发往对方，pull = 对方发来。

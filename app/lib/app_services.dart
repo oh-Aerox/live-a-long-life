@@ -16,10 +16,12 @@ import 'data/repositories/peer_repository.dart';
 import 'data/repositories/record_repository.dart';
 import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'services/analysis_service.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/organize_service.dart';
 import 'services/review_service.dart';
+import 'services/suggestion_service.dart';
 import 'services/sync/sync_service.dart';
 
 /// 应用级服务：数据库与各仓库。
@@ -56,6 +58,18 @@ class AppServices {
       keyStore: keyStore,
       filesDir: filesDir,
     );
+    analysisService = AnalysisService(
+      db: db,
+      modelConfigs: modelConfigs,
+      organize: organize,
+      keyStore: keyStore,
+      deviceId: ctx.deviceId,
+    );
+    suggestionService = SuggestionService(
+      db: db,
+      records: records,
+      deviceId: ctx.deviceId,
+    );
   }
 
   final AppDatabase db;
@@ -73,6 +87,8 @@ class AppServices {
   late final OrganizeService organizeService;
   late final PeerRepository peerRepo;
   late final SyncService syncService;
+  late final AnalysisService analysisService;
+  late final SuggestionService suggestionService;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

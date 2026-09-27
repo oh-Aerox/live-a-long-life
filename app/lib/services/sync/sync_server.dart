@@ -169,6 +169,7 @@ class SyncServer {
           '/ping' => {'device_id': deviceId, 'ok': true},
           '/changes' => await _applyChange(peerId, payload),
           '/blob' => await _storeBlob(payload),
+          '/analysis' => await _latestAnalysis(),
           _ => {'error': '未知端点'},
         };
         await _peers.updateLastSeen(
@@ -285,6 +286,17 @@ class SyncServer {
             verifiedAt: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
           ),
         );
+  }
+
+  /// 手机拉取最新周报（schema §7.4：分析结果 Mac → 手机）。
+  Future<Map<String, Object?>> _latestAnalysis() async {
+    final rows = await _db
+        .customSelect(
+          'SELECT * FROM analysis_artifacts WHERE deleted_at IS NULL '
+          'ORDER BY generated_at DESC LIMIT 1',
+        )
+        .get();
+    return {'artifact': rows.isEmpty ? null : rows.single.data};
   }
 
   /// 接收附件文件：SHA-256 校验通过才落盘并确认（schema §7.4）。

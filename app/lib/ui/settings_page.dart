@@ -16,6 +16,8 @@ import 'model_config_page.dart';
 import 'pair_mac_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
+import 'suggestions_page.dart';
+import 'weekly_report_page.dart';
 
 /// 设置页（product-spec §3 v0.1 页面）。
 class SettingsPage extends StatefulWidget {
@@ -175,6 +177,25 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('版本'),
             trailing: Text(_version),
+          ),
+          ListTile(
+            title: const Text('周报'),
+            subtitle: const Text('Mac 生成的每周分析，事实可点回来源'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => WeeklyReportPage(services: widget.services)),
+            ),
+          ),
+          ListTile(
+            title: const Text('修正建议'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => SuggestionsPage(services: widget.services)),
+            ),
           ),
           ListTile(
             title: const Text('连接 Mac'),

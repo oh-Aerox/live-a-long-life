@@ -16491,6 +16491,1028 @@ class SyncStatesCompanion extends UpdateCompanion<SyncState> {
   }
 }
 
+class $AnalysisArtifactsTable extends AnalysisArtifacts
+    with TableInfo<$AnalysisArtifactsTable, AnalysisArtifact> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AnalysisArtifactsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AnalysisKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AnalysisKind>($AnalysisArtifactsTable.$converterkind);
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<String> periodStart = GeneratedColumn<String>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodEndMeta = const VerificationMeta(
+    'periodEnd',
+  );
+  @override
+  late final GeneratedColumn<String> periodEnd = GeneratedColumn<String>(
+    'period_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataGenerationMeta = const VerificationMeta(
+    'dataGeneration',
+  );
+  @override
+  late final GeneratedColumn<String> dataGeneration = GeneratedColumn<String>(
+    'data_generation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataCutoffSeqMeta = const VerificationMeta(
+    'dataCutoffSeq',
+  );
+  @override
+  late final GeneratedColumn<int> dataCutoffSeq = GeneratedColumn<int>(
+    'data_cutoff_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dependsOnMeta = const VerificationMeta(
+    'dependsOn',
+  );
+  @override
+  late final GeneratedColumn<String> dependsOn = GeneratedColumn<String>(
+    'depends_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatedAtMeta = const VerificationMeta(
+    'generatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> generatedAt = GeneratedColumn<int>(
+    'generated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatorMeta = const VerificationMeta(
+    'generator',
+  );
+  @override
+  late final GeneratedColumn<String> generator = GeneratedColumn<String>(
+    'generator',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelCallIdsMeta = const VerificationMeta(
+    'modelCallIds',
+  );
+  @override
+  late final GeneratedColumn<String> modelCallIds = GeneratedColumn<String>(
+    'model_call_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMdMeta = const VerificationMeta(
+    'contentMd',
+  );
+  @override
+  late final GeneratedColumn<String> contentMd = GeneratedColumn<String>(
+    'content_md',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _citationsMeta = const VerificationMeta(
+    'citations',
+  );
+  @override
+  late final GeneratedColumn<String> citations = GeneratedColumn<String>(
+    'citations',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    kind,
+    periodStart,
+    periodEnd,
+    dataGeneration,
+    dataCutoffSeq,
+    dependsOn,
+    generatedAt,
+    generator,
+    modelCallIds,
+    contentMd,
+    citations,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'analysis_artifacts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AnalysisArtifact> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_periodStartMeta);
+    }
+    if (data.containsKey('period_end')) {
+      context.handle(
+        _periodEndMeta,
+        periodEnd.isAcceptableOrUnknown(data['period_end']!, _periodEndMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodEndMeta);
+    }
+    if (data.containsKey('data_generation')) {
+      context.handle(
+        _dataGenerationMeta,
+        dataGeneration.isAcceptableOrUnknown(
+          data['data_generation']!,
+          _dataGenerationMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dataGenerationMeta);
+    }
+    if (data.containsKey('data_cutoff_seq')) {
+      context.handle(
+        _dataCutoffSeqMeta,
+        dataCutoffSeq.isAcceptableOrUnknown(
+          data['data_cutoff_seq']!,
+          _dataCutoffSeqMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dataCutoffSeqMeta);
+    }
+    if (data.containsKey('depends_on')) {
+      context.handle(
+        _dependsOnMeta,
+        dependsOn.isAcceptableOrUnknown(data['depends_on']!, _dependsOnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dependsOnMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+        _generatedAtMeta,
+        generatedAt.isAcceptableOrUnknown(
+          data['generated_at']!,
+          _generatedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('generator')) {
+      context.handle(
+        _generatorMeta,
+        generator.isAcceptableOrUnknown(data['generator']!, _generatorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_generatorMeta);
+    }
+    if (data.containsKey('model_call_ids')) {
+      context.handle(
+        _modelCallIdsMeta,
+        modelCallIds.isAcceptableOrUnknown(
+          data['model_call_ids']!,
+          _modelCallIdsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_modelCallIdsMeta);
+    }
+    if (data.containsKey('content_md')) {
+      context.handle(
+        _contentMdMeta,
+        contentMd.isAcceptableOrUnknown(data['content_md']!, _contentMdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMdMeta);
+    }
+    if (data.containsKey('citations')) {
+      context.handle(
+        _citationsMeta,
+        citations.isAcceptableOrUnknown(data['citations']!, _citationsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_citationsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AnalysisArtifact map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AnalysisArtifact(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      kind: $AnalysisArtifactsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      periodStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}period_start'],
+      )!,
+      periodEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}period_end'],
+      )!,
+      dataGeneration: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data_generation'],
+      )!,
+      dataCutoffSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}data_cutoff_seq'],
+      )!,
+      dependsOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}depends_on'],
+      )!,
+      generatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}generated_at'],
+      )!,
+      generator: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generator'],
+      )!,
+      modelCallIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_call_ids'],
+      )!,
+      contentMd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_md'],
+      )!,
+      citations: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}citations'],
+      )!,
+    );
+  }
+
+  @override
+  $AnalysisArtifactsTable createAlias(String alias) {
+    return $AnalysisArtifactsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<AnalysisKind, String> $converterkind =
+      const EnumConverter(AnalysisKind.values);
+}
+
+class AnalysisArtifact extends DataClass
+    implements Insertable<AnalysisArtifact> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+  final AnalysisKind kind;
+  final String periodStart;
+  final String periodEnd;
+  final String dataGeneration;
+  final int dataCutoffSeq;
+  final String dependsOn;
+  final int generatedAt;
+  final String generator;
+  final String modelCallIds;
+  final String contentMd;
+  final String citations;
+  const AnalysisArtifact({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.kind,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.dataGeneration,
+    required this.dataCutoffSeq,
+    required this.dependsOn,
+    required this.generatedAt,
+    required this.generator,
+    required this.modelCallIds,
+    required this.contentMd,
+    required this.citations,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    {
+      map['kind'] = Variable<String>(
+        $AnalysisArtifactsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['period_start'] = Variable<String>(periodStart);
+    map['period_end'] = Variable<String>(periodEnd);
+    map['data_generation'] = Variable<String>(dataGeneration);
+    map['data_cutoff_seq'] = Variable<int>(dataCutoffSeq);
+    map['depends_on'] = Variable<String>(dependsOn);
+    map['generated_at'] = Variable<int>(generatedAt);
+    map['generator'] = Variable<String>(generator);
+    map['model_call_ids'] = Variable<String>(modelCallIds);
+    map['content_md'] = Variable<String>(contentMd);
+    map['citations'] = Variable<String>(citations);
+    return map;
+  }
+
+  AnalysisArtifactsCompanion toCompanion(bool nullToAbsent) {
+    return AnalysisArtifactsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      kind: Value(kind),
+      periodStart: Value(periodStart),
+      periodEnd: Value(periodEnd),
+      dataGeneration: Value(dataGeneration),
+      dataCutoffSeq: Value(dataCutoffSeq),
+      dependsOn: Value(dependsOn),
+      generatedAt: Value(generatedAt),
+      generator: Value(generator),
+      modelCallIds: Value(modelCallIds),
+      contentMd: Value(contentMd),
+      citations: Value(citations),
+    );
+  }
+
+  factory AnalysisArtifact.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AnalysisArtifact(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      kind: serializer.fromJson<AnalysisKind>(json['kind']),
+      periodStart: serializer.fromJson<String>(json['periodStart']),
+      periodEnd: serializer.fromJson<String>(json['periodEnd']),
+      dataGeneration: serializer.fromJson<String>(json['dataGeneration']),
+      dataCutoffSeq: serializer.fromJson<int>(json['dataCutoffSeq']),
+      dependsOn: serializer.fromJson<String>(json['dependsOn']),
+      generatedAt: serializer.fromJson<int>(json['generatedAt']),
+      generator: serializer.fromJson<String>(json['generator']),
+      modelCallIds: serializer.fromJson<String>(json['modelCallIds']),
+      contentMd: serializer.fromJson<String>(json['contentMd']),
+      citations: serializer.fromJson<String>(json['citations']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'kind': serializer.toJson<AnalysisKind>(kind),
+      'periodStart': serializer.toJson<String>(periodStart),
+      'periodEnd': serializer.toJson<String>(periodEnd),
+      'dataGeneration': serializer.toJson<String>(dataGeneration),
+      'dataCutoffSeq': serializer.toJson<int>(dataCutoffSeq),
+      'dependsOn': serializer.toJson<String>(dependsOn),
+      'generatedAt': serializer.toJson<int>(generatedAt),
+      'generator': serializer.toJson<String>(generator),
+      'modelCallIds': serializer.toJson<String>(modelCallIds),
+      'contentMd': serializer.toJson<String>(contentMd),
+      'citations': serializer.toJson<String>(citations),
+    };
+  }
+
+  AnalysisArtifact copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    AnalysisKind? kind,
+    String? periodStart,
+    String? periodEnd,
+    String? dataGeneration,
+    int? dataCutoffSeq,
+    String? dependsOn,
+    int? generatedAt,
+    String? generator,
+    String? modelCallIds,
+    String? contentMd,
+    String? citations,
+  }) => AnalysisArtifact(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    kind: kind ?? this.kind,
+    periodStart: periodStart ?? this.periodStart,
+    periodEnd: periodEnd ?? this.periodEnd,
+    dataGeneration: dataGeneration ?? this.dataGeneration,
+    dataCutoffSeq: dataCutoffSeq ?? this.dataCutoffSeq,
+    dependsOn: dependsOn ?? this.dependsOn,
+    generatedAt: generatedAt ?? this.generatedAt,
+    generator: generator ?? this.generator,
+    modelCallIds: modelCallIds ?? this.modelCallIds,
+    contentMd: contentMd ?? this.contentMd,
+    citations: citations ?? this.citations,
+  );
+  AnalysisArtifact copyWithCompanion(AnalysisArtifactsCompanion data) {
+    return AnalysisArtifact(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      periodStart: data.periodStart.present
+          ? data.periodStart.value
+          : this.periodStart,
+      periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
+      dataGeneration: data.dataGeneration.present
+          ? data.dataGeneration.value
+          : this.dataGeneration,
+      dataCutoffSeq: data.dataCutoffSeq.present
+          ? data.dataCutoffSeq.value
+          : this.dataCutoffSeq,
+      dependsOn: data.dependsOn.present ? data.dependsOn.value : this.dependsOn,
+      generatedAt: data.generatedAt.present
+          ? data.generatedAt.value
+          : this.generatedAt,
+      generator: data.generator.present ? data.generator.value : this.generator,
+      modelCallIds: data.modelCallIds.present
+          ? data.modelCallIds.value
+          : this.modelCallIds,
+      contentMd: data.contentMd.present ? data.contentMd.value : this.contentMd,
+      citations: data.citations.present ? data.citations.value : this.citations,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnalysisArtifact(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('kind: $kind, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('dataGeneration: $dataGeneration, ')
+          ..write('dataCutoffSeq: $dataCutoffSeq, ')
+          ..write('dependsOn: $dependsOn, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('generator: $generator, ')
+          ..write('modelCallIds: $modelCallIds, ')
+          ..write('contentMd: $contentMd, ')
+          ..write('citations: $citations')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    kind,
+    periodStart,
+    periodEnd,
+    dataGeneration,
+    dataCutoffSeq,
+    dependsOn,
+    generatedAt,
+    generator,
+    modelCallIds,
+    contentMd,
+    citations,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AnalysisArtifact &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.kind == this.kind &&
+          other.periodStart == this.periodStart &&
+          other.periodEnd == this.periodEnd &&
+          other.dataGeneration == this.dataGeneration &&
+          other.dataCutoffSeq == this.dataCutoffSeq &&
+          other.dependsOn == this.dependsOn &&
+          other.generatedAt == this.generatedAt &&
+          other.generator == this.generator &&
+          other.modelCallIds == this.modelCallIds &&
+          other.contentMd == this.contentMd &&
+          other.citations == this.citations);
+}
+
+class AnalysisArtifactsCompanion extends UpdateCompanion<AnalysisArtifact> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<AnalysisKind> kind;
+  final Value<String> periodStart;
+  final Value<String> periodEnd;
+  final Value<String> dataGeneration;
+  final Value<int> dataCutoffSeq;
+  final Value<String> dependsOn;
+  final Value<int> generatedAt;
+  final Value<String> generator;
+  final Value<String> modelCallIds;
+  final Value<String> contentMd;
+  final Value<String> citations;
+  final Value<int> rowid;
+  const AnalysisArtifactsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.dataGeneration = const Value.absent(),
+    this.dataCutoffSeq = const Value.absent(),
+    this.dependsOn = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.generator = const Value.absent(),
+    this.modelCallIds = const Value.absent(),
+    this.contentMd = const Value.absent(),
+    this.citations = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AnalysisArtifactsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required AnalysisKind kind,
+    required String periodStart,
+    required String periodEnd,
+    required String dataGeneration,
+    required int dataCutoffSeq,
+    required String dependsOn,
+    required int generatedAt,
+    required String generator,
+    required String modelCallIds,
+    required String contentMd,
+    required String citations,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       kind = Value(kind),
+       periodStart = Value(periodStart),
+       periodEnd = Value(periodEnd),
+       dataGeneration = Value(dataGeneration),
+       dataCutoffSeq = Value(dataCutoffSeq),
+       dependsOn = Value(dependsOn),
+       generatedAt = Value(generatedAt),
+       generator = Value(generator),
+       modelCallIds = Value(modelCallIds),
+       contentMd = Value(contentMd),
+       citations = Value(citations);
+  static Insertable<AnalysisArtifact> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? kind,
+    Expression<String>? periodStart,
+    Expression<String>? periodEnd,
+    Expression<String>? dataGeneration,
+    Expression<int>? dataCutoffSeq,
+    Expression<String>? dependsOn,
+    Expression<int>? generatedAt,
+    Expression<String>? generator,
+    Expression<String>? modelCallIds,
+    Expression<String>? contentMd,
+    Expression<String>? citations,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (kind != null) 'kind': kind,
+      if (periodStart != null) 'period_start': periodStart,
+      if (periodEnd != null) 'period_end': periodEnd,
+      if (dataGeneration != null) 'data_generation': dataGeneration,
+      if (dataCutoffSeq != null) 'data_cutoff_seq': dataCutoffSeq,
+      if (dependsOn != null) 'depends_on': dependsOn,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (generator != null) 'generator': generator,
+      if (modelCallIds != null) 'model_call_ids': modelCallIds,
+      if (contentMd != null) 'content_md': contentMd,
+      if (citations != null) 'citations': citations,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AnalysisArtifactsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<AnalysisKind>? kind,
+    Value<String>? periodStart,
+    Value<String>? periodEnd,
+    Value<String>? dataGeneration,
+    Value<int>? dataCutoffSeq,
+    Value<String>? dependsOn,
+    Value<int>? generatedAt,
+    Value<String>? generator,
+    Value<String>? modelCallIds,
+    Value<String>? contentMd,
+    Value<String>? citations,
+    Value<int>? rowid,
+  }) {
+    return AnalysisArtifactsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      kind: kind ?? this.kind,
+      periodStart: periodStart ?? this.periodStart,
+      periodEnd: periodEnd ?? this.periodEnd,
+      dataGeneration: dataGeneration ?? this.dataGeneration,
+      dataCutoffSeq: dataCutoffSeq ?? this.dataCutoffSeq,
+      dependsOn: dependsOn ?? this.dependsOn,
+      generatedAt: generatedAt ?? this.generatedAt,
+      generator: generator ?? this.generator,
+      modelCallIds: modelCallIds ?? this.modelCallIds,
+      contentMd: contentMd ?? this.contentMd,
+      citations: citations ?? this.citations,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $AnalysisArtifactsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<String>(periodStart.value);
+    }
+    if (periodEnd.present) {
+      map['period_end'] = Variable<String>(periodEnd.value);
+    }
+    if (dataGeneration.present) {
+      map['data_generation'] = Variable<String>(dataGeneration.value);
+    }
+    if (dataCutoffSeq.present) {
+      map['data_cutoff_seq'] = Variable<int>(dataCutoffSeq.value);
+    }
+    if (dependsOn.present) {
+      map['depends_on'] = Variable<String>(dependsOn.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<int>(generatedAt.value);
+    }
+    if (generator.present) {
+      map['generator'] = Variable<String>(generator.value);
+    }
+    if (modelCallIds.present) {
+      map['model_call_ids'] = Variable<String>(modelCallIds.value);
+    }
+    if (contentMd.present) {
+      map['content_md'] = Variable<String>(contentMd.value);
+    }
+    if (citations.present) {
+      map['citations'] = Variable<String>(citations.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnalysisArtifactsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('kind: $kind, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('dataGeneration: $dataGeneration, ')
+          ..write('dataCutoffSeq: $dataCutoffSeq, ')
+          ..write('dependsOn: $dependsOn, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('generator: $generator, ')
+          ..write('modelCallIds: $modelCallIds, ')
+          ..write('contentMd: $contentMd, ')
+          ..write('citations: $citations, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -16526,6 +17548,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
   late final $PeersTable peers = $PeersTable(this);
   late final $SyncStatesTable syncStates = $SyncStatesTable(this);
+  late final $AnalysisArtifactsTable analysisArtifacts =
+      $AnalysisArtifactsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -16553,6 +17577,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     changeLogs,
     peers,
     syncStates,
+    analysisArtifacts,
   ];
 }
 
@@ -24345,6 +25370,479 @@ typedef $$SyncStatesTableProcessedTableManager =
       SyncState,
       PrefetchHooks Function()
     >;
+typedef $$AnalysisArtifactsTableCreateCompanionBuilder =
+    AnalysisArtifactsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required AnalysisKind kind,
+      required String periodStart,
+      required String periodEnd,
+      required String dataGeneration,
+      required int dataCutoffSeq,
+      required String dependsOn,
+      required int generatedAt,
+      required String generator,
+      required String modelCallIds,
+      required String contentMd,
+      required String citations,
+      Value<int> rowid,
+    });
+typedef $$AnalysisArtifactsTableUpdateCompanionBuilder =
+    AnalysisArtifactsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<AnalysisKind> kind,
+      Value<String> periodStart,
+      Value<String> periodEnd,
+      Value<String> dataGeneration,
+      Value<int> dataCutoffSeq,
+      Value<String> dependsOn,
+      Value<int> generatedAt,
+      Value<String> generator,
+      Value<String> modelCallIds,
+      Value<String> contentMd,
+      Value<String> citations,
+      Value<int> rowid,
+    });
+
+class $$AnalysisArtifactsTableFilterComposer
+    extends Composer<_$AppDatabase, $AnalysisArtifactsTable> {
+  $$AnalysisArtifactsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AnalysisKind, AnalysisKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dataCutoffSeq => $composableBuilder(
+    column: $table.dataCutoffSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dependsOn => $composableBuilder(
+    column: $table.dependsOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get generator => $composableBuilder(
+    column: $table.generator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelCallIds => $composableBuilder(
+    column: $table.modelCallIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentMd => $composableBuilder(
+    column: $table.contentMd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get citations => $composableBuilder(
+    column: $table.citations,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AnalysisArtifactsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AnalysisArtifactsTable> {
+  $$AnalysisArtifactsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dataCutoffSeq => $composableBuilder(
+    column: $table.dataCutoffSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dependsOn => $composableBuilder(
+    column: $table.dependsOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generator => $composableBuilder(
+    column: $table.generator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelCallIds => $composableBuilder(
+    column: $table.modelCallIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentMd => $composableBuilder(
+    column: $table.contentMd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get citations => $composableBuilder(
+    column: $table.citations,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AnalysisArtifactsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AnalysisArtifactsTable> {
+  $$AnalysisArtifactsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<AnalysisKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get periodEnd =>
+      $composableBuilder(column: $table.periodEnd, builder: (column) => column);
+
+  GeneratedColumn<String> get dataGeneration => $composableBuilder(
+    column: $table.dataGeneration,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dataCutoffSeq => $composableBuilder(
+    column: $table.dataCutoffSeq,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dependsOn =>
+      $composableBuilder(column: $table.dependsOn, builder: (column) => column);
+
+  GeneratedColumn<int> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get generator =>
+      $composableBuilder(column: $table.generator, builder: (column) => column);
+
+  GeneratedColumn<String> get modelCallIds => $composableBuilder(
+    column: $table.modelCallIds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contentMd =>
+      $composableBuilder(column: $table.contentMd, builder: (column) => column);
+
+  GeneratedColumn<String> get citations =>
+      $composableBuilder(column: $table.citations, builder: (column) => column);
+}
+
+class $$AnalysisArtifactsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AnalysisArtifactsTable,
+          AnalysisArtifact,
+          $$AnalysisArtifactsTableFilterComposer,
+          $$AnalysisArtifactsTableOrderingComposer,
+          $$AnalysisArtifactsTableAnnotationComposer,
+          $$AnalysisArtifactsTableCreateCompanionBuilder,
+          $$AnalysisArtifactsTableUpdateCompanionBuilder,
+          (
+            AnalysisArtifact,
+            BaseReferences<
+              _$AppDatabase,
+              $AnalysisArtifactsTable,
+              AnalysisArtifact
+            >,
+          ),
+          AnalysisArtifact,
+          PrefetchHooks Function()
+        > {
+  $$AnalysisArtifactsTableTableManager(
+    _$AppDatabase db,
+    $AnalysisArtifactsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AnalysisArtifactsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AnalysisArtifactsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AnalysisArtifactsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<AnalysisKind> kind = const Value.absent(),
+                Value<String> periodStart = const Value.absent(),
+                Value<String> periodEnd = const Value.absent(),
+                Value<String> dataGeneration = const Value.absent(),
+                Value<int> dataCutoffSeq = const Value.absent(),
+                Value<String> dependsOn = const Value.absent(),
+                Value<int> generatedAt = const Value.absent(),
+                Value<String> generator = const Value.absent(),
+                Value<String> modelCallIds = const Value.absent(),
+                Value<String> contentMd = const Value.absent(),
+                Value<String> citations = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AnalysisArtifactsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                kind: kind,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                dataGeneration: dataGeneration,
+                dataCutoffSeq: dataCutoffSeq,
+                dependsOn: dependsOn,
+                generatedAt: generatedAt,
+                generator: generator,
+                modelCallIds: modelCallIds,
+                contentMd: contentMd,
+                citations: citations,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required AnalysisKind kind,
+                required String periodStart,
+                required String periodEnd,
+                required String dataGeneration,
+                required int dataCutoffSeq,
+                required String dependsOn,
+                required int generatedAt,
+                required String generator,
+                required String modelCallIds,
+                required String contentMd,
+                required String citations,
+                Value<int> rowid = const Value.absent(),
+              }) => AnalysisArtifactsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                kind: kind,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                dataGeneration: dataGeneration,
+                dataCutoffSeq: dataCutoffSeq,
+                dependsOn: dependsOn,
+                generatedAt: generatedAt,
+                generator: generator,
+                modelCallIds: modelCallIds,
+                contentMd: contentMd,
+                citations: citations,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AnalysisArtifactsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AnalysisArtifactsTable,
+      AnalysisArtifact,
+      $$AnalysisArtifactsTableFilterComposer,
+      $$AnalysisArtifactsTableOrderingComposer,
+      $$AnalysisArtifactsTableAnnotationComposer,
+      $$AnalysisArtifactsTableCreateCompanionBuilder,
+      $$AnalysisArtifactsTableUpdateCompanionBuilder,
+      (
+        AnalysisArtifact,
+        BaseReferences<
+          _$AppDatabase,
+          $AnalysisArtifactsTable,
+          AnalysisArtifact
+        >,
+      ),
+      AnalysisArtifact,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -24393,4 +25891,6 @@ class $AppDatabaseManager {
       $$PeersTableTableManager(_db, _db.peers);
   $$SyncStatesTableTableManager get syncStates =>
       $$SyncStatesTableTableManager(_db, _db.syncStates);
+  $$AnalysisArtifactsTableTableManager get analysisArtifacts =>
+      $$AnalysisArtifactsTableTableManager(_db, _db.analysisArtifacts);
 }

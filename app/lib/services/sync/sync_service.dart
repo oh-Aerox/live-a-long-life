@@ -219,6 +219,30 @@ class SyncService {
     return rows.length;
   }
 
+  /// 从第一个已配对的 Mac 拉取最新分析结果（V3-M5）。没有或失败返回 null。
+  Future<Map<String, Object?>?> fetchLatestAnalysis() async {
+    final peers = await _peers.all();
+    for (final peer in peers) {
+      final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
+      final addr = peer.lastSeenAddr;
+      if (keyB64 == null || addr == null || !addr.contains(':')) continue;
+      try {
+        final reply = await _postSealed(
+          SecureChannel(base64Decode(keyB64)),
+          addr.split(':').first,
+          int.parse(addr.split(':').last),
+          '/analysis',
+          {},
+        );
+        final artifact = reply['artifact'];
+        if (artifact is Map) return artifact.cast<String, Object?>();
+      } catch (_) {
+        continue;
+      }
+    }
+    return null;
+  }
+
   Future<Map<String, Object?>> _postSealed(
     SecureChannel channel,
     String host,

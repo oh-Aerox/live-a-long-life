@@ -8,6 +8,7 @@ import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
 import 'day_view_page.dart';
 import 'mac_messages_page.dart';
+import 'model_config_page.dart';
 
 /// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
 /// Mac 只保存手机同步来的副本，不能编辑（D-12）；
@@ -32,6 +33,22 @@ class _MacHomePageState extends State<MacHomePage> {
       PeerRepository(widget.services.db);
 
   SyncState? _pullState;
+  AnalysisArtifact? _latestReport;
+  bool _generating = false;
+
+  Future<void> _generateReport() async {
+    setState(() => _generating = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.services.analysisService.generateWeeklyReview();
+      messenger.showSnackBar(const SnackBar(content: Text('周报已生成')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _generating = false);
+      await _load();
+    }
+  }
 
   @override
   void initState() {
@@ -55,12 +72,15 @@ class _MacHomePageState extends State<MacHomePage> {
           ..where((t) => t.direction.equalsValue(SyncDirection.pull))
           ..limit(1))
         .getSingleOrNull();
+    final latestReport =
+        await widget.services.analysisService.latest(AnalysisKind.weeklyReview);
     if (mounted) {
       setState(() {
         _messageCount = messages.where((m) => m.deletedAt == null).length;
         _recordCount = records.where((r) => r.deletedAt == null).length;
         _peers = peers;
         _pullState = pull;
+        _latestReport = latestReport;
       });
     }
   }
@@ -215,11 +235,52 @@ class _MacHomePageState extends State<MacHomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.description_outlined),
-              title: Text('周报分析'),
-              subtitle: Text('V3-M5 提供：用你配置的模型生成周报，回传手机。'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('周报分析',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  if (_latestReport != null) ...[
+                    Text(
+                        '最新：${_latestReport!.periodStart} 至 ${_latestReport!.periodEnd}'),
+                    const SizedBox(height: 4),
+                    Text(
+                      _latestReport!.contentMd,
+                      maxLines: 8,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                  ] else
+                    const Text('还没有生成过周报。生成失败时旧周报保留。'),
+                  Row(
+                    children: [
+                      FilledButton.tonal(
+                        onPressed: _generating ? null : _generateReport,
+                        child: Text(_generating ? '生成中…' : '生成周报'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  ModelConfigPage(services: widget.services)),
+                        ),
+                        child: const Text('模型配置'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('周报由这台 Mac 上配置的模型生成（配置不与手机同步），'
+                      '手机在"周报"页拉取查看。',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
           ),
         ],
