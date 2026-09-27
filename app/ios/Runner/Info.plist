@@ -12,6 +12,14 @@
 	<string>用于拍摄饮食、病历等照片记入你的健康记录。照片只保存在本机，不会上传。</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>用于读取睡眠、步数、体能训练和活动能量，补全你的健康记录。只读取，不写入，数据只保存在本机。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接你在局域网内自建的模型服务（如 Mac 上的 Ollama）整理消息。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- 只放开本地网络的明文 HTTP（Ollama 等自建服务）；公网仍要求 HTTPS。 -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

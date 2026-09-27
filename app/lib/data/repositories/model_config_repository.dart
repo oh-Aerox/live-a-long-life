@@ -67,6 +67,37 @@ class ModelConfigRepository {
   /// 当前默认配置；没有配置时为空，消息保持"待整理"（A-10）。
   Future<ModelConfig?> defaultConfig() => _defaultConfig();
 
+  /// 写入 key 的 Keychain 引用名（key 先存 Keychain 再回填引用）。
+  Future<ModelConfig> setKeychainRef(String configId, String ref) async {
+    final updated = await (_db.update(_db.modelConfigs)
+          ..where((t) => t.id.equals(configId)))
+        .writeReturning(ModelConfigsCompanion(keychainRef: Value(ref)));
+    return updated.single;
+  }
+
+  /// 修改地址、模型名与数据边界（编辑页用），`version` 加 1。
+  Future<ModelConfig> updateEndpoint(
+    String configId, {
+    required String baseUrl,
+    required String model,
+    required DataBoundary dataBoundary,
+  }) {
+    return _db.transaction(() async {
+      final cfg = await (_db.select(_db.modelConfigs)
+            ..where((t) => t.id.equals(configId)))
+          .getSingle();
+      final updated = await (_db.update(_db.modelConfigs)
+            ..where((t) => t.id.equals(configId)))
+          .writeReturning(ModelConfigsCompanion(
+        baseUrl: Value(baseUrl),
+        model: Value(model),
+        dataBoundary: Value(dataBoundary),
+        version: Value(cfg.version + 1),
+      ));
+      return updated.single;
+    });
+  }
+
   /// 写入测试连接结果，capabilities 由测试结果得出（schema §4.3）。
   Future<ModelConfig> updateTestResult(
     String configId, {

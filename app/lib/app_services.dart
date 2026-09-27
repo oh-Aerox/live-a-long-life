@@ -8,8 +8,11 @@ import 'data/app_context.dart';
 import 'data/db/app_database.dart';
 import 'data/repositories/attachment_repository.dart';
 import 'data/repositories/message_repository.dart';
+import 'data/repositories/model_config_repository.dart';
+import 'data/repositories/organize_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'services/key_store.dart';
 
 /// 应用级服务：数据库与各仓库。
 /// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
@@ -22,6 +25,9 @@ class AppServices {
     required this.attachments,
     required this.profile,
     required this.settings,
+    required this.modelConfigs,
+    required this.organize,
+    required this.keyStore,
     required this.filesDir,
   });
 
@@ -31,6 +37,9 @@ class AppServices {
   final AttachmentRepository attachments;
   final ProfileRepository profile;
   final SettingsRepository settings;
+  final ModelConfigRepository modelConfigs;
+  final OrganizeRepository organize;
+  final KeyStore keyStore;
   final Directory filesDir;
   late final File dbFile;
 
@@ -50,6 +59,9 @@ class AppServices {
       attachments: AttachmentRepository(db, ctx, filesDir: filesDir),
       profile: ProfileRepository(db, ctx),
       settings: settings,
+      modelConfigs: ModelConfigRepository(db, ctx),
+      organize: OrganizeRepository(db, ctx),
+      keyStore: KeyStore(),
       filesDir: filesDir,
     )..dbFile = dbFile;
   }

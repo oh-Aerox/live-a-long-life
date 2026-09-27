@@ -12,6 +12,7 @@ import '../services/notification_service.dart';
 import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'healthkit_spike_page.dart';
+import 'model_config_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
 
@@ -86,6 +87,16 @@ class _SettingsPageState extends State<SettingsPage> {
               );
               await _load();
             },
+          ),
+          ListTile(
+            title: const Text('模型'),
+            subtitle: const Text('配置整理消息用的模型，查看调用记录'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => ModelConfigPage(services: widget.services)),
+            ),
           ),
           ListTile(
             title: const Text('基本资料'),
