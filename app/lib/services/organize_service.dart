@@ -86,9 +86,13 @@ class OrganizeService {
   Future<OrganizeRun?> enqueue(OrganizeTrigger trigger) async {
     if (await _modelConfigs.defaultConfig() == null) return null;
     final pending = await _messages.pendingOrganize();
-    final input =
-        pending.where((m) => !_isManual(m) && m.body != null).toList();
-    if (input.isEmpty) return null;
+    // 有文字的消息都参与；纯图片消息也带上（模型把它们关联到相邻记录，
+    // 照片本身的识别等图片输入能力）。
+    final input = <Message>[];
+    for (final m in pending.where((m) => !_isManual(m))) {
+      if (m.body != null || await _hasAttachments(m.id)) input.add(m);
+    }
+    if (input.isEmpty || input.every((m) => m.body == null)) return null;
 
     final snapshot = await _buildSnapshot(input);
     final run = await _runs.createRun(
@@ -100,6 +104,14 @@ class OrganizeService {
   }
 
   bool _isManual(Message m) => m.organizeState == OrganizeState.needsManual;
+
+  Future<bool> _hasAttachments(String messageId) async {
+    final row = await (_db.select(_db.messageAttachments)
+          ..where((t) => t.messageId.equals(messageId) & t.deletedAt.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
 
   /// 应用启动 / 配好模型后的补整理（A-10 恢复后可以补整理）。
   Future<void> catchUp() async {
@@ -369,8 +381,10 @@ class OrganizeService {
       if (hasStale) continue; // 留给重排批次
       if (states.any((s) => s == OrganizeItemStatus.needsManual)) {
         await _messages.setOrganizeState(m.id, OrganizeState.needsManual);
+      } else if (states.isEmpty && m.body == null) {
+        // 纯图片消息没被任何记录引用：保持待整理，等图片输入能力。
       } else {
-        // 全部提交成功，或这条消息没产出记录（闲聊）：都算整理过。
+        // 全部提交成功，或这条文字消息没产出记录（闲聊）：都算整理过。
         await _messages.setOrganizeState(m.id, OrganizeState.organized);
       }
     }

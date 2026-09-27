@@ -83,7 +83,7 @@ void main() {
       expect(result.messageCount, 3);
       expect(result.fileCount, 1);
       expect(result.missingFiles, isEmpty);
-      expect(await File(p.join(out.path, 'files', sha)).exists(), isTrue);
+      expect(await File(p.join(out.path, 'files', '$sha.jpg')).exists(), isTrue);
 
       final manifest = jsonDecode(
               await File(p.join(out.path, 'manifest.json')).readAsString())
@@ -169,7 +169,7 @@ void main() {
       final sha = await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
       await ExportService(sourceDb, filesDir: sourceFiles).export(out);
-      await File(p.join(out.path, 'files', sha)).delete();
+      await File(p.join(out.path, 'files', '$sha.jpg')).delete();
 
       final targetRoot = Directory(p.join(tempDir.path, 'target'));
       final result = await doRestore(out, targetRoot);

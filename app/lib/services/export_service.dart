@@ -38,6 +38,21 @@ class ExportService {
   /// （iOS 覆盖安装会更换容器绝对路径，见 AttachmentRepository）。
   final Directory filesDir;
 
+  static String _extOf(Attachment a) {
+    final fromName =
+        a.originalFilename == null ? '' : p.extension(a.originalFilename!);
+    if (fromName.isNotEmpty) return fromName;
+    return switch (a.mimeType) {
+      'application/pdf' => '.pdf',
+      'image/jpeg' => '.jpg',
+      'image/png' => '.png',
+      'image/heic' => '.heic',
+      'image/webp' => '.webp',
+      'image/gif' => '.gif',
+      _ => '',
+    };
+  }
+
   Future<ExportResult> export(Directory target) async {
     await target.create(recursive: true);
     final filesOut = Directory(p.join(target.path, 'files'));
@@ -87,7 +102,9 @@ class ExportService {
         missing.add(a.sha256);
         continue;
       }
-      await File(path).copy(p.join(filesOut.path, a.sha256));
+      // 带后缀导出，"文件"应用里能直接打开；恢复时按去掉后缀的哈希匹配。
+      await File(path)
+          .copy(p.join(filesOut.path, '${a.sha256}${_extOf(a)}'));
       fileCount++;
     }
 

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
+import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
 import 'package:live_a_long_life/data/repositories/message_repository.dart';
 import 'package:live_a_long_life/data/repositories/model_config_repository.dart';
 import 'package:live_a_long_life/data/repositories/organize_repository.dart';
@@ -12,6 +14,7 @@ import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/model_client.dart';
 import 'package:live_a_long_life/services/organize_service.dart';
+import 'package:path/path.dart' as p;
 
 import '../data/test_helpers.dart';
 
@@ -398,6 +401,61 @@ void main() {
     expect(finished.status, OrganizeRunStatus.succeeded);
     expect(
         (await messages.byId(m.id))!.organizeState, OrganizeState.organized);
+  });
+
+  test('照片消息被模型关联到记录：照片挂上、消息转已整理；没被引用的纯图片保持待整理',
+      () async {
+    await addConfig();
+    final tempDir = await Directory.systemTemp.createTemp('organize_photo');
+    addTearDown(() => tempDir.delete(recursive: true));
+    final attachments = AttachmentRepository(env.db, env.ctx,
+        filesDir: Directory(p.join(tempDir.path, 'files')));
+
+    Future<(Message, String)> photoMessage(String name, int seed) async {
+      final f = File(p.join(tempDir.path, name));
+      await f.writeAsBytes(List.filled(64, seed));
+      final imported = await attachments.importFile(f, mimeType: 'image/jpeg');
+      final m = await messages.send(
+        clientMsgId: 'photo-$name',
+        role: MessageRole.user,
+        kind: MessageKind.attachments,
+        sentTz: 'Asia/Shanghai',
+      );
+      await attachments.linkToMessage(
+          messageId: m.id, attachmentId: imported.attachment.id, position: 0);
+      return (m, imported.attachment.id);
+    }
+
+    final (photoMsg, attachmentId) = await photoMessage('dinner.jpg', 1);
+    final (lonePhoto, _) = await photoMessage('random.jpg', 2);
+    final textMsg = await say('晚饭吃了面，拍了张照片');
+
+    model.reply(jsonEncode([
+      {
+        'record_type': 'meal',
+        'occurred': {'local_date': '2026-09-26', 'precision': 'date_only'},
+        'data': {'status': 'eaten', 'description': '面'},
+        'source_message_ids': [textMsg.id, photoMsg.id],
+      },
+    ]));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+
+    // 模型看到的输入里包含两条照片消息（attachment_count）。
+    expect(model.calls.single, contains('attachment_count'));
+
+    final rec = (await records.byDate('2026-09-26')).single;
+    final rev = await records.currentRevisionOf(rec.id);
+    expect(jsonDecode(rev.data)['photo_attachment_ids'], [attachmentId]);
+    final sourceIds =
+        (await records.sourcesOf(rev.id)).map((s) => s.sourceId).toSet();
+    expect(sourceIds, {textMsg.id, photoMsg.id});
+
+    expect((await messages.byId(photoMsg.id))!.organizeState,
+        OrganizeState.organized);
+    // 没被引用的纯图片不算整理过，等图片输入能力。
+    expect((await messages.byId(lonePhoto.id))!.organizeState,
+        OrganizeState.pending);
   });
 
   test('模型编造来源消息或目标记录的项被拒绝', () async {

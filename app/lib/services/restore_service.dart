@@ -90,7 +90,9 @@ class RestoreService {
         if (!ok) throw StateError('data.json 损坏，无法恢复');
         continue;
       }
-      final sha = p.basename(entry.key);
+      // 导出文件带后缀（2026-09-27 起），哈希 = 去掉后缀的文件名；
+      // 旧导出没有后缀，同样成立。
+      final sha = p.basenameWithoutExtension(entry.key);
       if (ok) {
         verifiedFiles[sha] = f;
       } else {
