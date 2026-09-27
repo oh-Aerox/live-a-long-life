@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
@@ -43,10 +44,11 @@ void main() {
       final copies = await env.db.select(env.db.attachmentCopies).get();
       expect(copies.single.state, CopyState.present);
       expect(copies.single.verifiedAt, isNotNull);
-      // 文件按哈希命名存放
-      expect(
-          await File(copies.single.localPath!).exists(), isTrue);
-      expect(p.basename(copies.single.localPath!), result.attachment.sha256);
+      // local_path 只存文件名（= 哈希），实际路径按当前 filesDir 解析
+      expect(copies.single.localPath, result.attachment.sha256);
+      final resolved = await repo.localPathOf(result.attachment.id);
+      expect(await File(resolved!).exists(), isTrue);
+      expect(p.basename(resolved), result.attachment.sha256);
     });
 
     test('同一内容再次导入：命中同一附件身份，不新建行（D-10）', () async {
@@ -71,7 +73,8 @@ void main() {
       final copy =
           (await env.db.select(env.db.attachmentCopies).get()).single;
 
-      await File(copy.localPath!).writeAsBytes(List.filled(100, 2));
+      final path = await repo.localPathOf(result.attachment.id);
+      await File(path!).writeAsBytes(List.filled(100, 2));
 
       expect(await repo.verifyCopy(result.attachment.id), CopyState.missing);
       final after =
@@ -94,9 +97,7 @@ void main() {
       final bytes = List.filled(100, 9);
       final result = await repo.importFile(await writeSource('a.jpg', bytes),
           mimeType: 'image/jpeg');
-      final copy =
-          (await env.db.select(env.db.attachmentCopies).get()).single;
-      await File(copy.localPath!).delete();
+      await File((await repo.localPathOf(result.attachment.id))!).delete();
       expect(await repo.verifyCopy(result.attachment.id), CopyState.missing);
 
       final again = await repo.importFile(await writeSource('b.jpg', bytes),
@@ -156,6 +157,49 @@ void main() {
       expect(links.length, 1);
       expect(links.single.$1.position, 0);
       expect(links.single.$1.duplicateAcknowledged, isFalse);
+    });
+  });
+
+  group('容器路径变化（iOS 覆盖安装后沙盒绝对路径失效）', () {
+    test('local_path 存文件名，路径按当前 filesDir 解析', () async {
+      final result = await repo.importFile(
+          await writeSource('a.jpg', List.filled(64, 9)),
+          mimeType: 'image/jpeg');
+      final sha = result.attachment.sha256;
+
+      // 模拟覆盖安装：文件被系统搬到新容器路径，数据库不变。
+      final newFiles = Directory(p.join(tempDir.path, 'new-container/files'));
+      await newFiles.create(recursive: true);
+      await File(p.join(tempDir.path, 'files', sha))
+          .copy(p.join(newFiles.path, sha));
+
+      final repoAfter =
+          AttachmentRepository(env.db, env.ctx, filesDir: newFiles);
+      final path = await repoAfter.localPathOf(result.attachment.id);
+      expect(path, p.join(newFiles.path, sha));
+      expect(await File(path!).exists(), isTrue);
+      expect(await repoAfter.verifyCopy(result.attachment.id),
+          CopyState.present);
+    });
+
+    test('旧数据存的绝对路径按文件名兜底解析', () async {
+      final result = await repo.importFile(
+          await writeSource('b.jpg', List.filled(64, 3)),
+          mimeType: 'image/jpeg');
+      final sha = result.attachment.sha256;
+
+      // 把 local_path 改回 v0.1 的绝对路径写法（指向已不存在的旧容器）。
+      await (env.db.update(env.db.attachmentCopies)
+            ..where((t) => t.attachmentId.equals(result.attachment.id)))
+          .write(AttachmentCopiesCompanion(
+        localPath:
+            Value(p.join('/var/old-container/files', sha)),
+      ));
+
+      final path = await repo.localPathOf(result.attachment.id);
+      expect(path, p.join(tempDir.path, 'files', sha));
+      expect(await File(path!).exists(), isTrue);
+      expect(await repo.verifyCopy(result.attachment.id), CopyState.present);
     });
   });
 }

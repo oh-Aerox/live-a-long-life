@@ -178,7 +178,6 @@ class RestoreService {
             final source = verifiedFiles[sha];
             final now = ids.nowMs();
             if (source != null) {
-              final targetPath = p.join(filesDir.path, sha);
               await source.copy(p.join(tmpFiles.path, sha));
               restoredFiles++;
               await db
@@ -191,7 +190,8 @@ class RestoreService {
                     attachmentId: m['id'] as String,
                     deviceId: deviceId,
                     state: CopyState.present,
-                    localPath: Value(targetPath),
+                    // 只存文件名，读取时基于当前附件目录解析。
+                    localPath: Value(sha),
                     verifiedAt: Value(now),
                   ));
             } else {

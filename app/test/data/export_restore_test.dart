@@ -78,7 +78,7 @@ void main() {
     test('data.json、files/、manifest.json 齐全且校验通过', () async {
       final sha = await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
-      final result = await ExportService(sourceDb).export(out);
+      final result = await ExportService(sourceDb, filesDir: sourceFiles).export(out);
 
       expect(result.messageCount, 3);
       expect(result.fileCount, 1);
@@ -120,7 +120,7 @@ void main() {
     test('恢复到空资料库：内容一致，附件可用', () async {
       final sha = await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
-      await ExportService(sourceDb).export(out);
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
 
       final targetRoot = Directory(p.join(tempDir.path, 'target'));
       final result = await doRestore(out, targetRoot);
@@ -146,7 +146,10 @@ void main() {
         final copies =
             await restored.select(restored.attachmentCopies).get();
         expect(copies.single.state, CopyState.present);
-        final file = File(copies.single.localPath!);
+        // local_path 存文件名，按恢复目标的 files/ 目录解析
+        expect(copies.single.localPath, sha);
+        final file =
+            File(p.join(targetRoot.path, 'files', copies.single.localPath!));
         expect(await file.exists(), isTrue);
         expect(await AttachmentRepository.hashFile(file), sha);
 
@@ -165,7 +168,7 @@ void main() {
     test('缺附件文件：其余照常导入，结果为部分恢复', () async {
       final sha = await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
-      await ExportService(sourceDb).export(out);
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
       await File(p.join(out.path, 'files', sha)).delete();
 
       final targetRoot = Directory(p.join(tempDir.path, 'target'));
@@ -188,7 +191,7 @@ void main() {
     test('已有数据未确认替换：拒绝恢复', () async {
       await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
-      await ExportService(sourceDb).export(out);
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
       final targetRoot = Directory(p.join(tempDir.path, 'target'));
       expect(doRestore(out, targetRoot, hasExistingData: true),
           throwsA(isA<NeedsReplaceConfirmation>()));
@@ -197,7 +200,7 @@ void main() {
     test('data.json 损坏：恢复失败，原资料库不动', () async {
       await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
-      await ExportService(sourceDb).export(out);
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
       // 篡改 data.json，让哈希对不上
       final dataFile = File(p.join(out.path, 'data.json'));
       await dataFile.writeAsString('${await dataFile.readAsString()} ');

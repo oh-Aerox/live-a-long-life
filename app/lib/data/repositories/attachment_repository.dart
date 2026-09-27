@@ -23,7 +23,9 @@ class ImportResult {
 ///
 /// - 文件按 SHA-256 命名存放在 [filesDir] 下；
 /// - 先落盘、重新哈希校验通过后才建 `present` 副本（界面此前不得显示"已保存"）；
-/// - 校验发现文件丢失或内容不符时转 `missing`，附件身份与引用保留。
+/// - 校验发现文件丢失或内容不符时转 `missing`，附件身份与引用保留；
+/// - `local_path` 只存文件名：iOS 覆盖安装会更换沙盒容器的绝对路径，
+///   读取时基于当前 [filesDir] 解析。旧数据存过绝对路径，按文件名兜底。
 class AttachmentRepository {
   AttachmentRepository(
     this._db,
@@ -44,6 +46,10 @@ class AttachmentRepository {
 
   File _storedFile(String sha256Hex) =>
       File(p.join(filesDir.path, sha256Hex));
+
+  /// 把库里的 `local_path`（文件名，或旧数据的绝对路径）解析成当前路径。
+  String _resolve(String storedPath) =>
+      p.join(filesDir.path, p.basename(storedPath));
 
   /// 导入一个文件。内容已存在时返回已有附件（isDuplicate = true），
   /// 不重复占用空间；新内容则复制进应用存储并校验后登记。
@@ -106,7 +112,7 @@ class AttachmentRepository {
               attachmentId: attachment.id,
               deviceId: _ctx.deviceId,
               state: CopyState.present,
-              localPath: Value(target.path),
+              localPath: Value(p.basename(target.path)),
               verifiedAt: Value(now),
             ),
           );
@@ -138,7 +144,7 @@ class AttachmentRepository {
               attachmentId: attachment.id,
               deviceId: _ctx.deviceId,
               state: CopyState.present,
-              localPath: Value(target.path),
+              localPath: Value(p.basename(target.path)),
               verifiedAt: Value(now),
             ),
           );
@@ -147,7 +153,7 @@ class AttachmentRepository {
             ..where((t) => t.id.equals(copy.id)))
           .write(AttachmentCopiesCompanion(
         state: const Value(CopyState.present),
-        localPath: Value(target.path),
+        localPath: Value(p.basename(target.path)),
         verifiedAt: Value(now),
         offloadedAt: const Value(null),
         copyVersion: Value(copy.copyVersion + 1),
@@ -172,7 +178,8 @@ class AttachmentRepository {
     final attachment = await (_db.select(_db.attachments)
           ..where((t) => t.id.equals(attachmentId)))
         .getSingle();
-    final path = copy.localPath;
+    final path =
+        copy.localPath == null ? null : _resolve(copy.localPath!);
     var ok = false;
     if (path != null && await File(path).exists()) {
       ok = await hashFile(File(path)) == attachment.sha256;
@@ -213,11 +220,11 @@ class AttachmentRepository {
         );
   }
 
-  /// 本机副本的文件路径；不在本机（offloaded / missing）时为 null。
+  /// 本机副本的当前绝对路径；不在本机（offloaded / missing）时为 null。
   Future<String?> localPathOf(String attachmentId) async {
     final copy = await _copyOf(attachmentId);
     if (copy == null || copy.state != CopyState.present) return null;
-    return copy.localPath;
+    return copy.localPath == null ? null : _resolve(copy.localPath!);
   }
 
   /// 引用某附件的消息 ID，按引用时间排列（用于重复提示的"查看已有"）。

@@ -30,9 +30,13 @@ class ExportResult {
 /// + files/（附件原件，按 SHA-256 命名）+ manifest.json（逐文件哈希）。
 /// 导出完成后逐个文件重新哈希校验，通过才算成功。
 class ExportService {
-  ExportService(this._db);
+  ExportService(this._db, {required this.filesDir});
 
   final AppDatabase _db;
+
+  /// 本机附件目录。`local_path` 存的是文件名，导出时基于它解析
+  /// （iOS 覆盖安装会更换容器绝对路径，见 AttachmentRepository）。
+  final Directory filesDir;
 
   Future<ExportResult> export(Directory target) async {
     await target.create(recursive: true);
@@ -75,7 +79,10 @@ class ExportService {
     var fileCount = 0;
     for (final a in attachments) {
       final copy = copyByAttachment[a.id];
-      final path = copy?.localPath;
+      final stored = copy?.localPath;
+      final path = stored == null
+          ? null
+          : p.join(filesDir.path, p.basename(stored));
       if (path == null || !await File(path).exists()) {
         missing.add(a.sha256);
         continue;

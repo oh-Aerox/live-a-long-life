@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   timezone: ^0.10.1
   health: ^13.3.2
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

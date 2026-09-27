@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_services.dart';
@@ -101,6 +102,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _showAttachSheet() async {
+    // 先收起输入法，否则选项被键盘遮挡。
+    FocusManager.instance.primaryFocus?.unfocus();
     final choice = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
@@ -398,6 +401,8 @@ class _ChatPageState extends State<ChatPage> {
   // ---- 消息纠错（M3：A-06 与误发移除）----
 
   Future<void> _showMessageMenu(Message m) async {
+    // 先收起输入法，否则菜单被键盘遮挡。
+    FocusManager.instance.primaryFocus?.unfocus();
     final canEdit = m.kind == MessageKind.text;
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -660,40 +665,112 @@ class _AttachmentTiles extends StatelessWidget {
         future: services.attachments.localPathOf(a.id),
         builder: (context, snapshot) {
           final path = snapshot.data;
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: path != null
-                ? Image.file(File(path),
-                    width: 84, height: 84, fit: BoxFit.cover)
-                : Container(
-                    width: 84,
-                    height: 84,
-                    color: Colors.black12,
-                    child: const Icon(Icons.image_not_supported_outlined)),
+          return GestureDetector(
+            onTap: path == null
+                ? null
+                : () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => _ImageViewerPage(path: path),
+                    )),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: path != null
+                  ? Image.file(File(path),
+                      width: 84, height: 84, fit: BoxFit.cover)
+                  : Container(
+                      width: 84,
+                      height: 84,
+                      color: Colors.black12,
+                      child: const Icon(Icons.image_not_supported_outlined)),
+            ),
           );
         },
       );
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.picture_as_pdf_outlined, size: 18),
-          const SizedBox(width: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 150),
-            child: Text(
-              a.originalFilename ?? 'PDF',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
+    return GestureDetector(
+      onTap: () => _openFile(context, a),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                a.originalFilename ?? 'PDF',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 用系统预览打开文件（PDF 等）。副本不在本机时提示，不静默失败。
+  ///
+  /// 附件按 SHA-256 命名、无后缀，系统预览认不出类型，所以先在临时目录
+  /// 以原始文件名（带后缀）建一份预览副本再打开；预览标题也因此是原名。
+  Future<void> _openFile(BuildContext context, Attachment a) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final path = await services.attachments.localPathOf(a.id);
+    if (path == null || !await File(path).exists()) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('文件不在本机，无法打开')));
+      return;
+    }
+    final name = _previewName(a);
+    final preview =
+        File(p.join(Directory.systemTemp.path, 'preview', a.sha256, name));
+    if (!await preview.exists()) {
+      await preview.parent.create(recursive: true);
+      await File(path).copy(preview.path);
+    }
+    final result = await OpenFilex.open(preview.path);
+    if (result.type != ResultType.done) {
+      messenger.showSnackBar(SnackBar(content: Text('打开失败：${result.message}')));
+    }
+  }
+
+  String _previewName(Attachment a) {
+    final original = a.originalFilename;
+    if (original != null && p.extension(original).isNotEmpty) return original;
+    final ext = switch (a.mimeType) {
+      'application/pdf' => '.pdf',
+      'image/jpeg' => '.jpg',
+      'image/png' => '.png',
+      'image/heic' => '.heic',
+      'image/gif' => '.gif',
+      _ => '',
+    };
+    return (original ?? '文件') + ext;
+  }
+}
+
+/// 全屏图片查看：可缩放、拖动，点一下返回。
+class _ImageViewerPage extends StatelessWidget {
+  const _ImageViewerPage({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: SizedBox.expand(
+          child: InteractiveViewer(
+            maxScale: 6,
+            child: Center(child: Image.file(File(path))),
           ),
-        ],
+        ),
       ),
     );
   }

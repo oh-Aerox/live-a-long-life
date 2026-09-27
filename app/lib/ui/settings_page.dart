@@ -163,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
           '${now.hour.toString().padLeft(2, '0')}'
           '${now.minute.toString().padLeft(2, '0')}';
       final target = Directory(p.join(docs.path, 'exports', name));
-      final result = await ExportService(widget.services.db).export(target);
+      final result = await ExportService(widget.services.db, filesDir: widget.services.filesDir).export(target);
       if (!mounted) return;
       final missingNote = result.missingFiles.isEmpty
           ? ''
