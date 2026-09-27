@@ -12,6 +12,7 @@
 | [schema.md](schema.md) | 数据模型：实体、字段、状态、时间语义 | 改动数据结构前先改这里 |
 | [platform-matrix.md](platform-matrix.md) | 各平台能力的实现与验证状态 | 只凭验证证据更新状态 |
 | [plan-v0.1.md](plan-v0.1.md) | v0.1 实施计划、任务进度、新会话上手指引 | 任务完成后在清单勾选；验证证据仍记入 platform-matrix |
+| [plan-v0.2.md](plan-v0.2.md) | v0.2 实施计划与任务进度 | 同上；M6/T1/T2 真机欠账见 plan-v0.1 第 7 节 |
 
 ## 编号约定
 
