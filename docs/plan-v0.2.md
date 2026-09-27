@@ -26,6 +26,7 @@ v0.2 做一件事：**消息被整理成饮食、睡眠、心情、不适、运�
 | 时间归属 | TimeValue 结构在应用层实现（schema §1.2）；"昨天/今天"由模型结合 `sent_at`/`sent_tz` 解析，凌晨歧义按 D-06 记前一天并标 `date_ambiguous` |
 | 整理串行 | 单一整理队列（schema §3.1a），批次内逐项提交，快照校验按 D-05 |
 | HealthKit | 沿用 health 13.x（T1 已装包）；anchored query 锚点存 `health_anchors` |
+| 文件预览 | open_filex 4.x，2026-09-27 真机验证通过：临时副本带原文件名和后缀交给系统预览（按哈希命名的无后缀文件系统认不出类型）|
 
 ## 3. 里程碑
 

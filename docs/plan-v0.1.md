@@ -96,7 +96,8 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 
 - **已踩过的坑：UIScene 生命周期（2026-09-27 修复）。** Xcode 27 SDK 构建的应用在 iOS 27 上必须采用 UIScene 生命周期，否则从主屏幕正常启动时被系统 SIGTRAP 终止（闪退）；挂调试器（flutter run）启动时 trap 被吞掉，完全看不出问题。已按官方迁移：Info.plist 加 `UIApplicationSceneManifest`（FlutterSceneDelegate），AppDelegate 插件注册移到 `didInitializeImplicitFlutterEngine`。教训：每个里程碑要用不挂调试器的方式（主屏幕点开或 `devicectl device process launch`）验证启动。崩溃报告在 docs/evidence/2026-09-27-uiscene-launch-crash.ips。
 
-- **免费签名 7 天过期**（D-19）：开发期间保持固定 team；到期用 T2 脚本重签，不卸载重装。
+- **免费签名 7 天过期**（D-19）：开发期间保持固定 team；到期用 T2 脚本重签，不卸载重装。重签安装后系统要重新验证开发者档案：首次远程启动（devicectl）会被拒并在手机弹"未验证"提示，需手动打开一次，之后恢复正常（2026-09-27 记录）。
+- **不要在数据库里存沙盒绝对路径**：iOS 覆盖安装会更换容器路径。附件 local_path 已改存文件名（2026-09-27 修复,schema §2.3a）；今后任何落库的文件引用都只存相对名。
 - **iOS 权限文案：** 相册、相机、通知在首次请求前说明用途；HealthKit 文案在 T1 一并准备。
 - **大文件复制耗时：** 多图和大 PDF 的落盘校验异步执行，界面显示进度，校验完成前不显示"已保存"。
 - **候选包差异：** 每个候选包先做真机小样，不满足（尤其通知重启后失效、图片多选上限）就换，并更新本文第 2 节。
@@ -113,6 +114,6 @@ v0.1 建表：`messages`、`message_revisions`、`attachments`、`attachment_cop
 | [x] | M3 消息编辑与误发移除 | 2026-09-26：长按消息弹菜单（编辑 / 查看原文 / 删除误发）；编辑保留历史并显示"已编辑"；删除同事务标记附件引用，文件一律保留（清理留给 v0.4）|
 | [x] | M4 首次引导、通知、设置页 | 2026-09-26：三步引导（时区确认 / 回顾时间 / 可跳过资料）；flutter_local_notifications 19.5 每日重复提醒，启动时按设置重排；设置页含每日回顾、基本资料、存储说明、签名到期（读 embedded.mobileprovision）、版本；对话页签名 ≤2 天横幅。真机启动通过；A-05 重启后触发需人工验证 |
 | [x] | M5 导出与恢复 | 2026-09-26：导出到 Documents/exports（Files App 可见），data.json + files/ + manifest.json，导出后逐文件校验；恢复走临时位置准备、成功后一次替换、失败保留原库；部分恢复与拒绝未确认替换有单测覆盖。A-29 全流程真机验证在 M6 |
-| [ ] | M6 真机验收 A-01 至 A-07、A-29 | 需要用户在手机上逐条操作，证据入 platform-matrix |
-| [ ] | T1 HealthKit 真机读取试验 | 进展（2026-09-26）：entitlement + 权限文案已加，带 HealthKit 的免费签名构建和真机安装通过；设置页有临时入口"HealthKit 试验"。剩余：在手机上点"开始试验"，处理权限弹窗，截图存证 |
-| [ ] | T2 一键重签脚本 + 覆盖安装验证 | 进展（2026-09-26）：`scripts/resign-install.sh` 真机跑通（P-50 部分验证）。`flutter install` 会先卸载清数据，已改用 `xcrun devicectl` 原地安装。剩余：签名到期日重签 + A-07 数据保留人工确认 |
+| [ ] | M6 真机验收 A-01 至 A-07、A-29 | 第一轮 2026-09-27 完成：A-01、A-02、A-03、A-06、A-07、误发移除通过（证据 evidence/2026-09-27-m6-round1.md）；暴露并修复 local_path 绝对路径、键盘遮挡、附件不可查看三个问题（b1a85e1）。剩余：A-04、A-05、A-29 |
+| [x] | T1 HealthKit 真机读取试验 | 2026-09-27：免费签名下权限弹窗正常处理，anchored query 返回 0 条（手机本无睡眠数据），读取链路验证通过（P-10 前置达成）|
+| [x] | T2 一键重签脚本 + 覆盖安装验证 | 2026-09-27：覆盖安装数据保留（A-07）确认通过；同场验证 v1→v2 数据库迁移。到期日重签待 10 月初签名自然到期时顺带验证（P-50 保持部分验证）|
