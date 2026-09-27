@@ -4,6 +4,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/time_value.dart';
+import '../services/health_service.dart';
 import 'record_detail_page.dart';
 import 'record_ui.dart';
 
@@ -22,6 +23,7 @@ class DayViewPage extends StatefulWidget {
 class _DayViewPageState extends State<DayViewPage> {
   late DateTime _date;
   List<(RecordRow, RecordRevision)> _records = [];
+  DeviceDayData? _device;
 
   @override
   void initState() {
@@ -57,7 +59,13 @@ class _DayViewPageState extends State<DayViewPage> {
       if (byType != 0) return byType;
       return a.$1.createdAt.compareTo(b.$1.createdAt);
     });
-    if (mounted) setState(() => _records = result);
+    final device = await widget.services.healthService.dayData(_localDate);
+    if (mounted) {
+      setState(() {
+        _records = result;
+        _device = device;
+      });
+    }
   }
 
   void _shift(int days) {
@@ -102,11 +110,84 @@ class _DayViewPageState extends State<DayViewPage> {
               onPressed: () => _shift(1)),
         ],
       ),
-      body: _records.isEmpty
-          ? const Center(child: Text('这一天还没有记录'))
-          : ListView(
-              children: [for (final r in _records) _tile(r.$1, r.$2)],
-            ),
+      body: ListView(
+        children: [
+          if (_records.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: Text('这一天还没有记录')),
+            )
+          else
+            for (final r in _records) _tile(r.$1, r.$2),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child:
+                Text('设备数据', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          _deviceSection(),
+        ],
+      ),
+    );
+  }
+
+  /// 设备数据区（D-11：没有行 = "暂未读取到"，不是 0；A-12 措辞）。
+  Widget _deviceSection() {
+    final d = _device;
+    if (d == null || d.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text('暂未读取到记录，可手动补充',
+            style: TextStyle(color: Colors.grey)),
+      );
+    }
+    String hm(int ms) {
+      final t = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+      return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    }
+
+    final sleep = d.sleep;
+    return Column(
+      children: [
+        if (sleep != null)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.bedtime_outlined, size: 20),
+            title: Text(sleep.sleepDurationMin != null
+                ? '睡眠 ${sleep.sleepDurationMin! ~/ 60} 小时 '
+                    '${sleep.sleepDurationMin! % 60} 分钟'
+                : '在床 ${(sleep.inBedDurationMin ?? 0) ~/ 60} 小时 '
+                    '${(sleep.inBedDurationMin ?? 0) % 60} 分钟，睡眠时长未知'),
+            subtitle: Text([
+              if (sleep.sleepOnsetMs != null)
+                '入睡 ${hm(sleep.sleepOnsetMs!)} · 醒来 ${hm(sleep.wakeMs!)}',
+              '来源 ${sleep.sourceName}',
+            ].join(' · ')),
+          ),
+        for (final w in d.workouts)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.directions_run_outlined, size: 20),
+            title: Text([
+              w.workoutType ?? '体能训练',
+              '${((w.endUtc - w.startUtc) / 60000).round()} 分钟',
+              if (w.energyKcal != null) '${w.energyKcal!.round()} 千卡',
+            ].join(' · ')),
+            subtitle: Text('${hm(w.startUtc)}—${hm(w.endUtc)} · ${w.sourceName}'),
+          ),
+        if (d.steps != null)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.directions_walk_outlined, size: 20),
+            title: Text('步数 ${d.steps!.round()}'),
+          ),
+        if (d.activeEnergyKcal != null)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.local_fire_department_outlined, size: 20),
+            title: Text('活动能量 ${d.activeEnergyKcal!.round()} 千卡'),
+          ),
+      ],
     );
   }
 

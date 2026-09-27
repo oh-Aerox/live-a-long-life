@@ -187,6 +187,34 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                 dense: true,
                 title: const Text('照片'),
                 subtitle: Text('$photoCount 张（在对话流里查看）')),
+          // 睡眠记录附设备参考值：只作参考，排序永远让位于用户值（D-07、A-13）。
+          if (record.recordType == RecordType.sleep &&
+              occurred.localDate != null)
+            FutureBuilder(
+              future: widget.services.healthService.dayData(occurred.localDate!),
+              builder: (context, snapshot) {
+                final sleep = snapshot.data?.sleep;
+                if (sleep == null) return const SizedBox.shrink();
+                String hm(int ms) {
+                  final t =
+                      DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+                  return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+                }
+
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.watch_outlined, size: 18),
+                  title: const Text('设备参考'),
+                  subtitle: Text([
+                    if (sleep.sleepOnsetMs != null)
+                      '入睡 ${hm(sleep.sleepOnsetMs!)} · 醒来 ${hm(sleep.wakeMs!)}',
+                    if (sleep.sleepDurationMin != null)
+                      '睡眠 ${sleep.sleepDurationMin! ~/ 60} 小时 ${sleep.sleepDurationMin! % 60} 分钟',
+                    '来源 ${sleep.sourceName}',
+                  ].join(' · ')),
+                );
+              },
+            ),
           const Divider(),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),

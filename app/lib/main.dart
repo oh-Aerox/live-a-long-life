@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'app_services.dart';
+import 'services/health_service.dart';
 import 'services/notification_service.dart';
 import 'ui/chat_page.dart';
 import 'ui/onboarding_page.dart';
@@ -35,6 +36,17 @@ Future<void> main() async {
 
   // 启动补整理：上次失败或没配模型时留下的"待整理"消息（A-10）。
   unawaited(services.organizeService.catchUp());
+
+  // 健康数据（V2-M4）：用户在设置里开启后，每次启动增量同步。
+  services.healthService = HealthService(
+    repository: services.health,
+    settings: services.settings,
+    tz: tz,
+  );
+  if (await services.settings.get('healthkit_sync_enabled') as bool? ??
+      false) {
+    unawaited(services.healthService.syncNow());
+  }
 
   runApp(App(
     services: services,

@@ -33,6 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
   DateTime? _signingExpiry;
   String _version = '';
   bool _busy = false;
+  bool _healthEnabled = false;
 
   @override
   void initState() {
@@ -47,12 +48,39 @@ class _SettingsPageState extends State<SettingsPage> {
         await widget.services.settings.get('review_enabled') as bool;
     final expiry = await SigningInfo.provisioningExpiry();
     final info = await PackageInfo.fromPlatform();
+    final healthEnabled =
+        await widget.services.settings.get('healthkit_sync_enabled') as bool? ??
+            false;
     if (mounted) {
       setState(() {
         _reviewSummary = enabled ? times.join('、') : '已关闭';
         _signingExpiry = expiry;
         _version = '${info.version} (${info.buildNumber})';
+        _healthEnabled = healthEnabled;
       });
+    }
+  }
+
+  /// 开启时申请权限并立即同步一次。iOS 不会告诉应用权限被拒，
+  /// 读不到只显示"暂未读取到"（D-11、A-12）。
+  Future<void> _toggleHealth(bool enable) async {
+    setState(() {
+      _healthEnabled = enable;
+      _busy = true;
+    });
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.services.settings.set('healthkit_sync_enabled', enable);
+      if (enable) {
+        await widget.services.healthService.requestAuthorization();
+        final n = await widget.services.healthService.syncNow();
+        messenger.showSnackBar(SnackBar(
+            content: Text(n > 0 ? '已读取 $n 条新样本' : '暂未读取到记录，可手动补充')));
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('读取失败：$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -146,6 +174,13 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('版本'),
             trailing: Text(_version),
+          ),
+          SwitchListTile(
+            title: const Text('读取健康数据'),
+            subtitle: const Text('睡眠、步数、体能训练、活动能量。只读取，'
+                '不写入，数据只保存在本机'),
+            value: _healthEnabled,
+            onChanged: _busy ? null : (v) => _toggleHealth(v),
           ),
           ListTile(
             title: const Text('HealthKit 试验（T1）'),

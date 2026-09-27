@@ -9,10 +9,12 @@ import 'data/db/app_database.dart';
 import 'data/repositories/attachment_repository.dart';
 import 'data/repositories/message_repository.dart';
 import 'data/repositories/model_config_repository.dart';
+import 'data/repositories/health_repository.dart';
 import 'data/repositories/organize_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/record_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/organize_service.dart';
 
@@ -30,6 +32,7 @@ class AppServices {
     required this.modelConfigs,
     required this.organize,
     required this.records,
+    required this.health,
     required this.keyStore,
     required this.filesDir,
   }) {
@@ -57,6 +60,11 @@ class AppServices {
   late final File dbFile;
   late final OrganizeService organizeService;
 
+  final HealthRepository health;
+
+  /// 依赖启动时检测的时区，在 main 里赋值。
+  late final HealthService healthService;
+
   static Future<AppServices> init() async {
     final support = await getApplicationSupportDirectory();
     final dbFile = File(p.join(support.path, 'db', 'app.sqlite'));
@@ -76,6 +84,7 @@ class AppServices {
       modelConfigs: ModelConfigRepository(db, ctx),
       organize: OrganizeRepository(db, ctx),
       records: RecordRepository(db, ctx),
+      health: HealthRepository(db, ctx),
       keyStore: KeyStore(),
       filesDir: filesDir,
     )..dbFile = dbFile;
