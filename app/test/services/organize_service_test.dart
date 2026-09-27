@@ -156,6 +156,14 @@ void main() {
     final calls = await runs.recentModelCalls();
     expect(calls.single.status, ModelCallStatus.succeeded);
     expect(jsonDecode(calls.single.sentMessageIds), [m.id]);
+
+    // 归属日期不是今天：对话流出现"已记到 9月25日"提示，指向这条记录（A-23）。
+    final thread = await messages.thread();
+    final notice =
+        thread.where((t) => t.kind == MessageKind.appNotice).single;
+    expect(notice.body, contains('已记到 9月25日'));
+    expect(jsonDecode(notice.promptMeta!)['record_id'], day.single.id);
+    expect(notice.inReplyTo, m.id);
   });
 
   test('A-30：同一天两次运动生成两条独立记录', () async {

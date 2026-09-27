@@ -7,8 +7,12 @@ import 'package:live_a_long_life/data/app_context.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
 import 'package:live_a_long_life/data/repositories/message_repository.dart';
+import 'package:live_a_long_life/data/field_meta.dart';
+import 'package:live_a_long_life/data/repositories/health_repository.dart';
 import 'package:live_a_long_life/data/repositories/profile_repository.dart';
+import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/repositories/settings_repository.dart';
+import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/export_service.dart';
 import 'package:live_a_long_life/services/restore_service.dart';
 import 'package:path/path.dart' as p;
@@ -183,6 +187,58 @@ void main() {
         final copies =
             await restored.select(restored.attachmentCopies).get();
         expect(copies.single.state, CopyState.missing);
+      } finally {
+        await restored.close();
+      }
+    });
+
+    test('v0.2 数据随导出恢复：记录、来源、健康数据都在（格式 v2）', () async {
+      await seedData();
+      final records = RecordRepository(sourceDb, ctx);
+      final health = HealthRepository(sourceDb, ctx);
+      final rec = await records.create(
+        recordType: RecordType.meal,
+        occurred: TimeValue(
+          localDate: '2026-09-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated,
+        ),
+        dataJson: '{"status":"eaten","description":"面"}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.organizeRun('run-1'),
+        sources: const [
+          SourceLink(sourceKind: RecordSourceKind.message, sourceId: 'c1'),
+        ],
+      );
+      await health.upsertDaily(
+        localDate: '2026-09-26',
+        aggTz: 'Asia/Shanghai',
+        intervalStartUtcMs: 0,
+        intervalEndUtcMs: 86400000,
+        metric: HealthMetric.steps,
+        value: 8000,
+      );
+
+      final out = Directory(p.join(tempDir.path, 'export'));
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
+      final targetRoot = Directory(p.join(tempDir.path, 'target'));
+      await doRestore(out, targetRoot);
+
+      final restored = AppDatabase(
+          NativeDatabase(File(p.join(targetRoot.path, 'db', 'app.sqlite'))));
+      try {
+        final restoredRecords = RecordRepository(
+            restored, AppContext(userId: 'u1', deviceId: 'phone-2'));
+        final day = await restoredRecords.byDate('2026-09-26');
+        expect(day.single.id, rec.id);
+        final rev = await restoredRecords.currentRevisionOf(rec.id);
+        expect(rev.data, contains('面'));
+        expect(await restoredRecords.sourcesOf(rev.id), hasLength(1));
+
+        final daily = await (restored.select(restored.healthDaily)).get();
+        expect(daily.single.value, 8000);
+        // 模型配置不进备份（schema §4.3）。
+        expect(await restored.select(restored.modelConfigs).get(), isEmpty);
       } finally {
         await restored.close();
       }

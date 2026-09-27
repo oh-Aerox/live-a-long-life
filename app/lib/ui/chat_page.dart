@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -12,6 +13,8 @@ import '../data/ids.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
+import 'day_view_page.dart';
+import 'record_detail_page.dart';
 import 'settings_page.dart';
 
 /// 对话页（product-spec §3 v0.1 页面）。
@@ -272,6 +275,14 @@ class _ChatPageState extends State<ChatPage> {
         title: const Text('长寿记'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_today_outlined),
+            tooltip: '按日查看',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DayViewPage(services: _s)),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: '设置',
             onPressed: () => Navigator.push(
@@ -425,13 +436,39 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ],
           );
+    if (isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: GestureDetector(
+            onLongPress: () => _showMessageMenu(m), child: withState),
+      );
+    }
+    // "已记到 X月X日"等提示：点开对应记录（A-23 歧义核对入口）。
+    final recordId = _noticeRecordId(m);
     return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: isUser
-          ? GestureDetector(
-              onLongPress: () => _showMessageMenu(m), child: withState)
-          : withState,
+      alignment: Alignment.centerLeft,
+      child: recordId == null
+          ? withState
+          : GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        RecordDetailPage(services: _s, recordId: recordId)),
+              ),
+              child: withState,
+            ),
     );
+  }
+
+  String? _noticeRecordId(Message m) {
+    if (m.kind != MessageKind.appNotice || m.promptMeta == null) return null;
+    try {
+      final meta = jsonDecode(m.promptMeta!) as Map;
+      return meta['record_id'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ---- 消息纠错（M3：A-06 与误发移除）----

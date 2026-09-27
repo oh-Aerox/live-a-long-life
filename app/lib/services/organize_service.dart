@@ -365,6 +365,9 @@ class OrganizeService {
       if (status == OrganizeItemStatus.committed ||
           status == OrganizeItemStatus.protectedSuggested) {
         committed++;
+        if (candidate.existingRecordId == null) {
+          await _noticeIfOtherDate(candidate, recordId, snapMessages);
+        }
       } else if (status == OrganizeItemStatus.staleInput ||
           status == OrganizeItemStatus.staleTarget) {
         stale++;
@@ -416,6 +419,39 @@ class OrganizeService {
         error: errorText, finishedAt: ids.nowMs());
 
     if (requeue) await enqueue(run.trigger);
+  }
+
+  /// 归属日期不是消息发送日时，在对话流里提示"已记到 X月X日"；
+  /// 凌晨歧义（date_ambiguous）时提示核对，点开记录即可改（A-23、D-06）。
+  Future<void> _noticeIfOtherDate(
+    OrganizeCandidate candidate,
+    String recordId,
+    Map<String, Map<String, Object?>> snapMessages,
+  ) async {
+    final localDate = candidate.occurred.localDate;
+    if (localDate == null) return;
+    final firstSource = await _messages.byId(candidate.sourceMessageIds.first);
+    if (firstSource == null) return;
+    final sent =
+        DateTime.fromMillisecondsSinceEpoch(firstSource.sentAt).toLocal();
+    final sentDate =
+        '${sent.year}-${sent.month.toString().padLeft(2, '0')}-${sent.day.toString().padLeft(2, '0')}';
+    final ambiguous = candidate.occurred.dateAmbiguous;
+    if (localDate == sentDate && !ambiguous) return;
+
+    final d = DateTime.parse(localDate);
+    final text = ambiguous
+        ? '已记到 ${d.month}月${d.day}日，对吗？点开可改'
+        : '已记到 ${d.month}月${d.day}日';
+    await _messages.send(
+      clientMsgId: ids.newId(),
+      role: MessageRole.app,
+      kind: MessageKind.appNotice,
+      text: text,
+      sentTz: firstSource.sentTz,
+      inReplyTo: firstSource.id,
+      promptMeta: jsonEncode({'kind': 'date_notice', 'record_id': recordId}),
+    );
   }
 
   bool _matchesSnapshot(Message m, Map<String, Object?> snap) =>

@@ -7,7 +7,24 @@ import '../data/db/app_database.dart';
 import '../data/repositories/attachment_repository.dart';
 
 /// 导出格式版本。改动 data.json 结构时加 1，恢复时校验。
-const exportFormatVersion = 1;
+/// v2（2026-09-27）：增加 `v2_tables`——记录、版本、来源、整理批次与逐项、
+/// 修正建议、回顾记账、健康样本与按天聚合。不含 `model_configs`（schema
+/// §4.3 不进备份）、`model_calls`（本机调试记录）、`health_anchors`
+/// （锚点在新环境重建）。
+const exportFormatVersion = 2;
+
+/// v2 起随导出走的表（名字 = SQLite 表名，行按数据库原值转储）。
+const v2ExportTables = [
+  'records',
+  'record_revisions',
+  'record_sources',
+  'organize_runs',
+  'organize_run_items',
+  'correction_suggestions',
+  'review_prompts',
+  'health_samples',
+  'health_daily',
+];
 
 class ExportResult {
   ExportResult({
@@ -81,6 +98,15 @@ class ExportService {
         for (final r in exportedSettings)
           {'key': r.key, 'value': r.value, 'updated_at': r.updatedAt},
       ],
+      // v0.2 新表按数据库原值整表转储（列名 = SQLite 列名）。
+      'v2_tables': {
+        for (final table in v2ExportTables)
+          table: [
+            for (final row
+                in await _db.customSelect('SELECT * FROM $table').get())
+              row.data,
+          ],
+      },
     };
     final dataFile = File(p.join(target.path, 'data.json'));
     await dataFile.writeAsString(jsonEncode(data));

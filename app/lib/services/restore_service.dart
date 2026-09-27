@@ -54,11 +54,22 @@ class RestoreService {
     }
     final manifest =
         jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
-    if (manifest['format_version'] != exportFormatVersion) {
-      throw StateError('导出格式版本不支持：${manifest['format_version']}');
+    // v1 导出（无 v0.2 表）仍可恢复；高于当前版本的拒绝。
+    final version = manifest['format_version'];
+    if (version is! int || version < 1 || version > exportFormatVersion) {
+      throw StateError('导出格式版本不支持：$version');
     }
     return manifest.cast<String, Object?>();
   }
+
+  static Variable _variableFor(Object? value) => switch (value) {
+        null => const Variable(null),
+        final int v => Variable.withInt(v),
+        final double v => Variable.withReal(v),
+        final bool v => Variable.withBool(v),
+        final String v => Variable.withString(v),
+        _ => throw StateError('v2 表里出现不支持的值类型：$value'),
+      };
 
   /// `hasExistingData`：当前资料库是否已有内容；有则必须 `replaceExisting`。
   Future<RestoreResult> restore(
@@ -260,6 +271,26 @@ class RestoreService {
                   value: jsonEncode(newDeviceId),
                   updatedAt: ids.nowMs(),
                 ));
+          }
+          // v2 起：v0.2 新表整表回灌（v1 导出没有这个键，跳过）。
+          final v2Tables =
+              (data['v2_tables'] as Map?)?.cast<String, dynamic>();
+          if (v2Tables != null) {
+            for (final table in v2ExportTables) {
+              for (final row in (v2Tables[table] as List? ?? const [])) {
+                final m = (row as Map).cast<String, Object?>();
+                final columns = m.keys.toList();
+                final placeholders =
+                    List.filled(columns.length, '?').join(', ');
+                await db.customInsert(
+                  'INSERT INTO $table (${columns.join(', ')}) '
+                  'VALUES ($placeholders)',
+                  variables: [
+                    for (final c in columns) _variableFor(m[c]),
+                  ],
+                );
+              }
+            }
           }
         });
       } finally {
