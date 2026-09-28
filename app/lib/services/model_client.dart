@@ -288,8 +288,9 @@ class ModelClient {
     String? detail;
     try {
       final json = jsonDecode(responseText) as Map;
-      // OpenAI 形如 {error: {message}}；Anthropic 形如 {error: {type, message}}。
-      detail = ((json['error'] as Map?)?['message']) as String?;
+      // OpenAI/Anthropic：{error:{message}}；部分中转站：顶层 {code,message}。
+      detail = ((json['error'] as Map?)?['message'] ?? json['message'])
+          as String?;
     } catch (_) {}
     final hint = switch (status) {
       401 || 403 => 'key 无效或没有权限',
