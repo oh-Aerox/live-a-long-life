@@ -105,13 +105,27 @@ void main() {
       final calls = await env.db.select(env.db.modelCalls).get();
       expect(calls.single.caller, ModelCaller.macAnalysis);
 
-      // 失败：不是 JSON → 抛异常，旧周报保留。
-      nextReply = '抱歉我不能';
+      // 失败：响应完全为空 → 抛异常，旧周报保留（降级后只有空响应才算失败）。
+      nextReply = '   ';
       await expectLater(
           analysis.generateWeeklyReview(), throwsA(isA<StateError>()));
       expect(await analysis.latest(AnalysisKind.weeklyReview), isNotNull);
       expect(
           (await analysis.latest(AnalysisKind.weeklyReview))!.id, artifact.id);
+    });
+
+    test('解析降级：JSON 前后带解释文字仍能取出正文与引用', () async {
+      nextReply = '好的，这是你的周报：\n'
+          '```json\n{"content_md":"# 周报\\n本周不错","citations":[]}\n```\n希望有帮助！';
+      final a = await analysis.generateWeeklyReview();
+      expect(a.contentMd, contains('本周不错'));
+    });
+
+    test('解析降级：模型直接返回 Markdown（非 JSON），整段当正文，不失败', () async {
+      nextReply = '# 本周健康周报\n- 饮食：规律\n- 睡眠：偏少';
+      final a = await analysis.generateWeeklyReview();
+      expect(a.contentMd, contains('本周健康周报'));
+      expect(jsonDecode(a.citations), isEmpty);
     });
 
     test('过期判断（D-14）：代次一致且没有新变更时不过期，有新变更即提示', () async {

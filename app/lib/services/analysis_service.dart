@@ -181,6 +181,12 @@ class AnalysisService {
         );
   }
 
+  /// 解析周报，三级降级（模型经常不严格返回纯 JSON，尤其中转站/兼容服务）：
+  /// 1. 严格 JSON（去 ``` 围栏）；
+  /// 2. 从文本里截第一个 { 到最后一个 } 再试；
+  /// 3. 仍不行且有实质文本时，把整段返回当作正文（引用留空）——
+  ///    正文是周报的核心，引用是加分项，能出内容就不算失败。
+  /// 只有响应完全为空才返回 null。
   (String, List<Object?>)? _parse(String text) {
     var t = text.trim();
     if (t.startsWith('```')) {
@@ -189,14 +195,34 @@ class AnalysisService {
       if (t.endsWith('```')) t = t.substring(0, t.length - 3);
       t = t.trim();
     }
+
+    final fromJson = _tryJson(t) ?? _tryJson(_sliceBraces(t));
+    if (fromJson != null) return fromJson;
+
+    // 降级：整段文本当正文。去掉可能残留的围栏后若还有内容就用。
+    final body = t.trim();
+    if (body.isEmpty) return null;
+    return (body, const []);
+  }
+
+  (String, List<Object?>)? _tryJson(String? s) {
+    if (s == null || s.isEmpty) return null;
     try {
-      final json = jsonDecode(t) as Map;
+      final json = jsonDecode(s);
+      if (json is! Map) return null;
       final content = json['content_md'];
-      if (content is! String || content.isEmpty) return null;
+      if (content is! String || content.trim().isEmpty) return null;
       return (content, (json['citations'] as List?) ?? const []);
     } catch (_) {
       return null;
     }
+  }
+
+  String? _sliceBraces(String s) {
+    final start = s.indexOf('{');
+    final end = s.lastIndexOf('}');
+    if (start < 0 || end <= start) return null;
+    return s.substring(start, end + 1);
   }
 
   Future<AnalysisArtifact?> latest(AnalysisKind kind) =>
