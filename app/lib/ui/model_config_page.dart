@@ -46,6 +46,38 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
     if (mounted) setState(() => _configs = configs);
   }
 
+  /// 删除一个配置：确认后清 Keychain 里的 key 并标记删除。
+  /// 删的是默认配置时，剩下的第一个自动补为默认，避免没有默认可用。
+  Future<void> _delete(ModelConfig c) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除这个模型配置？'),
+        content: Text(
+            '${ModelPresetDefaults.byPreset[c.preset]?.label ?? c.preset.name} · ${c.model}\n'
+            'key 会一并从系统安全存储中移除。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final s = widget.services;
+    if (c.keychainRef.isNotEmpty) await s.keyStore.delete(c.keychainRef);
+    await s.modelConfigs.markDeleted(c.id);
+    // 删掉的是默认、还有其他配置时，补一个默认。
+    if (c.isDefault) {
+      final rest = await s.modelConfigs.all();
+      if (rest.isNotEmpty) await s.modelConfigs.setDefault(rest.first.id);
+    }
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,25 +100,55 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
               child: Text('还没有配置模型。没有模型时录入照常可用，'
                   '消息会显示"待整理"，配置后可以补整理。'),
             ),
+          if (_configs.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('点左侧圆圈设为默认（整理和周报用默认模型）',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+            ),
           for (final c in _configs)
             ListTile(
               title: Text(
                   '${ModelPresetDefaults.byPreset[c.preset]?.label ?? c.preset.name} · ${c.model}'),
               subtitle: Text(
                   '${_boundaryLabels[c.dataBoundary]} · ${_capabilityLabel(c)} · ${c.lastTestResult ?? "未测试"}'),
-              leading: c.isDefault
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : const Icon(Icons.circle_outlined),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => ModelConfigEditPage(
-                          services: widget.services, existing: c)),
-                );
-                await _load();
-              },
+              // 点圆圈直接设默认，不进配置页。
+              leading: IconButton(
+                icon: Icon(
+                  c.isDefault ? Icons.check_circle : Icons.circle_outlined,
+                  color: c.isDefault ? Colors.green : null,
+                ),
+                tooltip: c.isDefault ? '当前默认' : '设为默认',
+                onPressed: c.isDefault
+                    ? null
+                    : () async {
+                        await widget.services.modelConfigs.setDefault(c.id);
+                        await _load();
+                      },
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: '编辑',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => ModelConfigEditPage(
+                                services: widget.services, existing: c)),
+                      );
+                      await _load();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: '删除',
+                    onPressed: () => _delete(c),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -126,6 +188,10 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
   bool _busy = false;
   String? _testResult;
 
+  /// 正在编辑的配置 id：进来时是 existing?.id；新增页首次保存后记下来，
+  /// 之后重试测试都是更新同一条，不再重复新增（修复失败重试堆积）。
+  String? _editingId;
+
   ModelPresetDefaults get _defaults => ModelPresetDefaults.byPreset[_preset]!;
 
   @override
@@ -133,6 +199,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
     super.initState();
     final existing = widget.existing;
     if (existing != null) {
+      _editingId = existing.id;
       _preset = existing.preset;
       _baseUrl.text = existing.baseUrl;
       _model.text = existing.model;
@@ -166,7 +233,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
       messenger.showSnackBar(const SnackBar(content: Text('请填写地址和模型名')));
       return;
     }
-    if (widget.existing == null && key.isEmpty && _defaults.needsKey) {
+    if (_editingId == null && key.isEmpty && _defaults.needsKey) {
       messenger.showSnackBar(const SnackBar(content: Text('请填写 API key')));
       return;
     }
@@ -174,7 +241,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
     try {
       final s = widget.services;
       ModelConfig config;
-      if (widget.existing == null) {
+      if (_editingId == null) {
         config = await s.modelConfigs.add(
           preset: _preset,
           protocol: _defaults.protocol,
@@ -186,9 +253,10 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
         );
         final ref = await s.keyStore.save(config.id, key);
         config = await s.modelConfigs.setKeychainRef(config.id, ref);
+        _editingId = config.id; // 记下：后续重试是更新，不再新增
       } else {
         config = await s.modelConfigs.updateEndpoint(
-          widget.existing!.id,
+          _editingId!,
           baseUrl: baseUrl,
           model: model,
           dataBoundary: inferDataBoundary(baseUrl),
@@ -196,7 +264,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
         if (key.isNotEmpty) {
           await s.keyStore.save(config.id, key);
         }
-        if (_makeDefault && !widget.existing!.isDefault) {
+        if (_makeDefault && !config.isDefault) {
           await s.modelConfigs.setDefault(config.id);
         }
       }
