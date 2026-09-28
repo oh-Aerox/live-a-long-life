@@ -14,6 +14,7 @@ import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'healthkit_spike_page.dart';
 import 'log_page.dart';
+import 'medical_space_page.dart';
 import 'model_config_page.dart';
 import 'pair_mac_page.dart';
 import 'profile_page.dart';
@@ -156,6 +157,16 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const Divider(),
+          ListTile(
+            title: const Text('医疗文件空间'),
+            subtitle: const Text('清理手机原件，保留记录；已清理的可取回'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => MedicalSpacePage(services: widget.services)),
+            ),
+          ),
           ListTile(
             title: const Text('数据存储位置'),
             subtitle: const Text('全部数据只保存在这台手机上'),

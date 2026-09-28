@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 
 import '../../data/change_log.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/peer_repository.dart';
+import '../app_log.dart';
 import '../key_store.dart';
 import 'secure_channel.dart';
 import 'sync_client.dart';
@@ -237,6 +239,39 @@ class SyncService {
         final artifact = reply['artifact'];
         if (artifact is Map) return artifact.cast<String, Object?>();
       } catch (_) {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  /// 用户主动取回原件（D-22/A-21）：向已配对 Mac 请求同一 sha 的文件，
+  /// 校验哈希后落盘，返回本地路径；Mac 不可达或没有该文件时返回 null。
+  Future<String?> retrieveBlob(String sha) async {
+    for (final peer in await _peers.all()) {
+      final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
+      final addr = peer.lastSeenAddr;
+      if (keyB64 == null || addr == null || !addr.contains(':')) continue;
+      try {
+        final reply = await _postSealed(
+          SecureChannel(base64Decode(keyB64)),
+          addr.split(':').first,
+          int.parse(addr.split(':').last),
+          '/blob_fetch',
+          {'sha': sha},
+        );
+        if (reply['status'] != 'found') continue;
+        final bytes = base64Decode(reply['bytes'] as String);
+        if (crypto.sha256.convert(bytes).toString() != sha) {
+          AppLog.I.w('sync', '取回文件哈希不符，丢弃：$sha');
+          continue;
+        }
+        await _filesDir.create(recursive: true);
+        final target = File(p.join(_filesDir.path, sha));
+        await target.writeAsBytes(bytes);
+        return target.path;
+      } catch (e) {
+        AppLog.I.w('sync', '取回原件失败（${peer.displayName}）：$e');
         continue;
       }
     }

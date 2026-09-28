@@ -23,6 +23,7 @@ import 'services/consult_service.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/medical_extraction_service.dart';
+import 'services/medical_space_service.dart';
 import 'services/organize_service.dart';
 import 'services/review_service.dart';
 import 'services/suggestion_service.dart';
@@ -97,6 +98,13 @@ class AppServices {
       keyStore: keyStore,
       extraction: textExtraction,
     );
+    medicalSpace = MedicalSpaceService(
+      db: db,
+      attachments: attachments,
+      documents: medicalDocuments,
+      sync: syncService,
+      extraction: textExtraction,
+    );
   }
 
   final AppDatabase db;
@@ -120,6 +128,7 @@ class AppServices {
   late final TextExtractionService textExtraction;
   late final MedicalExtractionService medicalExtraction;
   late final ConsultService consult;
+  late final MedicalSpaceService medicalSpace;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

@@ -175,6 +175,64 @@ class AttachmentRepository {
                 t.deviceId.equals(_ctx.deviceId)))
           .getSingleOrNull();
 
+  /// 本机副本当前状态；从未登记过按 missing。
+  Future<CopyState> copyStateOf(String attachmentId) async =>
+      (await _copyOf(attachmentId))?.state ?? CopyState.missing;
+
+  /// 清理本机原件（D-22）：实际删除文件成功后才标 offloaded，
+  /// 只动文件与副本状态，附件身份、引用、历史数据全部不动；
+  /// 副本状态变化不入变更日志（schema §7.2）。返回释放的字节数。
+  Future<int> offloadCopy(String attachmentId) async {
+    final copy = await _copyOf(attachmentId);
+    if (copy == null || copy.state != CopyState.present) return 0;
+    final path = copy.localPath == null ? null : _resolve(copy.localPath!);
+    var freed = 0;
+    if (path != null) {
+      final f = File(path);
+      if (await f.exists()) {
+        freed = await f.length();
+        await f.delete(); // 删失败直接抛：不能谎报已释放（A-36）
+      }
+    }
+    await (_db.update(_db.attachmentCopies)..where((t) => t.id.equals(copy.id)))
+        .write(AttachmentCopiesCompanion(
+      state: const Value(CopyState.offloaded),
+      offloadedAt: Value(ids.nowMs()),
+      localPath: const Value(null),
+      copyVersion: Value(copy.copyVersion + 1),
+    ));
+    return freed;
+  }
+
+  /// 取回后登记本机副本（文件已由调用方按 sha 校验落盘）。
+  Future<void> markCopyPresent(String attachmentId, String sha256) async {
+    final copy = await _copyOf(attachmentId);
+    final now = ids.nowMs();
+    if (copy == null) {
+      await _db.into(_db.attachmentCopies).insert(
+            AttachmentCopiesCompanion.insert(
+              id: ids.newId(),
+              userId: _ctx.userId,
+              createdAt: now,
+              createdOnDevice: _ctx.deviceId,
+              attachmentId: attachmentId,
+              deviceId: _ctx.deviceId,
+              state: CopyState.present,
+              localPath: Value(sha256),
+              verifiedAt: Value(now),
+            ),
+          );
+      return;
+    }
+    await (_db.update(_db.attachmentCopies)..where((t) => t.id.equals(copy.id)))
+        .write(AttachmentCopiesCompanion(
+      state: const Value(CopyState.present),
+      localPath: Value(sha256),
+      verifiedAt: Value(now),
+      copyVersion: Value(copy.copyVersion + 1),
+    ));
+  }
+
   /// 重新校验本机副本：文件缺失或内容不符时转 `missing`，
   /// 附件身份、消息引用与历史数据全部保留（schema §2.3a）。
   Future<CopyState> verifyCopy(String attachmentId) async {

@@ -174,6 +174,7 @@ class SyncServer {
           '/ping' => {'device_id': deviceId, 'ok': true},
           '/changes' => await _applyChange(peerId, payload),
           '/blob' => await _storeBlob(payload),
+          '/blob_fetch' => await _serveBlob(payload),
           '/analysis' => await _latestAnalysis(),
           _ => {'error': '未知端点'},
         };
@@ -314,6 +315,24 @@ class SyncServer {
     await _filesDir.create(recursive: true);
     await File(p.join(_filesDir.path, sha)).writeAsBytes(bytes);
     return {'status': 'stored', 'sha': sha};
+  }
+
+  /// 用户主动取回原件时下发文件（D-22/A-21）。普通同步不会推回
+  /// 已清理的文件，只有手机显式请求才走到这里。
+  Future<Map<String, Object?>> _serveBlob(Map<String, Object?> payload) async {
+    final sha = payload['sha'] as String;
+    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) {
+      return {'status': 'rejected', 'error': 'sha 不合法'};
+    }
+    final f = File(p.join(_filesDir.path, sha));
+    if (!await f.exists()) {
+      return {'status': 'not_found', 'sha': sha};
+    }
+    return {
+      'status': 'found',
+      'sha': sha,
+      'bytes': base64Encode(await f.readAsBytes()),
+    };
   }
 
   static Variable _variableFor(Object? value) => switch (value) {
