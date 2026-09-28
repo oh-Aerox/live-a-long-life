@@ -4,7 +4,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// key 只进系统 Keychain，数据库、导出、备份里只有引用名 `keychain_ref`。
 class KeyStore {
   KeyStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              // macOS：数据保护钥匙串需要 keychain-access-groups entitlement，
+              // 免费/本机签名下报 -34018；用传统钥匙串即可（2026-09-28 联调发现）。
+              mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+            );
 
   final FlutterSecureStorage _storage;
 

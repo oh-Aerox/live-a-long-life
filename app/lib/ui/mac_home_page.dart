@@ -189,8 +189,14 @@ class _MacHomePageState extends State<MacHomePage> {
       filesDir: widget.services.filesDir,
       peers: _peerRepo,
       keyStore: widget.services.keyStore,
-    )..onReplicaChanged = () {
+    )
+      ..onReplicaChanged = () {
         if (mounted) _load();
+      }
+      ..onPaired = () {
+        // 配对成功：收起二维码并刷新设备列表。
+        if (mounted) setState(() => _pairing = null);
+        _load();
       };
     await _server!.start();
     if (mounted) setState(() {});
@@ -200,19 +206,6 @@ class _MacHomePageState extends State<MacHomePage> {
     await _ensureServer();
     final info = await _server!.startPairing();
     if (mounted) setState(() => _pairing = info);
-    // 配对完成后刷新列表（简单轮询，之后换事件）。
-    Future.delayed(const Duration(seconds: 3), _pollPaired);
-  }
-
-  Future<void> _pollPaired() async {
-    if (!mounted || _pairing == null) return;
-    final before = _peers.length;
-    await _load();
-    if (_peers.length > before) {
-      setState(() => _pairing = null); // 配对成功，收起二维码
-    } else {
-      Future.delayed(const Duration(seconds: 3), _pollPaired);
-    }
   }
 
   @override

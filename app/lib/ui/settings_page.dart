@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../app_services.dart';
+import '../data/db/app_database.dart';
 import '../services/export_service.dart';
 import '../services/notification_service.dart';
 import '../services/restore_service.dart';
@@ -37,6 +38,8 @@ class _SettingsPageState extends State<SettingsPage> {
   String _version = '';
   bool _busy = false;
   bool _healthEnabled = false;
+  String? _pairedMacName;
+  String _syncSummary = '';
 
   @override
   void initState() {
@@ -54,12 +57,25 @@ class _SettingsPageState extends State<SettingsPage> {
     final healthEnabled =
         await widget.services.settings.get('healthkit_sync_enabled') as bool? ??
             false;
+    final peers = await widget.services.peerRepo.all();
+    final push = await (widget.services.db.select(widget.services.db.syncStates)
+          ..where((t) => t.direction.equalsValue(SyncDirection.push))
+          ..limit(1))
+        .getSingleOrNull();
+    final syncSummary = push == null
+        ? '还没同步过'
+        : (push.pendingCount > 0
+            ? '待传 ${push.pendingCount} 条'
+            : '已同步到第 ${push.ackedContiguousSeq} 条');
     if (mounted) {
       setState(() {
         _reviewSummary = enabled ? times.join('、') : '已关闭';
         _signingExpiry = expiry;
         _version = '${info.version} (${info.buildNumber})';
         _healthEnabled = healthEnabled;
+        _pairedMacName =
+            peers.isEmpty ? null : peers.map((p) => p.displayName).join('、');
+        _syncSummary = syncSummary;
       });
     }
   }
@@ -198,14 +214,22 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           ListTile(
-            title: const Text('连接 Mac'),
-            subtitle: const Text('扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'),
+            title: Text(_pairedMacName == null ? '连接 Mac' : '已连接 Mac'),
+            subtitle: Text(_pairedMacName == null
+                ? '扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'
+                : '$_pairedMacName · $_syncSummary'),
+            leading: _pairedMacName == null
+                ? null
+                : const Icon(Icons.laptop_mac, color: Colors.green),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => PairMacPage(services: widget.services)),
-            ),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => PairMacPage(services: widget.services)),
+              );
+              await _load();
+            },
           ),
           SwitchListTile(
             title: const Text('读取健康数据'),

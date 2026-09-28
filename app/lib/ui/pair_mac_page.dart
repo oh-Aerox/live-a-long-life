@@ -138,7 +138,28 @@ class _PairMacPageState extends State<PairMacPage> {
                 ? '在 Mac 上打开 长寿记 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
                 : '重新配对：在 Mac 上点「重新配对」后扫新的二维码。'),
           ),
-          Expanded(child: MobileScanner(onDetect: _onDetect)),
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                MobileScanner(onDetect: _onDetect),
+                // 取景框：对准二维码的视觉引导。
+                IgnorePointer(
+                  child: Container(
+                    width: 240,
+                    height: 240,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 3),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black38, blurRadius: 60),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (_status != null)
             Padding(
               padding: const EdgeInsets.all(16),

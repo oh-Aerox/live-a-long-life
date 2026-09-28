@@ -66,6 +66,9 @@ class SyncServer {
   /// 副本有更新时通知界面刷新。
   void Function()? onReplicaChanged;
 
+  /// 配对成功时通知界面（收起二维码等）。
+  void Function()? onPaired;
+
   int? get port => _server?.port;
   bool get running => _server != null;
 
@@ -156,6 +159,7 @@ class SyncServer {
         await _keyStore.saveRaw('sync_peer_$peerId', base64Encode(channel.key));
         _channels[peerId] = channel;
         _pendingPairing = null; // 密钥一次配对即绑定
+        onPaired?.call();
         response = {'device_id': deviceId, 'name': displayName};
       } else {
         final c = from == null ? null : await _channelFor(from);
