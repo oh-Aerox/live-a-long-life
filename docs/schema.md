@@ -457,7 +457,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 | 字段 | 说明 |
 |---|---|
 | `pages` | 有序列表，每项包含 `attachment_id`、`message_id`（从哪条消息来）、`page_no`（在这份文件中的第几页）。页序由用户或模型确定，用户可以调整 |
-| `doc_type` | `lab_report` 检验报告 / `imaging_report` 影像报告 / `visit_record` 门诊病历 / `prescription` 处方 / `discharge_summary` 出院小结 / `other` 其他 |
+| `doc_type` | `lab_report` 检验报告 / `imaging_report` 影像报告 / `visit_record` 门诊病历 / `prescription` 处方 / `discharge_summary` 出院小结 / `physical_exam` 体检报告 / `other` 其他 |
 | `institution_text` | 医疗机构名称，按原文 |
 | `exam_date` | 检查日期，TimeValue |
 | `report_date` | 报告日期，TimeValue |
@@ -483,6 +483,28 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 | `field_meta` | 逐字段的来源和核对状态（见 1.3） |
 
 项目、数值、单位、参考范围、检查日期这五项全部为 `confirmed` 或 `edited` 后，这条结果才作为"事实"参与分析（D-04）。
+
+### 5.3 `lab_results` 检验项目索引（派生，v0.4，D-27）
+
+`lab_panel` 的 results 存在记录版本的 JSON 里，利于版本与溯源，但没法按项目跨时间查询（"近五年的血红蛋白"）。本表把当前版本的每个检验项目展开成一行做**冗余索引**，供趋势视图与后续分析直接查。
+
+- **派生数据，不是事实源：** 随 lab_panel 记录版本变化在同一事务里重建（新版本 → 整条记录的行删了重插；记录删除 → 行删除）；可整表重算。
+- **不入变更日志、不同步、不进备份：** 各设备从已同步的记录自行重建，与 organize_state、副本状态同类（§7.2）。
+
+| 字段 | 说明 |
+|---|---|
+| `record_id` + `result_index` | 主键：哪条记录的第几项 |
+| `revision_id` | 派生自哪个记录版本（核对后版本变化，行随之重建） |
+| `medical_document_id` | 可空。来源医疗文件；机构名等展示信息查询时联表取，不冗余（避免文件信息更新后索引过期） |
+| `item_name_raw` | 项目名称原文 |
+| `item_key` | 查询键：原文去空白。以后映射 `item_code`（LOINC）后按 code 查 |
+| `value_raw` / `value_num` | 数值原文 / 解析值 |
+| `unit_raw` | 单位原文 |
+| `ref_range_raw` / `ref_low` / `ref_high` | 参考范围 |
+| `flag_raw` | 异常标记原文 |
+| `exam_date` | 检查日期（记录的 occurred.local_date） |
+| `review_status` | 该项的核对状态（fieldMeta `results.{i}`），趋势与分析据此过滤或标注未核对 |
+| `updated_at` | 重建时间 |
 
 ## 6. 分析层（v0.3 起，由 Mac 生成）
 

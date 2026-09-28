@@ -14,6 +14,7 @@ import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
 import 'day_view_page.dart';
+import 'medical_folder_page.dart';
 import 'record_detail_page.dart';
 import 'settings_page.dart';
 
@@ -87,6 +88,38 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
+  /// 病例夹 / 体检两个入口（D-27）。
+  Future<void> _openMedicalFolders() async {
+    final choice = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.folder_shared_outlined),
+              title: const Text('我的病例夹'),
+              subtitle: const Text('病历、检查检验报告、处方'),
+              onTap: () => Navigator.pop(context, false),
+            ),
+            ListTile(
+              leading: const Icon(Icons.monitor_heart_outlined),
+              title: const Text('我的体检'),
+              subtitle: const Text('体检报告'),
+              onTap: () => Navigator.pop(context, true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) =>
+              MedicalFolderPage(services: _s, physicalExam: choice)),
+    );
+  }
+
   Future<void> _resetIdleTimer() async {
     final sec =
         await _s.settings.get('idle_preorganize_sec') as int? ?? 180;
@@ -281,6 +314,11 @@ class _ChatPageState extends State<ChatPage> {
               context,
               MaterialPageRoute(builder: (_) => DayViewPage(services: _s)),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.medical_information_outlined),
+            tooltip: '病例夹与体检',
+            onPressed: _openMedicalFolders,
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

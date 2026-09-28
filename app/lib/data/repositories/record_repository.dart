@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../app_context.dart';
@@ -89,6 +91,10 @@ class RecordRepository {
       );
       await _db.logChange(
           deviceId: _ctx.deviceId, table: 'records', entityId: rid);
+      if (recordType == RecordType.labPanel) {
+        await _reindexLabResults(rid, revisionId, occurred, dataJson,
+            fieldMeta, now);
+      }
       return (_db.select(_db.records)..where((t) => t.id.equals(rid)))
           .getSingle();
     });
@@ -138,6 +144,10 @@ class RecordRepository {
       ));
       await _db.logChange(
           deviceId: _ctx.deviceId, table: 'records', entityId: recordId);
+      if (rec.recordType == RecordType.labPanel) {
+        await _reindexLabResults(recordId, revisionId, occurred, dataJson,
+            fieldMeta, now);
+      }
       return updated.single;
     });
   }
@@ -214,8 +224,128 @@ class RecordRepository {
           table: 'records',
           entityId: recordId,
           op: ChangeOp.delete);
+      if (rec.recordType == RecordType.labPanel) {
+        await (_db.delete(_db.labResults)
+              ..where((t) => t.recordId.equals(recordId)))
+            .go();
+      }
       return updated.single;
     });
+  }
+
+  // ---- 检验项目索引（schema §5.3，D-27）----
+  // 派生数据：随 lab_panel 版本同事务重建；不入变更日志、不同步。
+
+  static String labItemKey(String itemNameRaw) =>
+      itemNameRaw.replaceAll(RegExp(r'\s'), '');
+
+  Future<void> _reindexLabResults(
+    String recordId,
+    String revisionId,
+    TimeValue occurred,
+    String dataJson,
+    FieldMetaMap fieldMeta,
+    int now,
+  ) async {
+    await (_db.delete(_db.labResults)
+          ..where((t) => t.recordId.equals(recordId)))
+        .go();
+    final data = jsonDecode(dataJson);
+    if (data is! Map) return;
+    final medicalDocumentId = data['medical_document_id'] as String?;
+    final results = data['results'];
+    if (results is! List) return;
+    for (var i = 0; i < results.length; i++) {
+      final r = results[i];
+      if (r is! Map) continue;
+      final name = r['item_name_raw'];
+      final valueRaw = r['value_raw'];
+      if (name is! String || valueRaw is! String) continue;
+      await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
+            recordId: recordId,
+            resultIndex: i,
+            revisionId: revisionId,
+            medicalDocumentId: Value(medicalDocumentId),
+            itemNameRaw: name,
+            itemKey: labItemKey(name),
+            valueRaw: valueRaw,
+            valueNum: Value((r['value_num'] as num?)?.toDouble()),
+            unitRaw: Value(r['unit_raw'] as String?),
+            refRangeRaw: Value(r['ref_range_raw'] as String?),
+            refLow: Value((r['ref_low'] as num?)?.toDouble()),
+            refHigh: Value((r['ref_high'] as num?)?.toDouble()),
+            flagRaw: Value(r['flag_raw'] as String?),
+            examDate: Value(occurred.localDate),
+            reviewStatus: Value(
+                fieldMeta.fields['results.$i']?.reviewStatus ??
+                    ReviewStatus.unreviewed),
+            updatedAt: now,
+          ));
+    }
+  }
+
+  /// 整表重建索引（应用升级 / Mac 收到同步记录后按需调用）。返回行数。
+  Future<int> rebuildLabResultIndex() async {
+    return _db.transaction(() async {
+      await _db.delete(_db.labResults).go();
+      final recs = await (_db.select(_db.records)
+            ..where((t) =>
+                t.recordType.equalsValue(RecordType.labPanel) &
+                t.deletedAt.isNull()))
+          .get();
+      var rows = 0;
+      for (final rec in recs) {
+        if (rec.currentRevisionId == null) continue;
+        final rev = await (_db.select(_db.recordRevisions)
+              ..where((t) => t.id.equals(rec.currentRevisionId!)))
+            .getSingle();
+        await _reindexLabResults(
+          rec.id,
+          rev.id,
+          TimeValue.decode(rev.occurred),
+          rev.data,
+          FieldMetaMap.decode(rev.fieldMeta),
+          ids.nowMs(),
+        );
+        rows += (await (_db.select(_db.labResults)
+                  ..where((t) => t.recordId.equals(rec.id)))
+                .get())
+            .length;
+      }
+      return rows;
+    });
+  }
+
+  /// 一个检验项目的历史数值，按检查日期升序（趋势视图、分析取数）。
+  /// [itemKey] 用 [labItemKey] 归一化后的项目名。
+  Future<List<LabResult>> labResultHistory(String itemKey) =>
+      (_db.select(_db.labResults)
+            ..where((t) => t.itemKey.equals(itemKey))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.examDate),
+              (t) => OrderingTerm.asc(t.updatedAt),
+            ]))
+          .get();
+
+  /// 一份医疗文件提取出的全部检验项目（详情页展示）。
+  Future<List<LabResult>> labResultsOfDocument(String medicalDocumentId) =>
+      (_db.select(_db.labResults)
+            ..where((t) => t.medicalDocumentId.equals(medicalDocumentId))
+            ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
+          .get();
+
+  /// 出现过的检验项目（去重），带最近一次的日期与数值，按项目名排序。
+  Future<List<LabResult>> labResultLatestPerItem() async {
+    final all = await (_db.select(_db.labResults)
+          ..orderBy([(t) => OrderingTerm.asc(t.examDate)]))
+        .get();
+    final latest = <String, LabResult>{};
+    for (final r in all) {
+      latest[r.itemKey] = r; // 升序遍历，留下的是最新
+    }
+    final list = latest.values.toList()
+      ..sort((a, b) => a.itemKey.compareTo(b.itemKey));
+    return list;
   }
 
   Future<RecordRow?> byId(String recordId) => (_db.select(_db.records)

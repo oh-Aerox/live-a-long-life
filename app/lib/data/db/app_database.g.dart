@@ -18966,6 +18966,943 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
   }
 }
 
+class $LabResultsTable extends LabResults
+    with TableInfo<$LabResultsTable, LabResult> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LabResultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultIndexMeta = const VerificationMeta(
+    'resultIndex',
+  );
+  @override
+  late final GeneratedColumn<int> resultIndex = GeneratedColumn<int>(
+    'result_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revisionIdMeta = const VerificationMeta(
+    'revisionId',
+  );
+  @override
+  late final GeneratedColumn<String> revisionId = GeneratedColumn<String>(
+    'revision_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _medicalDocumentIdMeta = const VerificationMeta(
+    'medicalDocumentId',
+  );
+  @override
+  late final GeneratedColumn<String> medicalDocumentId =
+      GeneratedColumn<String>(
+        'medical_document_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _itemNameRawMeta = const VerificationMeta(
+    'itemNameRaw',
+  );
+  @override
+  late final GeneratedColumn<String> itemNameRaw = GeneratedColumn<String>(
+    'item_name_raw',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _itemKeyMeta = const VerificationMeta(
+    'itemKey',
+  );
+  @override
+  late final GeneratedColumn<String> itemKey = GeneratedColumn<String>(
+    'item_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueRawMeta = const VerificationMeta(
+    'valueRaw',
+  );
+  @override
+  late final GeneratedColumn<String> valueRaw = GeneratedColumn<String>(
+    'value_raw',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueNumMeta = const VerificationMeta(
+    'valueNum',
+  );
+  @override
+  late final GeneratedColumn<double> valueNum = GeneratedColumn<double>(
+    'value_num',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _unitRawMeta = const VerificationMeta(
+    'unitRaw',
+  );
+  @override
+  late final GeneratedColumn<String> unitRaw = GeneratedColumn<String>(
+    'unit_raw',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refRangeRawMeta = const VerificationMeta(
+    'refRangeRaw',
+  );
+  @override
+  late final GeneratedColumn<String> refRangeRaw = GeneratedColumn<String>(
+    'ref_range_raw',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refLowMeta = const VerificationMeta('refLow');
+  @override
+  late final GeneratedColumn<double> refLow = GeneratedColumn<double>(
+    'ref_low',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refHighMeta = const VerificationMeta(
+    'refHigh',
+  );
+  @override
+  late final GeneratedColumn<double> refHigh = GeneratedColumn<double>(
+    'ref_high',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _flagRawMeta = const VerificationMeta(
+    'flagRaw',
+  );
+  @override
+  late final GeneratedColumn<String> flagRaw = GeneratedColumn<String>(
+    'flag_raw',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _examDateMeta = const VerificationMeta(
+    'examDate',
+  );
+  @override
+  late final GeneratedColumn<String> examDate = GeneratedColumn<String>(
+    'exam_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ReviewStatus, String>
+  reviewStatus = GeneratedColumn<String>(
+    'review_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unreviewed'),
+  ).withConverter<ReviewStatus>($LabResultsTable.$converterreviewStatus);
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    recordId,
+    resultIndex,
+    revisionId,
+    medicalDocumentId,
+    itemNameRaw,
+    itemKey,
+    valueRaw,
+    valueNum,
+    unitRaw,
+    refRangeRaw,
+    refLow,
+    refHigh,
+    flagRaw,
+    examDate,
+    reviewStatus,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lab_results';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LabResult> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('result_index')) {
+      context.handle(
+        _resultIndexMeta,
+        resultIndex.isAcceptableOrUnknown(
+          data['result_index']!,
+          _resultIndexMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_resultIndexMeta);
+    }
+    if (data.containsKey('revision_id')) {
+      context.handle(
+        _revisionIdMeta,
+        revisionId.isAcceptableOrUnknown(data['revision_id']!, _revisionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revisionIdMeta);
+    }
+    if (data.containsKey('medical_document_id')) {
+      context.handle(
+        _medicalDocumentIdMeta,
+        medicalDocumentId.isAcceptableOrUnknown(
+          data['medical_document_id']!,
+          _medicalDocumentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('item_name_raw')) {
+      context.handle(
+        _itemNameRawMeta,
+        itemNameRaw.isAcceptableOrUnknown(
+          data['item_name_raw']!,
+          _itemNameRawMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_itemNameRawMeta);
+    }
+    if (data.containsKey('item_key')) {
+      context.handle(
+        _itemKeyMeta,
+        itemKey.isAcceptableOrUnknown(data['item_key']!, _itemKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemKeyMeta);
+    }
+    if (data.containsKey('value_raw')) {
+      context.handle(
+        _valueRawMeta,
+        valueRaw.isAcceptableOrUnknown(data['value_raw']!, _valueRawMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueRawMeta);
+    }
+    if (data.containsKey('value_num')) {
+      context.handle(
+        _valueNumMeta,
+        valueNum.isAcceptableOrUnknown(data['value_num']!, _valueNumMeta),
+      );
+    }
+    if (data.containsKey('unit_raw')) {
+      context.handle(
+        _unitRawMeta,
+        unitRaw.isAcceptableOrUnknown(data['unit_raw']!, _unitRawMeta),
+      );
+    }
+    if (data.containsKey('ref_range_raw')) {
+      context.handle(
+        _refRangeRawMeta,
+        refRangeRaw.isAcceptableOrUnknown(
+          data['ref_range_raw']!,
+          _refRangeRawMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ref_low')) {
+      context.handle(
+        _refLowMeta,
+        refLow.isAcceptableOrUnknown(data['ref_low']!, _refLowMeta),
+      );
+    }
+    if (data.containsKey('ref_high')) {
+      context.handle(
+        _refHighMeta,
+        refHigh.isAcceptableOrUnknown(data['ref_high']!, _refHighMeta),
+      );
+    }
+    if (data.containsKey('flag_raw')) {
+      context.handle(
+        _flagRawMeta,
+        flagRaw.isAcceptableOrUnknown(data['flag_raw']!, _flagRawMeta),
+      );
+    }
+    if (data.containsKey('exam_date')) {
+      context.handle(
+        _examDateMeta,
+        examDate.isAcceptableOrUnknown(data['exam_date']!, _examDateMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {recordId, resultIndex};
+  @override
+  LabResult map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LabResult(
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      resultIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}result_index'],
+      )!,
+      revisionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}revision_id'],
+      )!,
+      medicalDocumentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}medical_document_id'],
+      ),
+      itemNameRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_name_raw'],
+      )!,
+      itemKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_key'],
+      )!,
+      valueRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value_raw'],
+      )!,
+      valueNum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}value_num'],
+      ),
+      unitRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit_raw'],
+      ),
+      refRangeRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ref_range_raw'],
+      ),
+      refLow: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ref_low'],
+      ),
+      refHigh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ref_high'],
+      ),
+      flagRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flag_raw'],
+      ),
+      examDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exam_date'],
+      ),
+      reviewStatus: $LabResultsTable.$converterreviewStatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}review_status'],
+        )!,
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LabResultsTable createAlias(String alias) {
+    return $LabResultsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<ReviewStatus, String> $converterreviewStatus =
+      const EnumConverter(ReviewStatus.values);
+}
+
+class LabResult extends DataClass implements Insertable<LabResult> {
+  final String recordId;
+  final int resultIndex;
+  final String revisionId;
+  final String? medicalDocumentId;
+  final String itemNameRaw;
+  final String itemKey;
+  final String valueRaw;
+  final double? valueNum;
+  final String? unitRaw;
+  final String? refRangeRaw;
+  final double? refLow;
+  final double? refHigh;
+  final String? flagRaw;
+  final String? examDate;
+  final ReviewStatus reviewStatus;
+  final int updatedAt;
+  const LabResult({
+    required this.recordId,
+    required this.resultIndex,
+    required this.revisionId,
+    this.medicalDocumentId,
+    required this.itemNameRaw,
+    required this.itemKey,
+    required this.valueRaw,
+    this.valueNum,
+    this.unitRaw,
+    this.refRangeRaw,
+    this.refLow,
+    this.refHigh,
+    this.flagRaw,
+    this.examDate,
+    required this.reviewStatus,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['record_id'] = Variable<String>(recordId);
+    map['result_index'] = Variable<int>(resultIndex);
+    map['revision_id'] = Variable<String>(revisionId);
+    if (!nullToAbsent || medicalDocumentId != null) {
+      map['medical_document_id'] = Variable<String>(medicalDocumentId);
+    }
+    map['item_name_raw'] = Variable<String>(itemNameRaw);
+    map['item_key'] = Variable<String>(itemKey);
+    map['value_raw'] = Variable<String>(valueRaw);
+    if (!nullToAbsent || valueNum != null) {
+      map['value_num'] = Variable<double>(valueNum);
+    }
+    if (!nullToAbsent || unitRaw != null) {
+      map['unit_raw'] = Variable<String>(unitRaw);
+    }
+    if (!nullToAbsent || refRangeRaw != null) {
+      map['ref_range_raw'] = Variable<String>(refRangeRaw);
+    }
+    if (!nullToAbsent || refLow != null) {
+      map['ref_low'] = Variable<double>(refLow);
+    }
+    if (!nullToAbsent || refHigh != null) {
+      map['ref_high'] = Variable<double>(refHigh);
+    }
+    if (!nullToAbsent || flagRaw != null) {
+      map['flag_raw'] = Variable<String>(flagRaw);
+    }
+    if (!nullToAbsent || examDate != null) {
+      map['exam_date'] = Variable<String>(examDate);
+    }
+    {
+      map['review_status'] = Variable<String>(
+        $LabResultsTable.$converterreviewStatus.toSql(reviewStatus),
+      );
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  LabResultsCompanion toCompanion(bool nullToAbsent) {
+    return LabResultsCompanion(
+      recordId: Value(recordId),
+      resultIndex: Value(resultIndex),
+      revisionId: Value(revisionId),
+      medicalDocumentId: medicalDocumentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(medicalDocumentId),
+      itemNameRaw: Value(itemNameRaw),
+      itemKey: Value(itemKey),
+      valueRaw: Value(valueRaw),
+      valueNum: valueNum == null && nullToAbsent
+          ? const Value.absent()
+          : Value(valueNum),
+      unitRaw: unitRaw == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitRaw),
+      refRangeRaw: refRangeRaw == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refRangeRaw),
+      refLow: refLow == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refLow),
+      refHigh: refHigh == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refHigh),
+      flagRaw: flagRaw == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flagRaw),
+      examDate: examDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(examDate),
+      reviewStatus: Value(reviewStatus),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LabResult.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LabResult(
+      recordId: serializer.fromJson<String>(json['recordId']),
+      resultIndex: serializer.fromJson<int>(json['resultIndex']),
+      revisionId: serializer.fromJson<String>(json['revisionId']),
+      medicalDocumentId: serializer.fromJson<String?>(
+        json['medicalDocumentId'],
+      ),
+      itemNameRaw: serializer.fromJson<String>(json['itemNameRaw']),
+      itemKey: serializer.fromJson<String>(json['itemKey']),
+      valueRaw: serializer.fromJson<String>(json['valueRaw']),
+      valueNum: serializer.fromJson<double?>(json['valueNum']),
+      unitRaw: serializer.fromJson<String?>(json['unitRaw']),
+      refRangeRaw: serializer.fromJson<String?>(json['refRangeRaw']),
+      refLow: serializer.fromJson<double?>(json['refLow']),
+      refHigh: serializer.fromJson<double?>(json['refHigh']),
+      flagRaw: serializer.fromJson<String?>(json['flagRaw']),
+      examDate: serializer.fromJson<String?>(json['examDate']),
+      reviewStatus: serializer.fromJson<ReviewStatus>(json['reviewStatus']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'recordId': serializer.toJson<String>(recordId),
+      'resultIndex': serializer.toJson<int>(resultIndex),
+      'revisionId': serializer.toJson<String>(revisionId),
+      'medicalDocumentId': serializer.toJson<String?>(medicalDocumentId),
+      'itemNameRaw': serializer.toJson<String>(itemNameRaw),
+      'itemKey': serializer.toJson<String>(itemKey),
+      'valueRaw': serializer.toJson<String>(valueRaw),
+      'valueNum': serializer.toJson<double?>(valueNum),
+      'unitRaw': serializer.toJson<String?>(unitRaw),
+      'refRangeRaw': serializer.toJson<String?>(refRangeRaw),
+      'refLow': serializer.toJson<double?>(refLow),
+      'refHigh': serializer.toJson<double?>(refHigh),
+      'flagRaw': serializer.toJson<String?>(flagRaw),
+      'examDate': serializer.toJson<String?>(examDate),
+      'reviewStatus': serializer.toJson<ReviewStatus>(reviewStatus),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  LabResult copyWith({
+    String? recordId,
+    int? resultIndex,
+    String? revisionId,
+    Value<String?> medicalDocumentId = const Value.absent(),
+    String? itemNameRaw,
+    String? itemKey,
+    String? valueRaw,
+    Value<double?> valueNum = const Value.absent(),
+    Value<String?> unitRaw = const Value.absent(),
+    Value<String?> refRangeRaw = const Value.absent(),
+    Value<double?> refLow = const Value.absent(),
+    Value<double?> refHigh = const Value.absent(),
+    Value<String?> flagRaw = const Value.absent(),
+    Value<String?> examDate = const Value.absent(),
+    ReviewStatus? reviewStatus,
+    int? updatedAt,
+  }) => LabResult(
+    recordId: recordId ?? this.recordId,
+    resultIndex: resultIndex ?? this.resultIndex,
+    revisionId: revisionId ?? this.revisionId,
+    medicalDocumentId: medicalDocumentId.present
+        ? medicalDocumentId.value
+        : this.medicalDocumentId,
+    itemNameRaw: itemNameRaw ?? this.itemNameRaw,
+    itemKey: itemKey ?? this.itemKey,
+    valueRaw: valueRaw ?? this.valueRaw,
+    valueNum: valueNum.present ? valueNum.value : this.valueNum,
+    unitRaw: unitRaw.present ? unitRaw.value : this.unitRaw,
+    refRangeRaw: refRangeRaw.present ? refRangeRaw.value : this.refRangeRaw,
+    refLow: refLow.present ? refLow.value : this.refLow,
+    refHigh: refHigh.present ? refHigh.value : this.refHigh,
+    flagRaw: flagRaw.present ? flagRaw.value : this.flagRaw,
+    examDate: examDate.present ? examDate.value : this.examDate,
+    reviewStatus: reviewStatus ?? this.reviewStatus,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LabResult copyWithCompanion(LabResultsCompanion data) {
+    return LabResult(
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      resultIndex: data.resultIndex.present
+          ? data.resultIndex.value
+          : this.resultIndex,
+      revisionId: data.revisionId.present
+          ? data.revisionId.value
+          : this.revisionId,
+      medicalDocumentId: data.medicalDocumentId.present
+          ? data.medicalDocumentId.value
+          : this.medicalDocumentId,
+      itemNameRaw: data.itemNameRaw.present
+          ? data.itemNameRaw.value
+          : this.itemNameRaw,
+      itemKey: data.itemKey.present ? data.itemKey.value : this.itemKey,
+      valueRaw: data.valueRaw.present ? data.valueRaw.value : this.valueRaw,
+      valueNum: data.valueNum.present ? data.valueNum.value : this.valueNum,
+      unitRaw: data.unitRaw.present ? data.unitRaw.value : this.unitRaw,
+      refRangeRaw: data.refRangeRaw.present
+          ? data.refRangeRaw.value
+          : this.refRangeRaw,
+      refLow: data.refLow.present ? data.refLow.value : this.refLow,
+      refHigh: data.refHigh.present ? data.refHigh.value : this.refHigh,
+      flagRaw: data.flagRaw.present ? data.flagRaw.value : this.flagRaw,
+      examDate: data.examDate.present ? data.examDate.value : this.examDate,
+      reviewStatus: data.reviewStatus.present
+          ? data.reviewStatus.value
+          : this.reviewStatus,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LabResult(')
+          ..write('recordId: $recordId, ')
+          ..write('resultIndex: $resultIndex, ')
+          ..write('revisionId: $revisionId, ')
+          ..write('medicalDocumentId: $medicalDocumentId, ')
+          ..write('itemNameRaw: $itemNameRaw, ')
+          ..write('itemKey: $itemKey, ')
+          ..write('valueRaw: $valueRaw, ')
+          ..write('valueNum: $valueNum, ')
+          ..write('unitRaw: $unitRaw, ')
+          ..write('refRangeRaw: $refRangeRaw, ')
+          ..write('refLow: $refLow, ')
+          ..write('refHigh: $refHigh, ')
+          ..write('flagRaw: $flagRaw, ')
+          ..write('examDate: $examDate, ')
+          ..write('reviewStatus: $reviewStatus, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    recordId,
+    resultIndex,
+    revisionId,
+    medicalDocumentId,
+    itemNameRaw,
+    itemKey,
+    valueRaw,
+    valueNum,
+    unitRaw,
+    refRangeRaw,
+    refLow,
+    refHigh,
+    flagRaw,
+    examDate,
+    reviewStatus,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LabResult &&
+          other.recordId == this.recordId &&
+          other.resultIndex == this.resultIndex &&
+          other.revisionId == this.revisionId &&
+          other.medicalDocumentId == this.medicalDocumentId &&
+          other.itemNameRaw == this.itemNameRaw &&
+          other.itemKey == this.itemKey &&
+          other.valueRaw == this.valueRaw &&
+          other.valueNum == this.valueNum &&
+          other.unitRaw == this.unitRaw &&
+          other.refRangeRaw == this.refRangeRaw &&
+          other.refLow == this.refLow &&
+          other.refHigh == this.refHigh &&
+          other.flagRaw == this.flagRaw &&
+          other.examDate == this.examDate &&
+          other.reviewStatus == this.reviewStatus &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LabResultsCompanion extends UpdateCompanion<LabResult> {
+  final Value<String> recordId;
+  final Value<int> resultIndex;
+  final Value<String> revisionId;
+  final Value<String?> medicalDocumentId;
+  final Value<String> itemNameRaw;
+  final Value<String> itemKey;
+  final Value<String> valueRaw;
+  final Value<double?> valueNum;
+  final Value<String?> unitRaw;
+  final Value<String?> refRangeRaw;
+  final Value<double?> refLow;
+  final Value<double?> refHigh;
+  final Value<String?> flagRaw;
+  final Value<String?> examDate;
+  final Value<ReviewStatus> reviewStatus;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const LabResultsCompanion({
+    this.recordId = const Value.absent(),
+    this.resultIndex = const Value.absent(),
+    this.revisionId = const Value.absent(),
+    this.medicalDocumentId = const Value.absent(),
+    this.itemNameRaw = const Value.absent(),
+    this.itemKey = const Value.absent(),
+    this.valueRaw = const Value.absent(),
+    this.valueNum = const Value.absent(),
+    this.unitRaw = const Value.absent(),
+    this.refRangeRaw = const Value.absent(),
+    this.refLow = const Value.absent(),
+    this.refHigh = const Value.absent(),
+    this.flagRaw = const Value.absent(),
+    this.examDate = const Value.absent(),
+    this.reviewStatus = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LabResultsCompanion.insert({
+    required String recordId,
+    required int resultIndex,
+    required String revisionId,
+    this.medicalDocumentId = const Value.absent(),
+    required String itemNameRaw,
+    required String itemKey,
+    required String valueRaw,
+    this.valueNum = const Value.absent(),
+    this.unitRaw = const Value.absent(),
+    this.refRangeRaw = const Value.absent(),
+    this.refLow = const Value.absent(),
+    this.refHigh = const Value.absent(),
+    this.flagRaw = const Value.absent(),
+    this.examDate = const Value.absent(),
+    this.reviewStatus = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : recordId = Value(recordId),
+       resultIndex = Value(resultIndex),
+       revisionId = Value(revisionId),
+       itemNameRaw = Value(itemNameRaw),
+       itemKey = Value(itemKey),
+       valueRaw = Value(valueRaw),
+       updatedAt = Value(updatedAt);
+  static Insertable<LabResult> custom({
+    Expression<String>? recordId,
+    Expression<int>? resultIndex,
+    Expression<String>? revisionId,
+    Expression<String>? medicalDocumentId,
+    Expression<String>? itemNameRaw,
+    Expression<String>? itemKey,
+    Expression<String>? valueRaw,
+    Expression<double>? valueNum,
+    Expression<String>? unitRaw,
+    Expression<String>? refRangeRaw,
+    Expression<double>? refLow,
+    Expression<double>? refHigh,
+    Expression<String>? flagRaw,
+    Expression<String>? examDate,
+    Expression<String>? reviewStatus,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (recordId != null) 'record_id': recordId,
+      if (resultIndex != null) 'result_index': resultIndex,
+      if (revisionId != null) 'revision_id': revisionId,
+      if (medicalDocumentId != null) 'medical_document_id': medicalDocumentId,
+      if (itemNameRaw != null) 'item_name_raw': itemNameRaw,
+      if (itemKey != null) 'item_key': itemKey,
+      if (valueRaw != null) 'value_raw': valueRaw,
+      if (valueNum != null) 'value_num': valueNum,
+      if (unitRaw != null) 'unit_raw': unitRaw,
+      if (refRangeRaw != null) 'ref_range_raw': refRangeRaw,
+      if (refLow != null) 'ref_low': refLow,
+      if (refHigh != null) 'ref_high': refHigh,
+      if (flagRaw != null) 'flag_raw': flagRaw,
+      if (examDate != null) 'exam_date': examDate,
+      if (reviewStatus != null) 'review_status': reviewStatus,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LabResultsCompanion copyWith({
+    Value<String>? recordId,
+    Value<int>? resultIndex,
+    Value<String>? revisionId,
+    Value<String?>? medicalDocumentId,
+    Value<String>? itemNameRaw,
+    Value<String>? itemKey,
+    Value<String>? valueRaw,
+    Value<double?>? valueNum,
+    Value<String?>? unitRaw,
+    Value<String?>? refRangeRaw,
+    Value<double?>? refLow,
+    Value<double?>? refHigh,
+    Value<String?>? flagRaw,
+    Value<String?>? examDate,
+    Value<ReviewStatus>? reviewStatus,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return LabResultsCompanion(
+      recordId: recordId ?? this.recordId,
+      resultIndex: resultIndex ?? this.resultIndex,
+      revisionId: revisionId ?? this.revisionId,
+      medicalDocumentId: medicalDocumentId ?? this.medicalDocumentId,
+      itemNameRaw: itemNameRaw ?? this.itemNameRaw,
+      itemKey: itemKey ?? this.itemKey,
+      valueRaw: valueRaw ?? this.valueRaw,
+      valueNum: valueNum ?? this.valueNum,
+      unitRaw: unitRaw ?? this.unitRaw,
+      refRangeRaw: refRangeRaw ?? this.refRangeRaw,
+      refLow: refLow ?? this.refLow,
+      refHigh: refHigh ?? this.refHigh,
+      flagRaw: flagRaw ?? this.flagRaw,
+      examDate: examDate ?? this.examDate,
+      reviewStatus: reviewStatus ?? this.reviewStatus,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (resultIndex.present) {
+      map['result_index'] = Variable<int>(resultIndex.value);
+    }
+    if (revisionId.present) {
+      map['revision_id'] = Variable<String>(revisionId.value);
+    }
+    if (medicalDocumentId.present) {
+      map['medical_document_id'] = Variable<String>(medicalDocumentId.value);
+    }
+    if (itemNameRaw.present) {
+      map['item_name_raw'] = Variable<String>(itemNameRaw.value);
+    }
+    if (itemKey.present) {
+      map['item_key'] = Variable<String>(itemKey.value);
+    }
+    if (valueRaw.present) {
+      map['value_raw'] = Variable<String>(valueRaw.value);
+    }
+    if (valueNum.present) {
+      map['value_num'] = Variable<double>(valueNum.value);
+    }
+    if (unitRaw.present) {
+      map['unit_raw'] = Variable<String>(unitRaw.value);
+    }
+    if (refRangeRaw.present) {
+      map['ref_range_raw'] = Variable<String>(refRangeRaw.value);
+    }
+    if (refLow.present) {
+      map['ref_low'] = Variable<double>(refLow.value);
+    }
+    if (refHigh.present) {
+      map['ref_high'] = Variable<double>(refHigh.value);
+    }
+    if (flagRaw.present) {
+      map['flag_raw'] = Variable<String>(flagRaw.value);
+    }
+    if (examDate.present) {
+      map['exam_date'] = Variable<String>(examDate.value);
+    }
+    if (reviewStatus.present) {
+      map['review_status'] = Variable<String>(
+        $LabResultsTable.$converterreviewStatus.toSql(reviewStatus.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LabResultsCompanion(')
+          ..write('recordId: $recordId, ')
+          ..write('resultIndex: $resultIndex, ')
+          ..write('revisionId: $revisionId, ')
+          ..write('medicalDocumentId: $medicalDocumentId, ')
+          ..write('itemNameRaw: $itemNameRaw, ')
+          ..write('itemKey: $itemKey, ')
+          ..write('valueRaw: $valueRaw, ')
+          ..write('valueNum: $valueNum, ')
+          ..write('unitRaw: $unitRaw, ')
+          ..write('refRangeRaw: $refRangeRaw, ')
+          ..write('refLow: $refLow, ')
+          ..write('refHigh: $refHigh, ')
+          ..write('flagRaw: $flagRaw, ')
+          ..write('examDate: $examDate, ')
+          ..write('reviewStatus: $reviewStatus, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -19007,6 +19944,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MedicalDocumentsTable medicalDocuments = $MedicalDocumentsTable(
     this,
   );
+  late final $LabResultsTable labResults = $LabResultsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -19037,6 +19975,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     analysisArtifacts,
     backupRuns,
     medicalDocuments,
+    labResults,
   ];
 }
 
@@ -27993,6 +28932,426 @@ typedef $$MedicalDocumentsTableProcessedTableManager =
       MedicalDocument,
       PrefetchHooks Function()
     >;
+typedef $$LabResultsTableCreateCompanionBuilder =
+    LabResultsCompanion Function({
+      required String recordId,
+      required int resultIndex,
+      required String revisionId,
+      Value<String?> medicalDocumentId,
+      required String itemNameRaw,
+      required String itemKey,
+      required String valueRaw,
+      Value<double?> valueNum,
+      Value<String?> unitRaw,
+      Value<String?> refRangeRaw,
+      Value<double?> refLow,
+      Value<double?> refHigh,
+      Value<String?> flagRaw,
+      Value<String?> examDate,
+      Value<ReviewStatus> reviewStatus,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$LabResultsTableUpdateCompanionBuilder =
+    LabResultsCompanion Function({
+      Value<String> recordId,
+      Value<int> resultIndex,
+      Value<String> revisionId,
+      Value<String?> medicalDocumentId,
+      Value<String> itemNameRaw,
+      Value<String> itemKey,
+      Value<String> valueRaw,
+      Value<double?> valueNum,
+      Value<String?> unitRaw,
+      Value<String?> refRangeRaw,
+      Value<double?> refLow,
+      Value<double?> refHigh,
+      Value<String?> flagRaw,
+      Value<String?> examDate,
+      Value<ReviewStatus> reviewStatus,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$LabResultsTableFilterComposer
+    extends Composer<_$AppDatabase, $LabResultsTable> {
+  $$LabResultsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get resultIndex => $composableBuilder(
+    column: $table.resultIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revisionId => $composableBuilder(
+    column: $table.revisionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get medicalDocumentId => $composableBuilder(
+    column: $table.medicalDocumentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemNameRaw => $composableBuilder(
+    column: $table.itemNameRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemKey => $composableBuilder(
+    column: $table.itemKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get valueRaw => $composableBuilder(
+    column: $table.valueRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get valueNum => $composableBuilder(
+    column: $table.valueNum,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unitRaw => $composableBuilder(
+    column: $table.unitRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refRangeRaw => $composableBuilder(
+    column: $table.refRangeRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get refLow => $composableBuilder(
+    column: $table.refLow,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get refHigh => $composableBuilder(
+    column: $table.refHigh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get flagRaw => $composableBuilder(
+    column: $table.flagRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get examDate => $composableBuilder(
+    column: $table.examDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ReviewStatus, ReviewStatus, String>
+  get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LabResultsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LabResultsTable> {
+  $$LabResultsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get resultIndex => $composableBuilder(
+    column: $table.resultIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revisionId => $composableBuilder(
+    column: $table.revisionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get medicalDocumentId => $composableBuilder(
+    column: $table.medicalDocumentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemNameRaw => $composableBuilder(
+    column: $table.itemNameRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemKey => $composableBuilder(
+    column: $table.itemKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get valueRaw => $composableBuilder(
+    column: $table.valueRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get valueNum => $composableBuilder(
+    column: $table.valueNum,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unitRaw => $composableBuilder(
+    column: $table.unitRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refRangeRaw => $composableBuilder(
+    column: $table.refRangeRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get refLow => $composableBuilder(
+    column: $table.refLow,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get refHigh => $composableBuilder(
+    column: $table.refHigh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get flagRaw => $composableBuilder(
+    column: $table.flagRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get examDate => $composableBuilder(
+    column: $table.examDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LabResultsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LabResultsTable> {
+  $$LabResultsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<int> get resultIndex => $composableBuilder(
+    column: $table.resultIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get revisionId => $composableBuilder(
+    column: $table.revisionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get medicalDocumentId => $composableBuilder(
+    column: $table.medicalDocumentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get itemNameRaw => $composableBuilder(
+    column: $table.itemNameRaw,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get itemKey =>
+      $composableBuilder(column: $table.itemKey, builder: (column) => column);
+
+  GeneratedColumn<String> get valueRaw =>
+      $composableBuilder(column: $table.valueRaw, builder: (column) => column);
+
+  GeneratedColumn<double> get valueNum =>
+      $composableBuilder(column: $table.valueNum, builder: (column) => column);
+
+  GeneratedColumn<String> get unitRaw =>
+      $composableBuilder(column: $table.unitRaw, builder: (column) => column);
+
+  GeneratedColumn<String> get refRangeRaw => $composableBuilder(
+    column: $table.refRangeRaw,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get refLow =>
+      $composableBuilder(column: $table.refLow, builder: (column) => column);
+
+  GeneratedColumn<double> get refHigh =>
+      $composableBuilder(column: $table.refHigh, builder: (column) => column);
+
+  GeneratedColumn<String> get flagRaw =>
+      $composableBuilder(column: $table.flagRaw, builder: (column) => column);
+
+  GeneratedColumn<String> get examDate =>
+      $composableBuilder(column: $table.examDate, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ReviewStatus, String> get reviewStatus =>
+      $composableBuilder(
+        column: $table.reviewStatus,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LabResultsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LabResultsTable,
+          LabResult,
+          $$LabResultsTableFilterComposer,
+          $$LabResultsTableOrderingComposer,
+          $$LabResultsTableAnnotationComposer,
+          $$LabResultsTableCreateCompanionBuilder,
+          $$LabResultsTableUpdateCompanionBuilder,
+          (
+            LabResult,
+            BaseReferences<_$AppDatabase, $LabResultsTable, LabResult>,
+          ),
+          LabResult,
+          PrefetchHooks Function()
+        > {
+  $$LabResultsTableTableManager(_$AppDatabase db, $LabResultsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LabResultsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LabResultsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LabResultsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> recordId = const Value.absent(),
+                Value<int> resultIndex = const Value.absent(),
+                Value<String> revisionId = const Value.absent(),
+                Value<String?> medicalDocumentId = const Value.absent(),
+                Value<String> itemNameRaw = const Value.absent(),
+                Value<String> itemKey = const Value.absent(),
+                Value<String> valueRaw = const Value.absent(),
+                Value<double?> valueNum = const Value.absent(),
+                Value<String?> unitRaw = const Value.absent(),
+                Value<String?> refRangeRaw = const Value.absent(),
+                Value<double?> refLow = const Value.absent(),
+                Value<double?> refHigh = const Value.absent(),
+                Value<String?> flagRaw = const Value.absent(),
+                Value<String?> examDate = const Value.absent(),
+                Value<ReviewStatus> reviewStatus = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LabResultsCompanion(
+                recordId: recordId,
+                resultIndex: resultIndex,
+                revisionId: revisionId,
+                medicalDocumentId: medicalDocumentId,
+                itemNameRaw: itemNameRaw,
+                itemKey: itemKey,
+                valueRaw: valueRaw,
+                valueNum: valueNum,
+                unitRaw: unitRaw,
+                refRangeRaw: refRangeRaw,
+                refLow: refLow,
+                refHigh: refHigh,
+                flagRaw: flagRaw,
+                examDate: examDate,
+                reviewStatus: reviewStatus,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String recordId,
+                required int resultIndex,
+                required String revisionId,
+                Value<String?> medicalDocumentId = const Value.absent(),
+                required String itemNameRaw,
+                required String itemKey,
+                required String valueRaw,
+                Value<double?> valueNum = const Value.absent(),
+                Value<String?> unitRaw = const Value.absent(),
+                Value<String?> refRangeRaw = const Value.absent(),
+                Value<double?> refLow = const Value.absent(),
+                Value<double?> refHigh = const Value.absent(),
+                Value<String?> flagRaw = const Value.absent(),
+                Value<String?> examDate = const Value.absent(),
+                Value<ReviewStatus> reviewStatus = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => LabResultsCompanion.insert(
+                recordId: recordId,
+                resultIndex: resultIndex,
+                revisionId: revisionId,
+                medicalDocumentId: medicalDocumentId,
+                itemNameRaw: itemNameRaw,
+                itemKey: itemKey,
+                valueRaw: valueRaw,
+                valueNum: valueNum,
+                unitRaw: unitRaw,
+                refRangeRaw: refRangeRaw,
+                refLow: refLow,
+                refHigh: refHigh,
+                flagRaw: flagRaw,
+                examDate: examDate,
+                reviewStatus: reviewStatus,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LabResultsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LabResultsTable,
+      LabResult,
+      $$LabResultsTableFilterComposer,
+      $$LabResultsTableOrderingComposer,
+      $$LabResultsTableAnnotationComposer,
+      $$LabResultsTableCreateCompanionBuilder,
+      $$LabResultsTableUpdateCompanionBuilder,
+      (LabResult, BaseReferences<_$AppDatabase, $LabResultsTable, LabResult>),
+      LabResult,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -28047,4 +29406,6 @@ class $AppDatabaseManager {
       $$BackupRunsTableTableManager(_db, _db.backupRuns);
   $$MedicalDocumentsTableTableManager get medicalDocuments =>
       $$MedicalDocumentsTableTableManager(_db, _db.medicalDocuments);
+  $$LabResultsTableTableManager get labResults =>
+      $$LabResultsTableTableManager(_db, _db.labResults);
 }

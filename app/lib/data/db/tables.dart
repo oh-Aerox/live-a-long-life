@@ -83,6 +83,7 @@ enum MedicalDocType {
   visitRecord,
   prescription,
   dischargeSummary,
+  physicalExam,
   other,
 }
 
@@ -501,4 +502,30 @@ class MedicalDocuments extends Table with CommonColumns {
   TextColumn get reviewStatus => text()
       .map(const EnumConverter(ReviewStatus.values))
       .withDefault(const Constant('unreviewed'))();
+}
+
+/// schema.md §5.3：检验项目索引（v0.4，D-27）。派生数据：随 lab_panel
+/// 记录版本同事务重建，可整表重算；不入变更日志、不同步、不进备份。
+class LabResults extends Table {
+  TextColumn get recordId => text()();
+  IntColumn get resultIndex => integer()();
+  TextColumn get revisionId => text()();
+  TextColumn get medicalDocumentId => text().nullable()();
+  TextColumn get itemNameRaw => text()();
+  TextColumn get itemKey => text()();
+  TextColumn get valueRaw => text()();
+  RealColumn get valueNum => real().nullable()();
+  TextColumn get unitRaw => text().nullable()();
+  TextColumn get refRangeRaw => text().nullable()();
+  RealColumn get refLow => real().nullable()();
+  RealColumn get refHigh => real().nullable()();
+  TextColumn get flagRaw => text().nullable()();
+  TextColumn get examDate => text().nullable()();
+  TextColumn get reviewStatus => text()
+      .map(const EnumConverter(ReviewStatus.values))
+      .withDefault(const Constant('unreviewed'))();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {recordId, resultIndex};
 }

@@ -36,12 +36,13 @@ part 'app_database.g.dart';
   AnalysisArtifacts,
   BackupRuns,
   MedicalDocuments,
+  LabResults,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -92,6 +93,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 10) {
             // v0.4 调用记录加脱敏遮蔽项数（D-24）。
             await m.addColumn(modelCalls, modelCalls.redactedCount);
+          }
+          if (from < 11) {
+            // v0.4 检验项目索引（schema §5.3，派生表，升级后自动重建）。
+            await m.createTable(labResults);
           }
         },
         beforeOpen: (details) async {
