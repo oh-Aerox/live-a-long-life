@@ -280,10 +280,12 @@ class RecordRepository {
           (srcs.map((s) => '${s.sourceKind.name}:${s.sourceId}').toList()
                 ..sort())
               .join(',');
+      // 不含 occurred：同一句话被不同批次整理时 occurred 的来源标记
+      // （有无时间片段等）可能有别，但内容与来源消息相同即为重复。
+      // data 仍参与，A-30（同一消息两条不同运动）data 不同不会误删。
       final key = [
         enumToDb(r.recordType),
         r.localDate ?? '',
-        rev.occurred,
         rev.data,
         srcKey,
       ].join('||');

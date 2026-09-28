@@ -497,14 +497,27 @@ void main() {
   });
 
   test('dedupeExactDuplicates：内容与来源全同的重复只留一条', () async {
-    // 手动造 3 条完全相同的记录（模拟三个批次各建一份）。
+    // 手动造 3 条 data/来源相同、但 occurred 来源标记不同的记录
+    // （模拟不同批次整理同一句话时时间片段有无的差异）——仍应判为重复。
+    final occurreds = [
+      TimeValue(
+          localDate: '2026-09-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated),
+      TimeValue(
+          localDate: '2026-09-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.inferredFromSentAt),
+      TimeValue(
+          localDate: '2026-09-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated,
+          rawText: '昨天'),
+    ];
     for (var i = 0; i < 3; i++) {
       await records.create(
         recordType: RecordType.meal,
-        occurred: TimeValue(
-            localDate: '2026-09-26',
-            precision: TimePrecision.dateOnly,
-            source: TimeValueSource.userStated),
+        occurred: occurreds[i],
         dataJson: '{"status":"eaten","description":"面"}',
         fieldMeta: const FieldMetaMap({}),
         producedBy: ProducedBy.organizeRun('run-$i'),
