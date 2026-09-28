@@ -241,21 +241,28 @@ class OrganizeService {
         r['id'] as String: r['version'] as int,
     };
 
-    // 只用仍与快照一致的消息组 prompt；已变的等下一批（会重新快照）。
+    // 只用仍与快照一致、且当前仍待整理的消息组 prompt。
+    // 关键（2026-09-28 防重复）：多个批次可能针对同一批 pending 消息排队
+    // （连点记好了、失败重试、换模型补整理）。organizeState 从 pending→
+    // organized 不改 version，光靠快照版本判断会让后一个批次把已整理的
+    // 消息再整理一遍，产生重复记录。因此额外排除当前已不再 pending 的消息。
     final usable = <Message>[];
     var anyChanged = false;
     for (final id in snapMessages.keys) {
       final m = await _messages.byId(id);
       if (m == null) continue;
-      if (_matchesSnapshot(m, snapMessages[id]!)) {
+      final stillPending = m.organizeState == OrganizeState.pending ||
+          m.organizeState == OrganizeState.needsReorganize;
+      if (_matchesSnapshot(m, snapMessages[id]!) && stillPending) {
         usable.add(m);
-      } else if (m.deletedAt == null) {
+      } else if (m.deletedAt == null && stillPending) {
         anyChanged = true;
       }
     }
     if (usable.isEmpty) {
-      await _runs.updateRunStatus(run.id, OrganizeRunStatus.failed,
-          error: '输入在开始前已全部变化', finishedAt: ids.nowMs());
+      // 没有仍需整理的消息（多为已被前一批整理）：无事可做，记 succeeded。
+      await _runs.updateRunStatus(run.id, OrganizeRunStatus.succeeded,
+          finishedAt: ids.nowMs());
       if (anyChanged) await enqueue(run.trigger);
       return;
     }

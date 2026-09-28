@@ -466,6 +466,74 @@ void main() {
         OrganizeState.pending);
   });
 
+  test('失败重试后成功不重复：网络失败→成功→再点，只建一条（复现并防回归）',
+      () async {
+    await addConfig();
+    final m = await say('晚饭吃了面');
+
+    // 前两次"记好了"网络失败：不建记录，消息保持 pending。
+    model.reply(ModelClientException('网络错误', retriable: true));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    model.reply(ModelClientException('网络错误', retriable: true));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    expect(await records.byDate('2026-09-26'), isEmpty);
+    expect((await messages.byId(m.id))!.organizeState, OrganizeState.pending);
+
+    // 换模型后成功一次。
+    model.reply(mealJson([m.id]));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    expect(await records.byDate('2026-09-26'), hasLength(1));
+    expect(
+        (await messages.byId(m.id))!.organizeState, OrganizeState.organized);
+
+    // 再点"记好了"：消息已整理，pendingOrganize 为空，enqueue 不建批次。
+    final again = await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    expect(again, isNull);
+    expect(await records.byDate('2026-09-26'), hasLength(1));
+  });
+
+  test('dedupeExactDuplicates：内容与来源全同的重复只留一条', () async {
+    // 手动造 3 条完全相同的记录（模拟三个批次各建一份）。
+    for (var i = 0; i < 3; i++) {
+      await records.create(
+        recordType: RecordType.meal,
+        occurred: TimeValue(
+            localDate: '2026-09-26',
+            precision: TimePrecision.dateOnly,
+            source: TimeValueSource.userStated),
+        dataJson: '{"status":"eaten","description":"面"}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.organizeRun('run-$i'),
+        sources: const [
+          SourceLink(sourceKind: RecordSourceKind.message, sourceId: 'msg-1'),
+        ],
+      );
+    }
+    // 一条内容不同的：不该被删。
+    await records.create(
+      recordType: RecordType.meal,
+      occurred: TimeValue(
+          localDate: '2026-09-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated),
+      dataJson: '{"status":"eaten","description":"米饭"}',
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.organizeRun('run-x'),
+      sources: const [
+        SourceLink(sourceKind: RecordSourceKind.message, sourceId: 'msg-1'),
+      ],
+    );
+
+    final removed = await records.dedupeExactDuplicates();
+    expect(removed, 2);
+    final day = await records.byDate('2026-09-26');
+    expect(day, hasLength(2)); // 一条"面" + 一条"米饭"
+  });
+
   test('模型编造来源消息或目标记录的项被拒绝', () async {
     await addConfig();
     final m = await say('晚饭吃了面');

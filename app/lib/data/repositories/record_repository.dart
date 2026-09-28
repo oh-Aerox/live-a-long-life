@@ -258,4 +258,44 @@ class RecordRepository {
       (_db.select(_db.recordSources)
             ..where((t) => t.recordRevisionId.equals(revisionId)))
           .get();
+
+  /// 精确去重：类型、日期、发生时间、data、来源消息集合都完全相同的记录，
+  /// 只保留 created_at 最早的一条，其余 markDeleted（走变更日志同步）。
+  /// 这种逐字段相同且来源相同的重复只会由"同一批消息被多个批次整理"
+  /// 的缺陷产生（2026-09-28），正常录入不会。返回删除的条数。
+  Future<int> dedupeExactDuplicates() async {
+    final recs = await (_db.select(_db.records)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+    final seen = <String>{};
+    final toDelete = <String>[];
+    for (final r in recs) {
+      if (r.currentRevisionId == null) continue;
+      final rev = await (_db.select(_db.recordRevisions)
+            ..where((t) => t.id.equals(r.currentRevisionId!)))
+          .getSingle();
+      final srcs = await sourcesOf(rev.id);
+      final srcKey =
+          (srcs.map((s) => '${s.sourceKind.name}:${s.sourceId}').toList()
+                ..sort())
+              .join(',');
+      final key = [
+        enumToDb(r.recordType),
+        r.localDate ?? '',
+        rev.occurred,
+        rev.data,
+        srcKey,
+      ].join('||');
+      if (seen.contains(key)) {
+        toDelete.add(r.id);
+      } else {
+        seen.add(key);
+      }
+    }
+    for (final id in toDelete) {
+      await markDeleted(id);
+    }
+    return toDelete.length;
+  }
 }
