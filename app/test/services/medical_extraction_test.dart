@@ -1,0 +1,183 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:live_a_long_life/data/db/app_database.dart';
+import 'package:live_a_long_life/data/field_meta.dart';
+import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
+import 'package:live_a_long_life/data/repositories/medical_document_repository.dart';
+import 'package:live_a_long_life/data/repositories/model_config_repository.dart';
+import 'package:live_a_long_life/data/repositories/organize_repository.dart';
+import 'package:live_a_long_life/data/repositories/record_repository.dart';
+import 'package:live_a_long_life/services/key_store.dart';
+import 'package:live_a_long_life/services/medical_extraction_service.dart';
+import 'package:live_a_long_life/services/text_extraction.dart';
+
+import '../data/test_helpers.dart';
+import 'organize_service_test.dart' show FakeModel;
+import 'text_extraction_test.dart' show FakeExtractor;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late TestEnv env;
+  late Directory tmp;
+  late AttachmentRepository attachments;
+  late MedicalDocumentRepository documents;
+  late RecordRepository records;
+  late OrganizeRepository organize;
+  late ModelConfigRepository configs;
+  late FakeModel model;
+
+  setUp(() async {
+    env = await TestEnv.create();
+    tmp = await Directory.systemTemp.createTemp('medex');
+    attachments = AttachmentRepository(env.db, env.ctx,
+        filesDir: Directory('${tmp.path}/files'));
+    documents = MedicalDocumentRepository(env.db, env.ctx);
+    records = RecordRepository(env.db, env.ctx);
+    organize = OrganizeRepository(env.db, env.ctx);
+    configs = ModelConfigRepository(env.db, env.ctx);
+    model = FakeModel();
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  tearDown(() async {
+    await env.dispose();
+    await tmp.delete(recursive: true);
+  });
+
+  MedicalExtractionService buildService(FakeExtractor extractor) =>
+      MedicalExtractionService(
+        attachments: attachments,
+        documents: documents,
+        records: records,
+        organize: organize,
+        modelConfigs: configs,
+        keyStore: KeyStore(),
+        extraction: TextExtractionService(
+            extractor: extractor, cacheDir: Directory('${tmp.path}/cache')),
+        modelCall: model.call,
+      );
+
+  Future<MedicalDocument> importDoc() async {
+    final src = File('${tmp.path}/report.jpg')..writeAsBytesSync([9, 9, 9]);
+    final att = (await attachments.importFile(src, mimeType: 'image/jpeg'))
+        .attachment;
+    return documents.create(
+      pages: [
+        MedicalPageRef(attachmentId: att.id, messageId: 'msg-1', pageNo: 1)
+      ],
+      docType: MedicalDocType.other,
+    );
+  }
+
+  test('端到端：OCR → 脱敏 → 结构化 → lab_panel 记录 + locator + 回填（D-23/D-24）',
+      () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '某某医院检验报告', x: 0.1, y: 0.02, w: 0.5, h: 0.03),
+      OcrLine(text: '姓名：张三 性别：男', x: 0.1, y: 0.08, w: 0.5, h: 0.03),
+      OcrLine(text: '检查日期 2026-09-20', x: 0.1, y: 0.12, w: 0.4, h: 0.03),
+      OcrLine(text: '白细胞 6.2 10^9/L 3.5-9.5', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+    ]);
+    model.reply(jsonEncode({
+      'doc': {
+        'doc_type': 'lab_report',
+        'institution_text': '某某医院',
+        'exam_date': '2026-09-20',
+        'report_date': null,
+      },
+      'results': [
+        {
+          'item_name_raw': '白细胞',
+          'value_raw': '6.2',
+          'value_num': 6.2,
+          'unit_raw': '10^9/L',
+          'ref_range_raw': '3.5-9.5',
+          'ref_low': 3.5,
+          'ref_high': 9.5,
+          'flag_raw': null,
+          'source_lines': ['P1L4', 'P1L99'], // 后者是编造的，应被丢弃
+        }
+      ],
+    }));
+
+    final outcome = await buildService(extractor)
+        .extractDocument(doc.id, knownNames: ['张三']);
+
+    // 发送内容已脱敏：姓名不出现在发给模型的文本里。
+    expect(model.calls.single, isNot(contains('张三')));
+    expect(model.calls.single, contains('【姓名】'));
+    expect(model.calls.single, contains('P1L4'));
+
+    // lab_panel 记录：unreviewed，locator 带坐标，编造行号被丢。
+    final rev = await records.currentRevisionOf(outcome.record.id);
+    final data = jsonDecode(rev.data) as Map;
+    expect(data['medical_document_id'], doc.id);
+    final result = (data['results'] as List).single as Map;
+    expect(result['item_name_raw'], '白细胞');
+    final locators = result['locator'] as List;
+    expect(locators, hasLength(1));
+    expect((locators.single as Map)['page_no'], 1);
+    expect((locators.single as Map)['box'], isNotNull);
+    final meta = FieldMetaMap.decode(rev.fieldMeta);
+    expect(meta['results.0']!.reviewStatus, ReviewStatus.unreviewed);
+    expect(outcome.record.recordType, RecordType.labPanel);
+
+    // 来源链接指向附件。
+    final sources = await records.sourcesOf(rev.id);
+    expect(sources.single.sourceKind, RecordSourceKind.attachment);
+
+    // 文件级信息回填；uploaded_at 不变。
+    final updated = (await documents.byId(doc.id))!;
+    expect(updated.docType, MedicalDocType.labReport);
+    expect(updated.institutionText, '某某医院');
+    expect(updated.uploadedAt, doc.uploadedAt);
+
+    // 调用记录：caller 与遮蔽项数（D-16/D-24）。
+    final call = (await organize.recentModelCalls()).single;
+    expect(call.caller, ModelCaller.phoneMedicalExtract);
+    // 锚点层已把"张三"换成占位符，第三层不再重复命中：同一处只计一次。
+    expect(call.redactedCount, 1);
+    expect(jsonDecode(call.sentAttachmentIds), isNotEmpty);
+  });
+
+  test('没有默认模型：不调用、不建记录', () async {
+    final doc = await importDoc();
+    final extractor = FakeExtractor(
+        ocrResults: const [OcrLine(text: 'x', x: 0, y: 0, w: 1, h: 1)]);
+    expect(() => buildService(extractor).extractDocument(doc.id),
+        throwsStateError);
+    expect(model.calls, isEmpty);
+  });
+
+  test('模型返回垃圾：记录失败可查，不建半成品记录', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '白细胞 6.2 10^9/L 3.5-9.5', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+    ]);
+    model.reply('抱歉我不能');
+    await expectLater(
+        buildService(extractor).extractDocument(doc.id), throwsStateError);
+    final day = await records.byDate(DateTime.now().toString().substring(0, 10));
+    expect(day, isEmpty);
+  });
+}

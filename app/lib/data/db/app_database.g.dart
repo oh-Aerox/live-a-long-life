@@ -9147,6 +9147,17 @@ class $ModelCallsTable extends ModelCalls
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<ModelCaller>($ModelCallsTable.$convertercaller);
+  static const VerificationMeta _redactedCountMeta = const VerificationMeta(
+    'redactedCount',
+  );
+  @override
+  late final GeneratedColumn<int> redactedCount = GeneratedColumn<int>(
+    'redacted_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9168,6 +9179,7 @@ class $ModelCallsTable extends ModelCalls
     tokensOut,
     responseText,
     caller,
+    redactedCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9308,6 +9320,15 @@ class $ModelCallsTable extends ModelCalls
         ),
       );
     }
+    if (data.containsKey('redacted_count')) {
+      context.handle(
+        _redactedCountMeta,
+        redactedCount.isAcceptableOrUnknown(
+          data['redacted_count']!,
+          _redactedCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -9399,6 +9420,10 @@ class $ModelCallsTable extends ModelCalls
           data['${effectivePrefix}caller'],
         )!,
       ),
+      redactedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}redacted_count'],
+      ),
     );
   }
 
@@ -9435,6 +9460,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
   final int? tokensOut;
   final String? responseText;
   final ModelCaller caller;
+
+  /// 本次发送前本地脱敏遮蔽的项数（D-24 透明度）；不适用的调用为 null。
+  final int? redactedCount;
   const ModelCall({
     required this.id,
     required this.userId,
@@ -9455,6 +9483,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     this.tokensOut,
     this.responseText,
     required this.caller,
+    this.redactedCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9504,6 +9533,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
         $ModelCallsTable.$convertercaller.toSql(caller),
       );
     }
+    if (!nullToAbsent || redactedCount != null) {
+      map['redacted_count'] = Variable<int>(redactedCount);
+    }
     return map;
   }
 
@@ -9542,6 +9574,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           ? const Value.absent()
           : Value(responseText),
       caller: Value(caller),
+      redactedCount: redactedCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(redactedCount),
     );
   }
 
@@ -9570,6 +9605,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       tokensOut: serializer.fromJson<int?>(json['tokensOut']),
       responseText: serializer.fromJson<String?>(json['responseText']),
       caller: serializer.fromJson<ModelCaller>(json['caller']),
+      redactedCount: serializer.fromJson<int?>(json['redactedCount']),
     );
   }
   @override
@@ -9595,6 +9631,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       'tokensOut': serializer.toJson<int?>(tokensOut),
       'responseText': serializer.toJson<String?>(responseText),
       'caller': serializer.toJson<ModelCaller>(caller),
+      'redactedCount': serializer.toJson<int?>(redactedCount),
     };
   }
 
@@ -9618,6 +9655,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     Value<int?> tokensOut = const Value.absent(),
     Value<String?> responseText = const Value.absent(),
     ModelCaller? caller,
+    Value<int?> redactedCount = const Value.absent(),
   }) => ModelCall(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -9640,6 +9678,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     tokensOut: tokensOut.present ? tokensOut.value : this.tokensOut,
     responseText: responseText.present ? responseText.value : this.responseText,
     caller: caller ?? this.caller,
+    redactedCount: redactedCount.present
+        ? redactedCount.value
+        : this.redactedCount,
   );
   ModelCall copyWithCompanion(ModelCallsCompanion data) {
     return ModelCall(
@@ -9678,6 +9719,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           ? data.responseText.value
           : this.responseText,
       caller: data.caller.present ? data.caller.value : this.caller,
+      redactedCount: data.redactedCount.present
+          ? data.redactedCount.value
+          : this.redactedCount,
     );
   }
 
@@ -9702,7 +9746,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           ..write('tokensIn: $tokensIn, ')
           ..write('tokensOut: $tokensOut, ')
           ..write('responseText: $responseText, ')
-          ..write('caller: $caller')
+          ..write('caller: $caller, ')
+          ..write('redactedCount: $redactedCount')
           ..write(')'))
         .toString();
   }
@@ -9728,6 +9773,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     tokensOut,
     responseText,
     caller,
+    redactedCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -9751,7 +9797,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           other.tokensIn == this.tokensIn &&
           other.tokensOut == this.tokensOut &&
           other.responseText == this.responseText &&
-          other.caller == this.caller);
+          other.caller == this.caller &&
+          other.redactedCount == this.redactedCount);
 }
 
 class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
@@ -9774,6 +9821,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
   final Value<int?> tokensOut;
   final Value<String?> responseText;
   final Value<ModelCaller> caller;
+  final Value<int?> redactedCount;
   final Value<int> rowid;
   const ModelCallsCompanion({
     this.id = const Value.absent(),
@@ -9795,6 +9843,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     this.tokensOut = const Value.absent(),
     this.responseText = const Value.absent(),
     this.caller = const Value.absent(),
+    this.redactedCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ModelCallsCompanion.insert({
@@ -9817,6 +9866,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     this.tokensOut = const Value.absent(),
     this.responseText = const Value.absent(),
     required ModelCaller caller,
+    this.redactedCount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -9849,6 +9899,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Expression<int>? tokensOut,
     Expression<String>? responseText,
     Expression<String>? caller,
+    Expression<int>? redactedCount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9871,6 +9922,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       if (tokensOut != null) 'tokens_out': tokensOut,
       if (responseText != null) 'response_text': responseText,
       if (caller != null) 'caller': caller,
+      if (redactedCount != null) 'redacted_count': redactedCount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9895,6 +9947,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Value<int?>? tokensOut,
     Value<String?>? responseText,
     Value<ModelCaller>? caller,
+    Value<int?>? redactedCount,
     Value<int>? rowid,
   }) {
     return ModelCallsCompanion(
@@ -9917,6 +9970,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       tokensOut: tokensOut ?? this.tokensOut,
       responseText: responseText ?? this.responseText,
       caller: caller ?? this.caller,
+      redactedCount: redactedCount ?? this.redactedCount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9987,6 +10041,9 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
         $ModelCallsTable.$convertercaller.toSql(caller.value),
       );
     }
+    if (redactedCount.present) {
+      map['redacted_count'] = Variable<int>(redactedCount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10015,6 +10072,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
           ..write('tokensOut: $tokensOut, ')
           ..write('responseText: $responseText, ')
           ..write('caller: $caller, ')
+          ..write('redactedCount: $redactedCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -23238,6 +23296,7 @@ typedef $$ModelCallsTableCreateCompanionBuilder =
       Value<int?> tokensOut,
       Value<String?> responseText,
       required ModelCaller caller,
+      Value<int?> redactedCount,
       Value<int> rowid,
     });
 typedef $$ModelCallsTableUpdateCompanionBuilder =
@@ -23261,6 +23320,7 @@ typedef $$ModelCallsTableUpdateCompanionBuilder =
       Value<int?> tokensOut,
       Value<String?> responseText,
       Value<ModelCaller> caller,
+      Value<int?> redactedCount,
       Value<int> rowid,
     });
 
@@ -23370,6 +23430,11 @@ class $$ModelCallsTableFilterComposer
         column: $table.caller,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<int> get redactedCount => $composableBuilder(
+    column: $table.redactedCount,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ModelCallsTableOrderingComposer
@@ -23475,6 +23540,11 @@ class $$ModelCallsTableOrderingComposer
     column: $table.caller,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get redactedCount => $composableBuilder(
+    column: $table.redactedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ModelCallsTableAnnotationComposer
@@ -23559,6 +23629,11 @@ class $$ModelCallsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<ModelCaller, String> get caller =>
       $composableBuilder(column: $table.caller, builder: (column) => column);
+
+  GeneratedColumn<int> get redactedCount => $composableBuilder(
+    column: $table.redactedCount,
+    builder: (column) => column,
+  );
 }
 
 class $$ModelCallsTableTableManager
@@ -23611,6 +23686,7 @@ class $$ModelCallsTableTableManager
                 Value<int?> tokensOut = const Value.absent(),
                 Value<String?> responseText = const Value.absent(),
                 Value<ModelCaller> caller = const Value.absent(),
+                Value<int?> redactedCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion(
                 id: id,
@@ -23632,6 +23708,7 @@ class $$ModelCallsTableTableManager
                 tokensOut: tokensOut,
                 responseText: responseText,
                 caller: caller,
+                redactedCount: redactedCount,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -23655,6 +23732,7 @@ class $$ModelCallsTableTableManager
                 Value<int?> tokensOut = const Value.absent(),
                 Value<String?> responseText = const Value.absent(),
                 required ModelCaller caller,
+                Value<int?> redactedCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion.insert(
                 id: id,
@@ -23676,6 +23754,7 @@ class $$ModelCallsTableTableManager
                 tokensOut: tokensOut,
                 responseText: responseText,
                 caller: caller,
+                redactedCount: redactedCount,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

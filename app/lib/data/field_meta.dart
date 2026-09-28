@@ -72,6 +72,8 @@ class ProducedBy {
   factory ProducedBy.userEdit() => const ProducedBy._('user_edit', null);
   factory ProducedBy.acceptedSuggestion(String suggestionId) =>
       ProducedBy._('accepted_suggestion', suggestionId);
+  factory ProducedBy.medicalExtract(String modelCallId) =>
+      ProducedBy._('medical_extract', modelCallId);
 
   Map<String, Object?> toJson() => {'kind': kind, 'ref_id': refId};
 

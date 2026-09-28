@@ -164,6 +164,7 @@ class OrganizeRepository {
     int? tokensOut,
     String? responseText,
     required ModelCaller caller,
+    int? redactedCount,
   }) {
     return _db.transaction(() async {
       final call = await _db.into(_db.modelCalls).insertReturning(
@@ -184,6 +185,7 @@ class OrganizeRepository {
             tokensOut: Value(tokensOut),
             responseText: Value(responseText),
             caller: caller,
+            redactedCount: Value(redactedCount),
           ),
         );
       await _db.logChange(

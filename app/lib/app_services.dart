@@ -21,6 +21,7 @@ import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
+import 'services/medical_extraction_service.dart';
 import 'services/organize_service.dart';
 import 'services/review_service.dart';
 import 'services/suggestion_service.dart';
@@ -78,6 +79,15 @@ class AppServices {
       extractor: PlatformTextExtractor(),
       cacheDir: Directory(p.join(filesDir.parent.path, 'extract_cache')),
     );
+    medicalExtraction = MedicalExtractionService(
+      attachments: attachments,
+      documents: medicalDocuments,
+      records: records,
+      organize: organize,
+      modelConfigs: modelConfigs,
+      keyStore: keyStore,
+      extraction: textExtraction,
+    );
   }
 
   final AppDatabase db;
@@ -99,6 +109,7 @@ class AppServices {
   late final SuggestionService suggestionService;
   late final BackupService backupService;
   late final TextExtractionService textExtraction;
+  late final MedicalExtractionService medicalExtraction;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

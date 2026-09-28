@@ -72,7 +72,7 @@ enum DataBoundary { device, lan, cloud }
 
 enum ModelCallStatus { succeeded, failed, timeout }
 
-enum ModelCaller { phoneOrganize, macAnalysis, externalAgent }
+enum ModelCaller { phoneOrganize, macAnalysis, externalAgent, phoneMedicalExtract }
 
 enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel }
 
@@ -314,6 +314,9 @@ class ModelCalls extends Table with CommonColumns {
   TextColumn get responseText => text().nullable()();
   TextColumn get caller =>
       text().map(const EnumConverter(ModelCaller.values))();
+
+  /// 本次发送前本地脱敏遮蔽的项数（D-24 透明度）；不适用的调用为 null。
+  IntColumn get redactedCount => integer().nullable()();
 }
 
 /// schema.md §3.3：记录。数据类名避开 dart:core 的 Record。

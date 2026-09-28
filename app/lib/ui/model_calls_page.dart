@@ -9,6 +9,7 @@ const _callerLabels = {
   ModelCaller.phoneOrganize: '手机整理',
   ModelCaller.macAnalysis: 'Mac 分析',
   ModelCaller.externalAgent: '外部 agent',
+  ModelCaller.phoneMedicalExtract: '检验单提取',
 };
 
 const _statusLabels = {

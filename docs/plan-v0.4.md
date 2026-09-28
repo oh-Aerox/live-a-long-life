@@ -54,7 +54,7 @@ v0.4 做四件事：**检查单/病历导入后能提取成可核对、可溯源
 | 状态 | 任务 | 备注 |
 |---|---|---|
 | [x] | V4-M0 数据层与提取管线基础 | 2026-09-28：medical_documents 建表（迁移 v9）+ 仓库（页序跨消息、提取回填、核对状态、删除，每写入变更日志；同步白名单与 schema §7.4 已加）；RecordType 加 lab_panel（标签/图标/摘要）；TextExtractionService——PDF 逐页探测文字层（≥20 字直取、按行切）、扫描页渲染 PNG 走 OCR、图片直接 OCR，结果按附件哈希写 sidecar 缓存（派生缓存不入库不同步，损坏自动重算）；platform channel `life.long/medical_text`（PDFKit+Vision，zh-Hans/en，坐标转左上原点，iOS/macOS 双端同构实现）。8 个新单测全套 126 过；iOS/macOS 构建通过；Vision 中文 OCR 本机独立脚本验证通过（文字+坐标正确）。**注：** channel 在应用内的真实调用随 V4-M2 导入 UI 一起真机/本机验证。**坑：** build_runner 需 --force-jit（sqlite3 native hook 挡 AOT）|
-| [ ] | V4-M1 脱敏、页筛选与结构化提取 | |
+| [x] | V4-M1 脱敏、页筛选与结构化提取 | 2026-09-28：RedactionService 三层（锚点标签同行取值+表格版式坐标找右邻、18 位身份证校验位正则含 O/I 易混归一化+出生段粗校验、已知姓名全文替换≥2 字），占位符替换坐标保留，性别/年龄/日期不误伤；PageFilter 双信号（保留/丢弃锚点 + 数值密度，数值密度最硬可压过"温馨提示"，无信号默认保留）；MedicalExtractionService 端到端——OCR 缓存 → 页筛选 → 脱敏 → 纯文本调用（labExtractSystemPrompt，行索引引用）→ 容错解析 → lab_panel 记录（全 unreviewed、locator 坐标回映射、编造行号丢弃）→ 回填文件级信息；model_calls 加 redacted_count（迁移 v10）+ caller=phoneMedicalExtract。13 个新单测全套 139 过；提示词已入 prompts.md。**UI 接线在 V4-M2**（含发送页数与遮蔽项展示）|
 | [ ] | V4-M2 导入与逐项核对 UI | |
 | [ ] | V4-M3 多模态显式识图兜底 | |
 | [ ] | V4-M4 历史医疗记录、长期状况档案与趋势/时间线 | |

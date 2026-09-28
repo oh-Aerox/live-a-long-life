@@ -240,6 +240,10 @@ class AttachmentRepository {
   }
 
   /// 本机副本的当前绝对路径；不在本机（offloaded / missing）时为 null。
+  Future<Attachment?> byId(String attachmentId) => (_db.select(_db.attachments)
+        ..where((t) => t.id.equals(attachmentId) & t.deletedAt.isNull()))
+      .getSingleOrNull();
+
   Future<String?> localPathOf(String attachmentId) async {
     final copy = await _copyOf(attachmentId);
     if (copy == null || copy.state != CopyState.present) return null;

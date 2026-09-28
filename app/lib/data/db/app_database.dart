@@ -41,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +88,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 9) {
             // v0.4 医疗文件（schema §5.1）。
             await m.createTable(medicalDocuments);
+          }
+          if (from < 10) {
+            // v0.4 调用记录加脱敏遮蔽项数（D-24）。
+            await m.addColumn(modelCalls, modelCalls.redactedCount);
           }
         },
         beforeOpen: (details) async {

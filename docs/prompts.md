@@ -8,8 +8,9 @@
 
 | 场景 | caller | 提示词位置 | 发送的数据 | 触发 |
 |---|---|---|---|---|
-| 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束 |
+| 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束；记录上点"重新整理" |
 | Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
+| 检验单结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引。**不发图片；调用记录含遮蔽项数** | 医疗文件提取（V4-M2 接 UI） |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
 `ModelCaller.externalAgent` 只有枚举定义，无调用路径（D-20 外部 agent 入口默认关闭，未实现）。
@@ -91,17 +92,58 @@ data 字段（只填有依据的，缺的字段不要编造）：
 
 v0.4 有长期状况档案（D-25）后，周报输入将加入长期状况清单与近期临时疾病，使下周建议更有针对性。
 
-## 3. 测试连接
+## 3. 检验单结构化提取
+
+- **系统提示词：** `labExtractSystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** 每行 `P{页}L{行}: 文本`——本地 OCR/PDF 文字层输出，经页筛选（被排除页不发送）与脱敏（姓名、证件号已替换为占位符）
+- **约束来源：** D-23（行索引引用 → 应用映射回坐标写 locator，A-19 溯源）、D-24（脱敏）、D-04（结果全部 unreviewed，五关键字段确认才算事实）
+
+```
+你是检验报告的结构化提取器。输入是一份医疗文件经本地文字识别后的文本，
+每行有形如 P2L5 的行号（第 2 页第 5 行）。只输出一个 JSON 对象，不要输出其他文字：
+{
+  "doc": {
+    "doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
+    "institution_text": "医疗机构名称，按原文" 或 null,
+    "exam_date": "YYYY-MM-DD" 或 null（检查/采样日期）,
+    "report_date": "YYYY-MM-DD" 或 null（报告日期）
+  },
+  "results": [
+    {
+      "item_name_raw": "报告上的项目名称，按原文",
+      "value_raw": "报告上的数值，按原文",
+      "value_num": 解析出的数值 或 null,
+      "unit_raw": "报告上的单位，按原文" 或 null,
+      "ref_range_raw": "报告上的参考范围，按原文" 或 null,
+      "ref_low": 参考范围下限 或 null,
+      "ref_high": 参考范围上限 或 null,
+      "flag_raw": "报告上的异常标记（↑、↓、H、L 等）" 或 null,
+      "source_lines": ["该项数据来自的行号，如 P1L3"，至少一个]
+    }
+  ]
+}
+
+规则：
+- *_raw 字段一律按原文抄写，不要改写、翻译或归一化；
+- 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
+- source_lines 只能用输入里出现的行号，不要编造；
+- 没有检验数值表时 results 为空数组；检查所见、结论等文字内容不进 results；
+- 文本里的【姓名】【证件号】是脱敏占位符，不是数据，忽略它们；
+- 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
+```
+
+应用侧的防线：编造的行号在映射 locator 时被丢弃；`item_name_raw`/`value_raw` 缺失的项整项丢弃；全部结果 unreviewed。
+
+## 4. 测试连接
 
 - **位置：** `ModelClient.testConnection` / `_probeImage`（model_client.dart）
 - **发送内容：** 文本探测 `收到请回复"OK"`；图片能力探测 `这是图片能力测试，回复"OK"` + 内置 1 像素级探测 PNG（`_probePng` 常量）
 - 不含任何用户数据，用于连通性验证和 D-16 能力标注（支持文本/图片）。
 
-## 4. 规划中的调用场景（v0.4，实现时补入本文）
+## 5. 规划中的调用场景（v0.4，实现时补入本文）
 
 | 场景 | 状态 | 约束来源 |
 |---|---|---|
-| 检验单结构化提取 | V4-M1。输入为经页筛选（D-23）和脱敏（D-24）的 OCR 文本（带行索引），要求逐字段返回行索引引用 | D-23/D-24 |
 | 长期状况分类 | V4-M4。就医/体检信息区分临时疾病与长期状况，模型建议、用户核对 | D-25 |
 | 多模态识图（显式） | V4-M3。用户显式发起、裁剪后的图片 | D-24 |
 | 主动咨询 | V4-M6。用户问题 + 最小上下文，caller=userConsult | D-26 |
