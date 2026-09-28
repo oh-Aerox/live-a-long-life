@@ -14,6 +14,7 @@ const recordTypeLabels = {
   RecordType.exercise: '运动',
   RecordType.note: '其他',
   RecordType.labPanel: '检验结果',
+  RecordType.condition: '身体状况',
 };
 
 const recordTypeIcons = {
@@ -24,6 +25,7 @@ const recordTypeIcons = {
   RecordType.exercise: Icons.directions_run_outlined,
   RecordType.note: Icons.notes_outlined,
   RecordType.labPanel: Icons.biotech_outlined,
+  RecordType.condition: Icons.medical_services_outlined,
 };
 
 /// data 字段的展示名；没列出的按原字段名显示。
@@ -111,6 +113,10 @@ String recordSummary(RecordType type, Map<String, Object?> data) {
     case RecordType.labPanel:
       final results = data['results'] as List?;
       return '检验结果 ${results?.length ?? 0} 项';
+    case RecordType.condition:
+      final status = data['status'] == 'resolved' ? '（已痊愈）' : '';
+      final kind = data['persistence'] == 'long_term' ? '长期' : '近期';
+      return '$kind：${data['name'] ?? '身体状况'}$status';
   }
 }
 

@@ -352,6 +352,13 @@ class RecordRepository {
         ..where((t) => t.id.equals(recordId)))
       .getSingleOrNull();
 
+  /// 某类型的全部记录（长期状况档案、时间线用）。不含已删除。
+  Future<List<RecordRow>> byType(RecordType type) => (_db.select(_db.records)
+        ..where(
+            (t) => t.recordType.equalsValue(type) & t.deletedAt.isNull())
+        ..orderBy([(t) => OrderingTerm.desc(t.localDate)]))
+      .get();
+
   /// 某天的全部记录（按日视图）。不含已删除。
   Future<List<RecordRow>> byDate(String localDate) => (_db.select(_db.records)
         ..where((t) => t.localDate.equals(localDate) & t.deletedAt.isNull())

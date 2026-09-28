@@ -74,7 +74,7 @@ enum ModelCallStatus { succeeded, failed, timeout }
 
 enum ModelCaller { phoneOrganize, macAnalysis, externalAgent, phoneMedicalExtract }
 
-enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel }
+enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel, condition }
 
 /// schema.md §5.1：医疗文件类型（v0.4）。
 enum MedicalDocType {

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../data/change_log.dart';
 import '../data/db/app_database.dart';
+import '../data/field_meta.dart';
 import '../data/ids.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
@@ -29,6 +30,10 @@ const weeklyReviewSystemPrompt = '''
   留意事项（比如饮食调整、控制运动强度、保证睡眠）；感冒发烧这类短期不适
   只影响近期建议，不要把它写成长期结论。没有特别情况时给一两条简短的
   维持性建议即可，不要凑数；
+- 输入里的 long_term_conditions 是用户已确认的长期身体状况档案
+  （结石、慢性病、过敏等），下周建议要把它们考虑进去（比如结石注意
+  饮食和饮水、过敏避开过敏原）；recent_temporary_conditions 是近期
+  临时疾病，只影响近期建议。两者都可能为空；
 - 不做医疗诊断，不给用药建议；可以温和提示值得留意的模式；
 - 用户手动修改过的值以记录为准，不要质疑。
 ''';
@@ -115,6 +120,40 @@ class AnalysisService {
               t.localDate.isSmallerOrEqualValue(periodEnd)))
         .get();
 
+    // 身体状况（D-25）：长期档案全部 + 近 30 天的临时疾病；
+    // 只取已核对的（unreviewed 不算事实，D-04）。
+    final recent30 = d(end.subtract(const Duration(days: 30)));
+    final longTermConditions = <Map<String, Object?>>[];
+    final recentTemporary = <Map<String, Object?>>[];
+    final conditionRecs = await (_db.select(_db.records)
+          ..where((t) =>
+              t.recordType.equalsValue(RecordType.condition) &
+              t.deletedAt.isNull()))
+        .get();
+    for (final rec in conditionRecs) {
+      if (rec.currentRevisionId == null) continue;
+      final rev = await (_db.select(_db.recordRevisions)
+            ..where((t) => t.id.equals(rec.currentRevisionId!)))
+          .getSingle();
+      final reviewed =
+          FieldMetaMap.decode(rev.fieldMeta)['condition']?.isProtected ?? false;
+      if (!reviewed) continue;
+      final data = jsonDecode(rev.data) as Map;
+      final entry = {
+        'revision_id': rev.id,
+        'name': data['name'],
+        'status': data['status'],
+        'first_found': rec.localDate,
+        'development_text': data['development_text'],
+      };
+      if (data['persistence'] == 'long_term') {
+        longTermConditions.add(entry);
+      } else if ((rec.localDate ?? '') .compareTo(recent30) >= 0 &&
+          data['status'] == 'active') {
+        recentTemporary.add(entry);
+      }
+    }
+
     final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
         ? ''
@@ -134,6 +173,8 @@ class AnalysisService {
               'value': h.value,
             },
         ],
+        'long_term_conditions': longTermConditions,
+        'recent_temporary_conditions': recentTemporary,
       }),
       maxTokens: 8192,
     );

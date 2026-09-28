@@ -114,6 +114,57 @@ void main() {
           (await analysis.latest(AnalysisKind.weeklyReview))!.id, artifact.id);
     });
 
+    test('周报输入含状况档案（D-25/R-35）：已确认的长期状况进入，未核对的不进',
+        () async {
+      TimeValue day(String d) => TimeValue(
+          localDate: d,
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated);
+      Future<void> addCondition(String name, String persistence,
+          ReviewStatus status, String date) async {
+        await records.create(
+          recordType: RecordType.condition,
+          occurred: day(date),
+          dataJson: jsonEncode({
+            'name': name,
+            'persistence': persistence,
+            'status': 'active',
+            'source_kind': 'report',
+            'development_text': null,
+          }),
+          fieldMeta: FieldMetaMap({
+            'condition': FieldMeta(
+                origin: FieldOrigin.modelInferred, reviewStatus: status),
+          }),
+          producedBy: ProducedBy.medicalExtract('c1'),
+        );
+      }
+
+      // 已确认的长期状况：进档案（发现日期多久远都进）。
+      await addCondition('胆囊结石', 'long_term', ReviewStatus.confirmed,
+          '2024-01-15');
+      // 未核对的长期状况：不进（D-04）。
+      await addCondition('甲状腺结节', 'long_term', ReviewStatus.unreviewed,
+          '2026-09-01');
+      // 近 30 天内已确认的临时疾病：进近期清单。
+      await addCondition('感冒', 'temporary', ReviewStatus.edited, today());
+      // 很久以前的临时疾病：不进。
+      await addCondition('急性肠胃炎', 'temporary', ReviewStatus.confirmed,
+          '2024-06-01');
+
+      nextReply = jsonEncode({'content_md': '# 周报', 'citations': []});
+      await analysis.generateWeeklyReview();
+      final input = jsonDecode(lastPrompt!) as Map;
+      final longTerm = (input['long_term_conditions'] as List)
+          .map((e) => (e as Map)['name'])
+          .toList();
+      final temporary = (input['recent_temporary_conditions'] as List)
+          .map((e) => (e as Map)['name'])
+          .toList();
+      expect(longTerm, ['胆囊结石']);
+      expect(temporary, ['感冒']);
+    });
+
     test('解析降级：JSON 前后带解释文字仍能取出正文与引用', () async {
       nextReply = '好的，这是你的周报：\n'
           '```json\n{"content_md":"# 周报\\n本周不错","citations":[]}\n```\n希望有帮助！';

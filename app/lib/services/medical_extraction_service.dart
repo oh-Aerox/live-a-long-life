@@ -43,6 +43,14 @@ const labExtractSystemPrompt = '''
       "flag_raw": "报告上的异常标记（↑、↓、H、L 等）" 或 null,
       "source_lines": ["该项数据来自的行号，如 P1L3"，至少一个]
     }
+  ],
+  "conditions": [
+    {
+      "name": "疾病或身体状况名称，按原文（如 胆囊结石、青霉素过敏）",
+      "persistence": "long_term" | "temporary",
+      "evidence_text": "依据的原文片段（诊断、结论、印象一栏）",
+      "source_lines": ["来源行号"，至少一个]
+    }
   ]
 }
 
@@ -51,6 +59,10 @@ const labExtractSystemPrompt = '''
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
 - source_lines 只能用输入里出现的行号，不要编造；
 - 没有检验数值表时 results 为空数组；检查所见、结论等文字内容不进 results；
+- conditions 只收诊断/结论/印象/病史文字里明确写出的疾病或状况；
+  结石、囊肿、结节、慢性病、过敏等不会自行消失的算 long_term，
+  感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
+  检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
 - 文本里的【姓名】【证件号】是脱敏占位符，不是数据，忽略它们；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ''';
@@ -63,12 +75,16 @@ class MedicalExtractOutcome {
     required this.pageDecisions,
     required this.redactedCount,
     this.possibleDuplicateRecordIds = const [],
+    this.conditionRecords = const [],
   });
 
   final RecordRow record;
   final List<PageDecision> pageDecisions;
   final int redactedCount;
   final List<String> possibleDuplicateRecordIds;
+
+  /// 本次新建的身体状况建议（unreviewed，D-25）；同名已有档案时不重复建。
+  final List<RecordRow> conditionRecords;
 }
 
 /// 一页的预览信息（提取前的页筛选展示：默认判定 + 用户覆盖）。
@@ -361,15 +377,25 @@ class MedicalExtractionService {
 
     final duplicates =
         await _findNearDuplicates(record.id, examDate, results);
+    final conditions = await _createConditionSuggestions(
+      parsed['conditions'] as List? ?? const [],
+      lineIndex: lineIndex,
+      examDate: examDate,
+      documentId: doc.id,
+      callId: call.id,
+      attachmentIds: attachmentIds,
+    );
     AppLog.I.i('extract',
         '结构化提取完成：${results.length} 项，遮蔽 $redactedTotal 处，'
         '发送 ${redactedPages.length}/${docPages.length} 页'
+        '${conditions.isEmpty ? '' : '，新增 ${conditions.length} 条状况建议'}'
         '${duplicates.isEmpty ? '' : '，疑似与 ${duplicates.length} 条已有记录重复'}');
     return MedicalExtractOutcome(
       record: record,
       pageDecisions: decisions,
       redactedCount: redactedTotal,
       possibleDuplicateRecordIds: duplicates,
+      conditionRecords: conditions,
     );
   }
 
@@ -426,6 +452,89 @@ class MedicalExtractionService {
           );
         }(),
     ];
+  }
+
+  /// 身体状况建议（D-25）：模型从诊断/结论文字提取，全部 unreviewed，
+  /// 用户在档案页核对后才算事实。同名（去空白）状况已有档案时不重复建。
+  Future<List<RecordRow>> _createConditionSuggestions(
+    List<Object?> raw, {
+    required Map<String, (_DocPage, OcrLine)> lineIndex,
+    required String? examDate,
+    required String documentId,
+    required String callId,
+    required Set<String> attachmentIds,
+  }) async {
+    if (raw.isEmpty) return const [];
+    // 已有状况的名称键（含未核对的：同一份报告重新提取不重复建）。
+    final existingKeys = <String>{};
+    for (final rec in await _records.byType(RecordType.condition)) {
+      final rev = await _records.currentRevisionOf(rec.id);
+      final name = (jsonDecode(rev.data) as Map)['name'];
+      if (name is String) {
+        existingKeys.add(RecordRepository.labItemKey(name));
+      }
+    }
+
+    final created = <RecordRow>[];
+    for (final c in raw) {
+      if (c is! Map) continue;
+      final name = c['name'];
+      final persistence = c['persistence'];
+      if (name is! String || name.trim().isEmpty) continue;
+      if (persistence != 'long_term' && persistence != 'temporary') continue;
+      final key = RecordRepository.labItemKey(name);
+      if (!existingKeys.add(key)) continue; // 同名已有，不重复建档
+
+      Map<String, Object?>? locator;
+      for (final lineKey in (c['source_lines'] as List? ?? const [])) {
+        final hit = lineIndex[lineKey];
+        if (hit == null) continue;
+        final (page, line) = hit;
+        locator = {
+          'attachment_id': page.attachmentId,
+          'page_no': page.pageNo,
+          'attachment_page': page.attachmentPage,
+          if (line.hasBox)
+            'box': {'x': line.x, 'y': line.y, 'w': line.w, 'h': line.h},
+          'line_text': line.text,
+        };
+        break;
+      }
+      final record = await _records.create(
+        recordType: RecordType.condition,
+        occurred: TimeValue(
+          localDate: examDate ?? _today(),
+          precision:
+              examDate != null ? TimePrecision.dateOnly : TimePrecision.unknown,
+          source: examDate != null
+              ? TimeValueSource.userStated
+              : TimeValueSource.inferredFromSentAt,
+        ),
+        dataJson: jsonEncode({
+          'name': name.trim(),
+          'persistence': persistence,
+          'status': 'active',
+          'source_kind': 'report',
+          'evidence_text': c['evidence_text'],
+          'development_text': null,
+          'last_checked_date': null,
+          'medical_document_id': documentId,
+          'locator': locator,
+        }),
+        fieldMeta: FieldMetaMap({
+          'condition': const FieldMeta(
+              origin: FieldOrigin.modelInferred,
+              reviewStatus: ReviewStatus.unreviewed),
+        }),
+        producedBy: ProducedBy.medicalExtract(callId),
+        sources: [
+          for (final id in attachmentIds)
+            SourceLink(sourceKind: RecordSourceKind.attachment, sourceId: id),
+        ],
+      );
+      created.add(record);
+    }
+    return created;
   }
 
   /// 近似重复（D-10 第一版）：同检查日期、同项目 key 的其他 lab_panel 记录。

@@ -13,10 +13,13 @@ import '../data/ids.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
+import 'conditions_page.dart';
 import 'day_view_page.dart';
+import 'lab_trends_page.dart';
 import 'medical_folder_page.dart';
 import 'record_detail_page.dart';
 import 'settings_page.dart';
+import 'visit_timeline_page.dart';
 
 /// 对话页（product-spec §3 v0.1 页面）。
 /// 消息按 seq 排列、按天分组；发送即保存并显示"已保存"；
@@ -88,9 +91,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
-  /// 病例夹 / 体检两个入口（D-27）。
+  /// 医疗入口（D-27）：病例夹 / 体检 / 长期状况档案 / 指标趋势 / 时间线。
   Future<void> _openMedicalFolders() async {
-    final choice = await showModalBottomSheet<bool>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -99,25 +102,44 @@ class _ChatPageState extends State<ChatPage> {
               leading: const Icon(Icons.folder_shared_outlined),
               title: const Text('我的病例夹'),
               subtitle: const Text('病历、检查检验报告、处方'),
-              onTap: () => Navigator.pop(context, false),
+              onTap: () => Navigator.pop(context, 'records'),
             ),
             ListTile(
               leading: const Icon(Icons.monitor_heart_outlined),
               title: const Text('我的体检'),
               subtitle: const Text('体检报告'),
-              onTap: () => Navigator.pop(context, true),
+              onTap: () => Navigator.pop(context, 'exams'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.medical_services_outlined),
+              title: const Text('长期状况档案'),
+              subtitle: const Text('结石、过敏等长期状况与近期疾病'),
+              onTap: () => Navigator.pop(context, 'conditions'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.show_chart),
+              title: const Text('指标趋势'),
+              subtitle: const Text('每项检验指标的历史变化'),
+              onTap: () => Navigator.pop(context, 'trends'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.timeline_outlined),
+              title: const Text('就诊时间线'),
+              onTap: () => Navigator.pop(context, 'timeline'),
             ),
           ],
         ),
       ),
     );
     if (choice == null || !mounted) return;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (_) =>
-              MedicalFolderPage(services: _s, physicalExam: choice)),
-    );
+    final Widget page = switch (choice) {
+      'records' => MedicalFolderPage(services: _s, physicalExam: false),
+      'exams' => MedicalFolderPage(services: _s, physicalExam: true),
+      'conditions' => ConditionsPage(services: _s),
+      'trends' => LabTrendsPage(services: _s),
+      _ => VisitTimelinePage(services: _s),
+    };
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   Future<void> _resetIdleTimer() async {

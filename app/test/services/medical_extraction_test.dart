@@ -255,6 +255,73 @@ void main() {
     expect(second.possibleDuplicateRecordIds, [first.record.id]);
   });
 
+  test('状况建议（D-25）：诊断文字建档 unreviewed，同名不重复建', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '超声所见：胆囊壁毛糙', x: 0.1, y: 0.2, w: 0.6, h: 0.03),
+      OcrLine(text: '结论：胆囊结石（多发）', x: 0.1, y: 0.3, w: 0.6, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    Map<String, Object?> reply() => {
+          'doc': {'doc_type': 'imaging_report', 'exam_date': '2026-09-20'},
+          'results': [],
+          'conditions': [
+            {
+              'name': '胆囊结石',
+              'persistence': 'long_term',
+              'evidence_text': '结论：胆囊结石（多发）',
+              'source_lines': ['P1L2'],
+            },
+            {
+              'name': '感冒',
+              'persistence': 'temporary',
+              'evidence_text': '急性上呼吸道感染',
+              'source_lines': ['P1L1'],
+            },
+          ],
+        };
+
+    final doc1 = await importDoc();
+    model.reply(jsonEncode(reply()));
+    final first = await service.extractDocument(doc1.id);
+    expect(first.conditionRecords, hasLength(2));
+
+    final conditions = await records.byType(RecordType.condition);
+    expect(conditions, hasLength(2));
+    final rev = await records.currentRevisionOf(first.conditionRecords[0].id);
+    final data = jsonDecode(rev.data) as Map;
+    expect(data['name'], '胆囊结石');
+    expect(data['persistence'], 'long_term');
+    expect(data['status'], 'active');
+    expect((data['locator'] as Map)['page_no'], 1);
+    // unreviewed：确认前不算事实（D-04）。
+    final meta = FieldMetaMap.decode(rev.fieldMeta);
+    expect(meta['condition']!.reviewStatus, ReviewStatus.unreviewed);
+    expect(first.conditionRecords[0].localDate, '2026-09-20');
+
+    // 同一份报告换个文件再提取：同名状况不重复建档。
+    final src2 = File('${tmp.path}/again.jpg')..writeAsBytesSync([5, 5]);
+    final att2 =
+        (await attachments.importFile(src2, mimeType: 'image/jpeg')).attachment;
+    final doc2 = await documents.create(
+      pages: [
+        MedicalPageRef(attachmentId: att2.id, messageId: 'msg-3', pageNo: 1)
+      ],
+      docType: MedicalDocType.imagingReport,
+    );
+    model.reply(jsonEncode(reply()));
+    final second = await service.extractDocument(doc2.id);
+    expect(second.conditionRecords, isEmpty);
+    expect(await records.byType(RecordType.condition), hasLength(2));
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

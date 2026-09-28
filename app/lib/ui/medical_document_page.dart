@@ -103,7 +103,8 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       final skipped = outcome.pageDecisions.where((d) => !d.included).length;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('提取完成，已遮蔽 ${outcome.redactedCount} 处隐私信息'
-            '${skipped > 0 ? '，跳过 $skipped 页无关内容' : ''}。'
+            '${skipped > 0 ? '，跳过 $skipped 页无关内容' : ''}'
+            '${outcome.conditionRecords.isNotEmpty ? '，发现 ${outcome.conditionRecords.length} 条身体状况建议（在长期状况档案里核对）' : ''}。'
             '结果未核对，确认后才参与分析'),
       ));
       if (outcome.possibleDuplicateRecordIds.isNotEmpty) {
