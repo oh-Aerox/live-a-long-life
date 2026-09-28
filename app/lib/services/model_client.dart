@@ -265,11 +265,17 @@ class ModelClient {
           retriable: response.statusCode >= 500 || response.statusCode == 429,
         );
       }
-      return (jsonDecode(text) as Map).cast<String, Object?>();
+      try {
+        return (jsonDecode(text) as Map).cast<String, Object?>();
+      } on FormatException {
+        // HTTP 2xx 但返回的不是 JSON（中转站网关页、SSE 流、包装层等）：
+        // 带上响应片段和实际请求地址，方便定位。
+        throw ModelClientException(
+            '返回不是 JSON（HTTP ${response.statusCode}，请求 $uri）：'
+            '${_snippet(text)}');
+      }
     } on ModelClientException {
       rethrow;
-    } on FormatException {
-      throw ModelClientException('响应不是有效的 JSON');
     } catch (e) {
       // 连接失败、超时等网络层错误：可重试。
       throw ModelClientException('网络错误：$e', retriable: true);
@@ -291,7 +297,14 @@ class ModelClient {
       429 => '请求过于频繁',
       _ => 'HTTP $status',
     };
-    return detail == null ? hint : '$hint：$detail';
+    // 有结构化错误就带上它；否则附原文片段（中转站可能返回 HTML/网关页）。
+    return '$hint：${detail ?? _snippet(responseText)}';
+  }
+
+  static String _snippet(String text) {
+    final oneLine = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (oneLine.isEmpty) return '(空响应)';
+    return oneLine.length > 300 ? '${oneLine.substring(0, 300)}…' : oneLine;
   }
 }
 

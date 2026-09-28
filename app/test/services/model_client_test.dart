@@ -130,6 +130,29 @@ void main() {
       expect(result.message, contains('仅文本'));
     });
 
+    test('HTTP 200 但返回非 JSON（中转站网关页）：错误信息带响应片段', () async {
+      final gateway =
+          await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      gateway.listen((req) async {
+        await utf8.decoder.bind(req).join();
+        req.response.headers.contentType = ContentType.html;
+        req.response.write('<html><body>502 Bad Gateway 中转站维护中</body></html>');
+        await req.response.close();
+      });
+      addTearDown(() => gateway.close(force: true));
+
+      final result = await ModelClient().testConnection(
+        config: _config(
+            protocol: ModelProtocol.openaiCompatible,
+            baseUrl: 'http://127.0.0.1:${gateway.port}/v1'),
+        apiKey: 'k',
+      );
+      expect(result.ok, isFalse);
+      // 片段能看出是网关页而非模型响应。
+      expect(result.message, contains('Bad Gateway'));
+      expect(result.message, contains('返回不是 JSON'));
+    });
+
     test('服务不可达：可重试的网络错误（A-11 排队场景）', () async {
       final deadPort = server.port;
       await server.close(force: true);

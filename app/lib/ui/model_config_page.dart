@@ -385,9 +385,25 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
             onChanged: (v) => setState(() => _makeDefault = v),
           ),
           if (_testResult != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('最近测试：$_testResult'),
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('最近测试结果',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  // 可选中复制：中转站的原始返回片段会显示在这里，便于排查。
+                  SelectableText(_testResult!,
+                      style: const TextStyle(fontSize: 13)),
+                ],
+              ),
             ),
           const SizedBox(height: 16),
           FilledButton(
