@@ -9158,6 +9158,17 @@ class $ModelCallsTable extends ModelCalls
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sentSummaryMeta = const VerificationMeta(
+    'sentSummary',
+  );
+  @override
+  late final GeneratedColumn<String> sentSummary = GeneratedColumn<String>(
+    'sent_summary',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9180,6 +9191,7 @@ class $ModelCallsTable extends ModelCalls
     responseText,
     caller,
     redactedCount,
+    sentSummary,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9329,6 +9341,15 @@ class $ModelCallsTable extends ModelCalls
         ),
       );
     }
+    if (data.containsKey('sent_summary')) {
+      context.handle(
+        _sentSummaryMeta,
+        sentSummary.isAcceptableOrUnknown(
+          data['sent_summary']!,
+          _sentSummaryMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -9424,6 +9445,10 @@ class $ModelCallsTable extends ModelCalls
         DriftSqlType.int,
         data['${effectivePrefix}redacted_count'],
       ),
+      sentSummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sent_summary'],
+      ),
     );
   }
 
@@ -9463,6 +9488,10 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
 
   /// 本次发送前本地脱敏遮蔽的项数（D-24 透明度）；不适用的调用为 null。
   final int? redactedCount;
+
+  /// 本次发送内容范围的人话描述（D-26/A-38 透明度），比如
+  /// "问题 + 基本资料 + 长期状况 2 条"。老调用为 null。
+  final String? sentSummary;
   const ModelCall({
     required this.id,
     required this.userId,
@@ -9484,6 +9513,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     this.responseText,
     required this.caller,
     this.redactedCount,
+    this.sentSummary,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9536,6 +9566,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     if (!nullToAbsent || redactedCount != null) {
       map['redacted_count'] = Variable<int>(redactedCount);
     }
+    if (!nullToAbsent || sentSummary != null) {
+      map['sent_summary'] = Variable<String>(sentSummary);
+    }
     return map;
   }
 
@@ -9577,6 +9610,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       redactedCount: redactedCount == null && nullToAbsent
           ? const Value.absent()
           : Value(redactedCount),
+      sentSummary: sentSummary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentSummary),
     );
   }
 
@@ -9606,6 +9642,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       responseText: serializer.fromJson<String?>(json['responseText']),
       caller: serializer.fromJson<ModelCaller>(json['caller']),
       redactedCount: serializer.fromJson<int?>(json['redactedCount']),
+      sentSummary: serializer.fromJson<String?>(json['sentSummary']),
     );
   }
   @override
@@ -9632,6 +9669,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       'responseText': serializer.toJson<String?>(responseText),
       'caller': serializer.toJson<ModelCaller>(caller),
       'redactedCount': serializer.toJson<int?>(redactedCount),
+      'sentSummary': serializer.toJson<String?>(sentSummary),
     };
   }
 
@@ -9656,6 +9694,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     Value<String?> responseText = const Value.absent(),
     ModelCaller? caller,
     Value<int?> redactedCount = const Value.absent(),
+    Value<String?> sentSummary = const Value.absent(),
   }) => ModelCall(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -9681,6 +9720,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     redactedCount: redactedCount.present
         ? redactedCount.value
         : this.redactedCount,
+    sentSummary: sentSummary.present ? sentSummary.value : this.sentSummary,
   );
   ModelCall copyWithCompanion(ModelCallsCompanion data) {
     return ModelCall(
@@ -9722,6 +9762,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       redactedCount: data.redactedCount.present
           ? data.redactedCount.value
           : this.redactedCount,
+      sentSummary: data.sentSummary.present
+          ? data.sentSummary.value
+          : this.sentSummary,
     );
   }
 
@@ -9747,13 +9790,14 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           ..write('tokensOut: $tokensOut, ')
           ..write('responseText: $responseText, ')
           ..write('caller: $caller, ')
-          ..write('redactedCount: $redactedCount')
+          ..write('redactedCount: $redactedCount, ')
+          ..write('sentSummary: $sentSummary')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     userId,
     createdAt,
@@ -9774,7 +9818,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     responseText,
     caller,
     redactedCount,
-  );
+    sentSummary,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -9798,7 +9843,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           other.tokensOut == this.tokensOut &&
           other.responseText == this.responseText &&
           other.caller == this.caller &&
-          other.redactedCount == this.redactedCount);
+          other.redactedCount == this.redactedCount &&
+          other.sentSummary == this.sentSummary);
 }
 
 class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
@@ -9822,6 +9868,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
   final Value<String?> responseText;
   final Value<ModelCaller> caller;
   final Value<int?> redactedCount;
+  final Value<String?> sentSummary;
   final Value<int> rowid;
   const ModelCallsCompanion({
     this.id = const Value.absent(),
@@ -9844,6 +9891,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     this.responseText = const Value.absent(),
     this.caller = const Value.absent(),
     this.redactedCount = const Value.absent(),
+    this.sentSummary = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ModelCallsCompanion.insert({
@@ -9867,6 +9915,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     this.responseText = const Value.absent(),
     required ModelCaller caller,
     this.redactedCount = const Value.absent(),
+    this.sentSummary = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -9900,6 +9949,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Expression<String>? responseText,
     Expression<String>? caller,
     Expression<int>? redactedCount,
+    Expression<String>? sentSummary,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9923,6 +9973,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       if (responseText != null) 'response_text': responseText,
       if (caller != null) 'caller': caller,
       if (redactedCount != null) 'redacted_count': redactedCount,
+      if (sentSummary != null) 'sent_summary': sentSummary,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9948,6 +9999,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Value<String?>? responseText,
     Value<ModelCaller>? caller,
     Value<int?>? redactedCount,
+    Value<String?>? sentSummary,
     Value<int>? rowid,
   }) {
     return ModelCallsCompanion(
@@ -9971,6 +10023,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       responseText: responseText ?? this.responseText,
       caller: caller ?? this.caller,
       redactedCount: redactedCount ?? this.redactedCount,
+      sentSummary: sentSummary ?? this.sentSummary,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10044,6 +10097,9 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     if (redactedCount.present) {
       map['redacted_count'] = Variable<int>(redactedCount.value);
     }
+    if (sentSummary.present) {
+      map['sent_summary'] = Variable<String>(sentSummary.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10073,6 +10129,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
           ..write('responseText: $responseText, ')
           ..write('caller: $caller, ')
           ..write('redactedCount: $redactedCount, ')
+          ..write('sentSummary: $sentSummary, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -19963,6 +20020,480 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   }
 }
 
+class $ConsultMessagesTable extends ConsultMessages
+    with TableInfo<$ConsultMessagesTable, ConsultMessage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ConsultMessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contextNoteMeta = const VerificationMeta(
+    'contextNote',
+  );
+  @override
+  late final GeneratedColumn<String> contextNote = GeneratedColumn<String>(
+    'context_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelCallIdMeta = const VerificationMeta(
+    'modelCallId',
+  );
+  @override
+  late final GeneratedColumn<String> modelCallId = GeneratedColumn<String>(
+    'model_call_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    role,
+    body,
+    contextNote,
+    modelCallId,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'consult_messages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ConsultMessage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('context_note')) {
+      context.handle(
+        _contextNoteMeta,
+        contextNote.isAcceptableOrUnknown(
+          data['context_note']!,
+          _contextNoteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('model_call_id')) {
+      context.handle(
+        _modelCallIdMeta,
+        modelCallId.isAcceptableOrUnknown(
+          data['model_call_id']!,
+          _modelCallIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ConsultMessage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ConsultMessage(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      contextNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_note'],
+      ),
+      modelCallId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_call_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ConsultMessagesTable createAlias(String alias) {
+    return $ConsultMessagesTable(attachedDatabase, alias);
+  }
+}
+
+class ConsultMessage extends DataClass implements Insertable<ConsultMessage> {
+  final String id;
+  final String sessionId;
+  final String role;
+  final String body;
+
+  /// 这一问附带了什么上下文（人话描述，与 model_calls.sent_summary 一致）。
+  final String? contextNote;
+  final String? modelCallId;
+  final int createdAt;
+  const ConsultMessage({
+    required this.id,
+    required this.sessionId,
+    required this.role,
+    required this.body,
+    this.contextNote,
+    this.modelCallId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['session_id'] = Variable<String>(sessionId);
+    map['role'] = Variable<String>(role);
+    map['body'] = Variable<String>(body);
+    if (!nullToAbsent || contextNote != null) {
+      map['context_note'] = Variable<String>(contextNote);
+    }
+    if (!nullToAbsent || modelCallId != null) {
+      map['model_call_id'] = Variable<String>(modelCallId);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ConsultMessagesCompanion toCompanion(bool nullToAbsent) {
+    return ConsultMessagesCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      role: Value(role),
+      body: Value(body),
+      contextNote: contextNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contextNote),
+      modelCallId: modelCallId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelCallId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ConsultMessage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ConsultMessage(
+      id: serializer.fromJson<String>(json['id']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      role: serializer.fromJson<String>(json['role']),
+      body: serializer.fromJson<String>(json['body']),
+      contextNote: serializer.fromJson<String?>(json['contextNote']),
+      modelCallId: serializer.fromJson<String?>(json['modelCallId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'role': serializer.toJson<String>(role),
+      'body': serializer.toJson<String>(body),
+      'contextNote': serializer.toJson<String?>(contextNote),
+      'modelCallId': serializer.toJson<String?>(modelCallId),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  ConsultMessage copyWith({
+    String? id,
+    String? sessionId,
+    String? role,
+    String? body,
+    Value<String?> contextNote = const Value.absent(),
+    Value<String?> modelCallId = const Value.absent(),
+    int? createdAt,
+  }) => ConsultMessage(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    role: role ?? this.role,
+    body: body ?? this.body,
+    contextNote: contextNote.present ? contextNote.value : this.contextNote,
+    modelCallId: modelCallId.present ? modelCallId.value : this.modelCallId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ConsultMessage copyWithCompanion(ConsultMessagesCompanion data) {
+    return ConsultMessage(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      role: data.role.present ? data.role.value : this.role,
+      body: data.body.present ? data.body.value : this.body,
+      contextNote: data.contextNote.present
+          ? data.contextNote.value
+          : this.contextNote,
+      modelCallId: data.modelCallId.present
+          ? data.modelCallId.value
+          : this.modelCallId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConsultMessage(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('role: $role, ')
+          ..write('body: $body, ')
+          ..write('contextNote: $contextNote, ')
+          ..write('modelCallId: $modelCallId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    role,
+    body,
+    contextNote,
+    modelCallId,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConsultMessage &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.role == this.role &&
+          other.body == this.body &&
+          other.contextNote == this.contextNote &&
+          other.modelCallId == this.modelCallId &&
+          other.createdAt == this.createdAt);
+}
+
+class ConsultMessagesCompanion extends UpdateCompanion<ConsultMessage> {
+  final Value<String> id;
+  final Value<String> sessionId;
+  final Value<String> role;
+  final Value<String> body;
+  final Value<String?> contextNote;
+  final Value<String?> modelCallId;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const ConsultMessagesCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.body = const Value.absent(),
+    this.contextNote = const Value.absent(),
+    this.modelCallId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ConsultMessagesCompanion.insert({
+    required String id,
+    required String sessionId,
+    required String role,
+    required String body,
+    this.contextNote = const Value.absent(),
+    this.modelCallId = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sessionId = Value(sessionId),
+       role = Value(role),
+       body = Value(body),
+       createdAt = Value(createdAt);
+  static Insertable<ConsultMessage> custom({
+    Expression<String>? id,
+    Expression<String>? sessionId,
+    Expression<String>? role,
+    Expression<String>? body,
+    Expression<String>? contextNote,
+    Expression<String>? modelCallId,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (role != null) 'role': role,
+      if (body != null) 'body': body,
+      if (contextNote != null) 'context_note': contextNote,
+      if (modelCallId != null) 'model_call_id': modelCallId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ConsultMessagesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sessionId,
+    Value<String>? role,
+    Value<String>? body,
+    Value<String?>? contextNote,
+    Value<String?>? modelCallId,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ConsultMessagesCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      role: role ?? this.role,
+      body: body ?? this.body,
+      contextNote: contextNote ?? this.contextNote,
+      modelCallId: modelCallId ?? this.modelCallId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (contextNote.present) {
+      map['context_note'] = Variable<String>(contextNote.value);
+    }
+    if (modelCallId.present) {
+      map['model_call_id'] = Variable<String>(modelCallId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConsultMessagesCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('role: $role, ')
+          ..write('body: $body, ')
+          ..write('contextNote: $contextNote, ')
+          ..write('modelCallId: $modelCallId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -20005,6 +20536,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $LabResultsTable labResults = $LabResultsTable(this);
+  late final $ConsultMessagesTable consultMessages = $ConsultMessagesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -20036,6 +20570,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     backupRuns,
     medicalDocuments,
     labResults,
+    consultMessages,
   ];
 }
 
@@ -24296,6 +24831,7 @@ typedef $$ModelCallsTableCreateCompanionBuilder =
       Value<String?> responseText,
       required ModelCaller caller,
       Value<int?> redactedCount,
+      Value<String?> sentSummary,
       Value<int> rowid,
     });
 typedef $$ModelCallsTableUpdateCompanionBuilder =
@@ -24320,6 +24856,7 @@ typedef $$ModelCallsTableUpdateCompanionBuilder =
       Value<String?> responseText,
       Value<ModelCaller> caller,
       Value<int?> redactedCount,
+      Value<String?> sentSummary,
       Value<int> rowid,
     });
 
@@ -24434,6 +24971,11 @@ class $$ModelCallsTableFilterComposer
     column: $table.redactedCount,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get sentSummary => $composableBuilder(
+    column: $table.sentSummary,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ModelCallsTableOrderingComposer
@@ -24544,6 +25086,11 @@ class $$ModelCallsTableOrderingComposer
     column: $table.redactedCount,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get sentSummary => $composableBuilder(
+    column: $table.sentSummary,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ModelCallsTableAnnotationComposer
@@ -24633,6 +25180,11 @@ class $$ModelCallsTableAnnotationComposer
     column: $table.redactedCount,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get sentSummary => $composableBuilder(
+    column: $table.sentSummary,
+    builder: (column) => column,
+  );
 }
 
 class $$ModelCallsTableTableManager
@@ -24686,6 +25238,7 @@ class $$ModelCallsTableTableManager
                 Value<String?> responseText = const Value.absent(),
                 Value<ModelCaller> caller = const Value.absent(),
                 Value<int?> redactedCount = const Value.absent(),
+                Value<String?> sentSummary = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion(
                 id: id,
@@ -24708,6 +25261,7 @@ class $$ModelCallsTableTableManager
                 responseText: responseText,
                 caller: caller,
                 redactedCount: redactedCount,
+                sentSummary: sentSummary,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -24732,6 +25286,7 @@ class $$ModelCallsTableTableManager
                 Value<String?> responseText = const Value.absent(),
                 required ModelCaller caller,
                 Value<int?> redactedCount = const Value.absent(),
+                Value<String?> sentSummary = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion.insert(
                 id: id,
@@ -24754,6 +25309,7 @@ class $$ModelCallsTableTableManager
                 responseText: responseText,
                 caller: caller,
                 redactedCount: redactedCount,
+                sentSummary: sentSummary,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -29433,6 +29989,254 @@ typedef $$LabResultsTableProcessedTableManager =
       LabResult,
       PrefetchHooks Function()
     >;
+typedef $$ConsultMessagesTableCreateCompanionBuilder =
+    ConsultMessagesCompanion Function({
+      required String id,
+      required String sessionId,
+      required String role,
+      required String body,
+      Value<String?> contextNote,
+      Value<String?> modelCallId,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$ConsultMessagesTableUpdateCompanionBuilder =
+    ConsultMessagesCompanion Function({
+      Value<String> id,
+      Value<String> sessionId,
+      Value<String> role,
+      Value<String> body,
+      Value<String?> contextNote,
+      Value<String?> modelCallId,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ConsultMessagesTableFilterComposer
+    extends Composer<_$AppDatabase, $ConsultMessagesTable> {
+  $$ConsultMessagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contextNote => $composableBuilder(
+    column: $table.contextNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelCallId => $composableBuilder(
+    column: $table.modelCallId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ConsultMessagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ConsultMessagesTable> {
+  $$ConsultMessagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contextNote => $composableBuilder(
+    column: $table.contextNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelCallId => $composableBuilder(
+    column: $table.modelCallId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ConsultMessagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ConsultMessagesTable> {
+  $$ConsultMessagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<String> get contextNote => $composableBuilder(
+    column: $table.contextNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelCallId => $composableBuilder(
+    column: $table.modelCallId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ConsultMessagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ConsultMessagesTable,
+          ConsultMessage,
+          $$ConsultMessagesTableFilterComposer,
+          $$ConsultMessagesTableOrderingComposer,
+          $$ConsultMessagesTableAnnotationComposer,
+          $$ConsultMessagesTableCreateCompanionBuilder,
+          $$ConsultMessagesTableUpdateCompanionBuilder,
+          (
+            ConsultMessage,
+            BaseReferences<
+              _$AppDatabase,
+              $ConsultMessagesTable,
+              ConsultMessage
+            >,
+          ),
+          ConsultMessage,
+          PrefetchHooks Function()
+        > {
+  $$ConsultMessagesTableTableManager(
+    _$AppDatabase db,
+    $ConsultMessagesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ConsultMessagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ConsultMessagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ConsultMessagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sessionId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<String?> contextNote = const Value.absent(),
+                Value<String?> modelCallId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConsultMessagesCompanion(
+                id: id,
+                sessionId: sessionId,
+                role: role,
+                body: body,
+                contextNote: contextNote,
+                modelCallId: modelCallId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sessionId,
+                required String role,
+                required String body,
+                Value<String?> contextNote = const Value.absent(),
+                Value<String?> modelCallId = const Value.absent(),
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ConsultMessagesCompanion.insert(
+                id: id,
+                sessionId: sessionId,
+                role: role,
+                body: body,
+                contextNote: contextNote,
+                modelCallId: modelCallId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ConsultMessagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ConsultMessagesTable,
+      ConsultMessage,
+      $$ConsultMessagesTableFilterComposer,
+      $$ConsultMessagesTableOrderingComposer,
+      $$ConsultMessagesTableAnnotationComposer,
+      $$ConsultMessagesTableCreateCompanionBuilder,
+      $$ConsultMessagesTableUpdateCompanionBuilder,
+      (
+        ConsultMessage,
+        BaseReferences<_$AppDatabase, $ConsultMessagesTable, ConsultMessage>,
+      ),
+      ConsultMessage,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -29489,4 +30293,6 @@ class $AppDatabaseManager {
       $$MedicalDocumentsTableTableManager(_db, _db.medicalDocuments);
   $$LabResultsTableTableManager get labResults =>
       $$LabResultsTableTableManager(_db, _db.labResults);
+  $$ConsultMessagesTableTableManager get consultMessages =>
+      $$ConsultMessagesTableTableManager(_db, _db.consultMessages);
 }

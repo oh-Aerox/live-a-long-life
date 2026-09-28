@@ -10,6 +10,7 @@ const _callerLabels = {
   ModelCaller.macAnalysis: 'Mac 分析',
   ModelCaller.externalAgent: '外部 agent',
   ModelCaller.phoneMedicalExtract: '检验单提取',
+  ModelCaller.userConsult: '主动咨询',
 };
 
 const _statusLabels = {

@@ -14,6 +14,7 @@ import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
 import 'conditions_page.dart';
+import 'consult_page.dart';
 import 'day_view_page.dart';
 import 'lab_trends_page.dart';
 import 'medical_folder_page.dart';
@@ -341,6 +342,14 @@ class _ChatPageState extends State<ChatPage> {
             icon: const Icon(Icons.medical_information_outlined),
             tooltip: '病例夹与体检',
             onPressed: _openMedicalFolders,
+          ),
+          IconButton(
+            icon: const Icon(Icons.psychology_alt_outlined),
+            tooltip: '咨询',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ConsultPage(services: _s)),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

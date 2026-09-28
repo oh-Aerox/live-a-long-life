@@ -37,12 +37,13 @@ part 'app_database.g.dart';
   BackupRuns,
   MedicalDocuments,
   LabResults,
+  ConsultMessages,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +102,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 12) {
             // v0.4 页筛选的用户覆盖（D-23）。
             await m.addColumn(medicalDocuments, medicalDocuments.pageOverrides);
+          }
+          if (from < 13) {
+            // v0.4 主动咨询（D-26）+ 调用记录的发送内容范围描述。
+            await m.createTable(consultMessages);
+            await m.addColumn(modelCalls, modelCalls.sentSummary);
           }
         },
         beforeOpen: (details) async {

@@ -10,7 +10,8 @@
 |---|---|---|---|---|
 | 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束；记录上点"重新整理" |
 | Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
-| 检验单结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引。**不发图片；调用记录含遮蔽项数** | 医疗文件提取（V4-M2 接 UI） |
+| 检验单结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引。**不发图片；调用记录含遮蔽项数** | 医疗文件详情"提取检验数据" |
+| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
 `ModelCaller.externalAgent` 只有枚举定义，无调用路径（D-20 外部 agent 入口默认关闭，未实现）。
@@ -150,17 +151,36 @@ data 字段（只填有依据的，缺的字段不要编造）：
 
 应用侧的防线：编造的行号在映射 locator 时被丢弃；`item_name_raw`/`value_raw` 缺失的项整项丢弃；全部结果 unreviewed。状况建议（D-25，2026-09-28 加入）：同名（去空白）状况已有档案时不重复建；persistence 非法值整条丢弃；全部 unreviewed，在长期状况档案页核对。
 
-## 4. 测试连接
+## 4. 主动咨询
+
+- **系统提示词：** `consultSystemPrompt`（consult_service.dart）
+- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对长期状况）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有）、`conversation`（本会话历史，最多 20 条 + 当前问题）
+- **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）
+
+```
+你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
+profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
+recent_temporary_conditions 是近期疾病，recent_records 是最近 7 天的记录
+（用户勾选了才有），conversation 是本次咨询的对话历史，最后一条是当前问题。
+
+要求：
+- 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
+- 不做医疗诊断，不给具体用药和剂量；情况可能需要就医时，明确建议就医并说明原因；
+- 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
+- 用中文回答，简洁、分点，不说空泛的养生套话；
+- 直接输出回答正文，不要输出 JSON。
+```
+
+## 5. 测试连接
 
 - **位置：** `ModelClient.testConnection` / `_probeImage`（model_client.dart）
 - **发送内容：** 文本探测 `收到请回复"OK"`；图片能力探测 `这是图片能力测试，回复"OK"` + 内置 1 像素级探测 PNG（`_probePng` 常量）
 - 不含任何用户数据，用于连通性验证和 D-16 能力标注（支持文本/图片）。
 
-## 5. 规划中的调用场景（v0.4，实现时补入本文）
+## 6. 规划中的调用场景（v0.4，实现时补入本文）
 
 | 场景 | 状态 | 约束来源 |
 |---|---|---|
 | 多模态识图（显式） | V4-M3。用户显式发起、裁剪后的图片 | D-24 |
-| 主动咨询 | V4-M6。用户问题 + 最小上下文，caller=userConsult | D-26 |
 
-（长期状况分类已并入"检验单结构化提取"的 conditions 输出，2026-09-28。）
+（长期状况分类已并入"检验单结构化提取"的 conditions 输出；主动咨询已实现，见 §4。2026-09-28。）

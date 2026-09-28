@@ -19,6 +19,7 @@ import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
+import 'services/consult_service.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/medical_extraction_service.dart';
@@ -79,6 +80,14 @@ class AppServices {
       extractor: PlatformTextExtractor(),
       cacheDir: Directory(p.join(filesDir.parent.path, 'extract_cache')),
     );
+    consult = ConsultService(
+      db: db,
+      records: records,
+      profile: profile,
+      organize: organize,
+      modelConfigs: modelConfigs,
+      keyStore: keyStore,
+    );
     medicalExtraction = MedicalExtractionService(
       attachments: attachments,
       documents: medicalDocuments,
@@ -110,6 +119,7 @@ class AppServices {
   late final BackupService backupService;
   late final TextExtractionService textExtraction;
   late final MedicalExtractionService medicalExtraction;
+  late final ConsultService consult;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =

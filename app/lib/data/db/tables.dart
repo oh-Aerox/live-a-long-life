@@ -72,7 +72,13 @@ enum DataBoundary { device, lan, cloud }
 
 enum ModelCallStatus { succeeded, failed, timeout }
 
-enum ModelCaller { phoneOrganize, macAnalysis, externalAgent, phoneMedicalExtract }
+enum ModelCaller {
+  phoneOrganize,
+  macAnalysis,
+  externalAgent,
+  phoneMedicalExtract,
+  userConsult,
+}
 
 enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel, condition }
 
@@ -318,6 +324,10 @@ class ModelCalls extends Table with CommonColumns {
 
   /// 本次发送前本地脱敏遮蔽的项数（D-24 透明度）；不适用的调用为 null。
   IntColumn get redactedCount => integer().nullable()();
+
+  /// 本次发送内容范围的人话描述（D-26/A-38 透明度），比如
+  /// "问题 + 基本资料 + 长期状况 2 条"。老调用为 null。
+  TextColumn get sentSummary => text().nullable()();
 }
 
 /// schema.md §3.3：记录。数据类名避开 dart:core 的 Record。
@@ -533,4 +543,21 @@ class LabResults extends Table {
 
   @override
   Set<Column> get primaryKey => {recordId, resultIndex};
+}
+
+/// 主动咨询的问答历史（v0.4，D-26）。咨询是问答不是录入：不进消息流、
+/// 不参与整理、不生成记录；设备本地保存，不入变更日志、不同步。
+class ConsultMessages extends Table {
+  TextColumn get id => text()();
+  TextColumn get sessionId => text()();
+  TextColumn get role => text()(); // 'user' / 'assistant'
+  TextColumn get body => text()();
+
+  /// 这一问附带了什么上下文（人话描述，与 model_calls.sent_summary 一致）。
+  TextColumn get contextNote => text().nullable()();
+  TextColumn get modelCallId => text().nullable()();
+  IntColumn get createdAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
