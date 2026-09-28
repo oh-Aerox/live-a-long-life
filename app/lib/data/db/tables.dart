@@ -502,6 +502,11 @@ class MedicalDocuments extends Table with CommonColumns {
   TextColumn get reviewStatus => text()
       .map(const EnumConverter(ReviewStatus.values))
       .withDefault(const Constant('unreviewed'))();
+
+  /// 页筛选的用户覆盖（D-23 默认筛选+用户可改）：JSON {"页号": true/false}，
+  /// true 强制发送、false 强制排除；没写的页用规则默认。设备本地展示与
+  /// 发送范围，参与同步（手机是唯一编辑者）。
+  TextColumn get pageOverrides => text().nullable()();
 }
 
 /// schema.md §5.3：检验项目索引（v0.4，D-27）。派生数据：随 lab_panel

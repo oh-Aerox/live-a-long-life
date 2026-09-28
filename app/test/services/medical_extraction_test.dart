@@ -152,6 +152,109 @@ void main() {
     expect(jsonDecode(call.sentAttachmentIds), isNotEmpty);
   });
 
+  test('页覆盖：规则排除的页用户强制发送，规则保留的页用户排除（D-23）', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    // 附件是 3 页 PDF：数据页 / 导读页 / 无信号页。
+    final src = File('${tmp.path}/booklet.pdf')..writeAsBytesSync([7, 7]);
+    final att =
+        (await attachments.importFile(src, mimeType: 'application/pdf'))
+            .attachment;
+    final doc = await documents.create(
+      pages: [
+        MedicalPageRef(attachmentId: att.id, messageId: 'msg-1', pageNo: 1)
+      ],
+      docType: MedicalDocType.physicalExam,
+    );
+    final extractor = FakeExtractor(
+      pageCount: 3,
+      pageTexts: {
+        0: '检验项目 结果 单位 参考范围\n白细胞 6.2 10^9/L 3.5-9.5\n血红蛋白 145 g/L 130-175\n血小板 210 10^9/L 125-350',
+        1: '报告导读\n尊敬的客户，感谢您选择本中心，祝您身体健康，本页为导读说明',
+        2: null,
+      },
+      ocrResults: const [OcrLine(text: '手写备注', x: 0.1, y: 0.1, w: 0.3, h: 0.05)],
+    );
+    final service = buildService(extractor);
+
+    // 预览：默认判定 P1 发送、P2 排除、P3 默认保留。
+    var previews = await service.previewPages(doc.id);
+    expect(previews.map((p) => p.included).toList(), [true, false, true]);
+
+    // 用户覆盖：强制发送导读页、排除无信号页。
+    await documents.setPageOverride(doc.id, 2, true);
+    await documents.setPageOverride(doc.id, 3, false);
+    previews = await service.previewPages(doc.id);
+    expect(previews[1].included, isTrue);
+    expect(previews[1].overridden, isTrue);
+    expect(previews[2].included, isFalse);
+
+    model.reply(jsonEncode({'doc': {}, 'results': []}));
+    await service.extractDocument(doc.id);
+    // 发送内容含导读页文字、不含无信号页文字。
+    expect(model.calls.single, contains('尊敬的客户'));
+    expect(model.calls.single, isNot(contains('手写备注')));
+
+    // 清掉覆盖回到默认。
+    await documents.setPageOverride(doc.id, 2, null);
+    previews = await service.previewPages(doc.id);
+    expect(previews[1].included, isFalse);
+    expect(previews[1].overridden, isFalse);
+  });
+
+  test('近似重复（D-10）：同检查日期同项目的已有记录被点名', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    Map<String, Object?> reply() => {
+          'doc': {'doc_type': 'lab_report', 'exam_date': '2026-09-20'},
+          'results': [
+            {
+              'item_name_raw': '白细胞',
+              'value_raw': '6.2',
+              'value_num': 6.2,
+              'unit_raw': '10^9/L',
+              'ref_range_raw': '3.5-9.5',
+              'source_lines': ['P1L1'],
+            }
+          ],
+        };
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '白细胞 6.2 10^9/L 3.5-9.5', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+
+    final doc1 = await importDoc();
+    model.reply(jsonEncode(reply()));
+    final first = await service.extractDocument(doc1.id);
+    expect(first.possibleDuplicateRecordIds, isEmpty);
+
+    // 同一份报告又传了一次（内容不同的文件，同日期同项目）。
+    final src2 = File('${tmp.path}/report2.jpg')..writeAsBytesSync([8, 8]);
+    final att2 =
+        (await attachments.importFile(src2, mimeType: 'image/jpeg')).attachment;
+    final doc2 = await documents.create(
+      pages: [
+        MedicalPageRef(attachmentId: att2.id, messageId: 'msg-2', pageNo: 1)
+      ],
+      docType: MedicalDocType.other,
+    );
+    model.reply(jsonEncode(reply()));
+    final second = await service.extractDocument(doc2.id);
+    expect(second.possibleDuplicateRecordIds, [first.record.id]);
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

@@ -132,6 +132,37 @@ class MedicalDocumentRepository {
         );
       });
 
+  /// 页筛选覆盖（D-23 默认筛选+用户可改）：[include] true 强制发送、
+  /// false 强制排除、null 清掉覆盖回到规则默认。
+  Future<MedicalDocument> setPageOverride(
+      String id, int pageNo, bool? include) async {
+    final doc = await byId(id);
+    if (doc == null) throw StateError('医疗文件不存在：$id');
+    final overrides = decodePageOverrides(doc.pageOverrides);
+    if (include == null) {
+      overrides.remove(pageNo);
+    } else {
+      overrides[pageNo] = include;
+    }
+    return _update(
+        id,
+        (d) => MedicalDocumentsCompanion(
+              pageOverrides: Value(jsonEncode(
+                  {for (final e in overrides.entries) '${e.key}': e.value})),
+            ));
+  }
+
+  static Map<int, bool> decodePageOverrides(String? json) {
+    if (json == null || json.isEmpty) return {};
+    final raw = jsonDecode(json);
+    if (raw is! Map) return {};
+    return {
+      for (final e in raw.entries)
+        if (int.tryParse(e.key as String) != null && e.value is bool)
+          int.parse(e.key as String): e.value as bool,
+    };
+  }
+
   /// 文件级核对状态（关键字段确认才作为事实的规则在 lab_panel 字段级，
   /// 这里是文件整体的核对进度展示用）。
   Future<MedicalDocument> setReviewStatus(String id, ReviewStatus status) =>

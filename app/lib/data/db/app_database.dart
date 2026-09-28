@@ -42,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +97,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 11) {
             // v0.4 检验项目索引（schema §5.3，派生表，升级后自动重建）。
             await m.createTable(labResults);
+          }
+          if (from < 12) {
+            // v0.4 页筛选的用户覆盖（D-23）。
+            await m.addColumn(medicalDocuments, medicalDocuments.pageOverrides);
           }
         },
         beforeOpen: (details) async {

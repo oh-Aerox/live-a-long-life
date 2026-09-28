@@ -55,17 +55,45 @@ const labExtractSystemPrompt = '''
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ''';
 
-/// 提取结果：记录 + 每页的筛选判定（UI 展示"已排除"标记用）+ 遮蔽项数。
+/// 提取结果：记录 + 每页的筛选判定（UI 展示"已排除"标记用）+ 遮蔽项数
+/// + 近似重复候选（同检查日期同项目的已有记录，D-10）。
 class MedicalExtractOutcome {
   const MedicalExtractOutcome({
     required this.record,
     required this.pageDecisions,
     required this.redactedCount,
+    this.possibleDuplicateRecordIds = const [],
   });
 
   final RecordRow record;
   final List<PageDecision> pageDecisions;
   final int redactedCount;
+  final List<String> possibleDuplicateRecordIds;
+}
+
+/// 一页的预览信息（提取前的页筛选展示：默认判定 + 用户覆盖）。
+class PagePreview {
+  const PagePreview({
+    required this.pageNo,
+    required this.attachmentId,
+    required this.attachmentPage,
+    required this.source,
+    required this.included,
+    required this.reason,
+    required this.overridden,
+    required this.firstLine,
+  });
+
+  final int pageNo;
+  final String attachmentId;
+  final int attachmentPage;
+  final PageTextSource source;
+  final bool included;
+  final String reason;
+
+  /// 当前判定是否来自用户覆盖（而不是规则默认）。
+  final bool overridden;
+  final String firstLine;
 }
 
 /// 检验单结构化提取（V4-M1，D-23/D-24）：
@@ -133,32 +161,24 @@ class MedicalExtractionService {
     }
 
     // 1. 本地提取（带缓存）。一个附件可能是多页 PDF，页号在文件内连续编。
-    final docPages = <_DocPage>[];
-    var pageNo = 0;
-    final attachmentIds = <String>{};
-    for (final ref in MedicalPageRef.decodeList(doc.pages)) {
-      final att = await _attachments.byId(ref.attachmentId);
-      final path = await _attachments.localPathOf(ref.attachmentId);
-      if (att == null || path == null) {
-        throw StateError('附件本地文件不可用，先取回原件再提取（D-22）');
-      }
-      attachmentIds.add(att.id);
-      final extracted = await _extraction.extract(
-          sha256: att.sha256, file: File(path), mimeType: att.mimeType);
-      for (final p in extracted) {
-        pageNo += 1;
-        docPages.add(_DocPage(
-          pageNo: pageNo,
-          attachmentId: att.id,
-          page: ExtractedPage(
-              pageNo: pageNo, source: p.source, lines: p.lines),
-        ));
-      }
-    }
+    final docPages = await _loadDocPages(doc);
     if (docPages.isEmpty) throw StateError('没有可提取的页');
+    final attachmentIds = {for (final p in docPages) p.attachmentId};
 
-    // 2. 页筛选（D-23）：默认判定，被排除页不进入发送副本。
-    final decisions = [for (final p in docPages) pageFilter.decide(p.page)];
+    // 2. 页筛选（D-23）：规则默认 + 用户覆盖（导入页每页可点选，不静默丢）。
+    final overrides =
+        MedicalDocumentRepository.decodePageOverrides(doc.pageOverrides);
+    final decisions = <PageDecision>[];
+    for (final p in docPages) {
+      final byRule = pageFilter.decide(p.page);
+      final override = overrides[p.pageNo];
+      decisions.add(override == null
+          ? byRule
+          : PageDecision(
+              pageNo: p.pageNo,
+              included: override,
+              reason: override ? '用户选择发送' : '用户选择排除'));
+    }
     final included = <_DocPage>[
       for (var i = 0; i < docPages.length; i++)
         if (decisions[i].included) docPages[i],
@@ -176,6 +196,7 @@ class MedicalExtractionService {
       redactedPages.add(_DocPage(
         pageNo: p.pageNo,
         attachmentId: p.attachmentId,
+        attachmentPage: p.attachmentPage,
         page: ExtractedPage(
             pageNo: p.pageNo, source: p.page.source, lines: r.lines),
       ));
@@ -239,12 +260,12 @@ class MedicalExtractionService {
     final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
     final rawResults = (parsed['results'] as List?) ?? const [];
 
-    // 5. source_lines → locator（附件 ID + 页号 + 坐标；文字层无坐标时只有页号和原文行）。
-    final lineIndex = <String, (String, int, OcrLine)>{};
+    // 5. source_lines → locator（附件 ID + 文件页号 + 附件内页号 + 坐标；
+    //    文字层无坐标时只有页号和原文行）。
+    final lineIndex = <String, (_DocPage, OcrLine)>{};
     for (final p in redactedPages) {
       for (var i = 0; i < p.page.lines.length; i++) {
-        lineIndex['P${p.pageNo}L${i + 1}'] =
-            (p.attachmentId, p.pageNo, p.page.lines[i]);
+        lineIndex['P${p.pageNo}L${i + 1}'] = (p, p.page.lines[i]);
       }
     }
     final results = <Map<String, Object?>>[];
@@ -256,10 +277,11 @@ class MedicalExtractionService {
       for (final key in (r['source_lines'] as List? ?? const [])) {
         final hit = lineIndex[key];
         if (hit == null) continue; // 编造的行号丢弃
-        final (attId, page, line) = hit;
+        final (page, line) = hit;
         locators.add({
-          'attachment_id': attId,
-          'page_no': page,
+          'attachment_id': page.attachmentId,
+          'page_no': page.pageNo,
+          'attachment_page': page.attachmentPage,
           if (line.hasBox)
             'box': {'x': line.x, 'y': line.y, 'w': line.w, 'h': line.h},
           'line_text': line.text,
@@ -337,11 +359,92 @@ class MedicalExtractionService {
           : null,
     );
 
+    final duplicates =
+        await _findNearDuplicates(record.id, examDate, results);
     AppLog.I.i('extract',
         '结构化提取完成：${results.length} 项，遮蔽 $redactedTotal 处，'
-        '发送 ${redactedPages.length}/${docPages.length} 页');
+        '发送 ${redactedPages.length}/${docPages.length} 页'
+        '${duplicates.isEmpty ? '' : '，疑似与 ${duplicates.length} 条已有记录重复'}');
     return MedicalExtractOutcome(
-        record: record, pageDecisions: decisions, redactedCount: redactedTotal);
+      record: record,
+      pageDecisions: decisions,
+      redactedCount: redactedTotal,
+      possibleDuplicateRecordIds: duplicates,
+    );
+  }
+
+  /// 本地提取一份文件的全部页（不调模型，供提取与页预览共用）。
+  Future<List<_DocPage>> _loadDocPages(MedicalDocument doc) async {
+    final docPages = <_DocPage>[];
+    var pageNo = 0;
+    for (final ref in MedicalPageRef.decodeList(doc.pages)) {
+      final att = await _attachments.byId(ref.attachmentId);
+      final path = await _attachments.localPathOf(ref.attachmentId);
+      if (att == null || path == null) {
+        throw StateError('附件本地文件不可用，先取回原件再提取（D-22）');
+      }
+      final extracted = await _extraction.extract(
+          sha256: att.sha256, file: File(path), mimeType: att.mimeType);
+      for (final p in extracted) {
+        pageNo += 1;
+        docPages.add(_DocPage(
+          pageNo: pageNo,
+          attachmentId: att.id,
+          attachmentPage: p.pageNo,
+          page: ExtractedPage(pageNo: pageNo, source: p.source, lines: p.lines),
+        ));
+      }
+    }
+    return docPages;
+  }
+
+  /// 页预览（提取前）：本地 OCR + 规则判定 + 用户覆盖合并，全程不调模型。
+  /// 导入页用它渲染每页的"已排除"标记（D-23 不静默丢弃）。
+  Future<List<PagePreview>> previewPages(String documentId) async {
+    final doc = await _documents.byId(documentId);
+    if (doc == null) throw StateError('医疗文件不存在：$documentId');
+    final docPages = await _loadDocPages(doc);
+    final overrides =
+        MedicalDocumentRepository.decodePageOverrides(doc.pageOverrides);
+    return [
+      for (final p in docPages)
+        () {
+          final byRule = pageFilter.decide(p.page);
+          final override = overrides[p.pageNo];
+          return PagePreview(
+            pageNo: p.pageNo,
+            attachmentId: p.attachmentId,
+            attachmentPage: p.attachmentPage,
+            source: p.page.source,
+            included: override ?? byRule.included,
+            reason: override == null
+                ? byRule.reason
+                : (override ? '用户选择发送' : '用户选择排除'),
+            overridden: override != null,
+            firstLine:
+                p.page.lines.isEmpty ? '（空白页）' : p.page.lines.first.text,
+          );
+        }(),
+    ];
+  }
+
+  /// 近似重复（D-10 第一版）：同检查日期、同项目 key 的其他 lab_panel 记录。
+  Future<List<String>> _findNearDuplicates(
+      String newRecordId, String? examDate, List<Map<String, Object?>> results) async {
+    if (examDate == null) return const [];
+    final hits = <String>{};
+    for (final r in results) {
+      final name = r['item_name_raw'];
+      if (name is! String) continue;
+      final history =
+          await _records.labResultHistory(RecordRepository.labItemKey(name));
+      for (final row in history) {
+        if (row.recordId != newRecordId && row.examDate == examDate) {
+          hits.add(row.recordId);
+        }
+      }
+    }
+    return hits.toList();
   }
 
   String _today() {
@@ -379,10 +482,18 @@ class MedicalExtractionService {
 }
 
 class _DocPage {
-  const _DocPage(
-      {required this.pageNo, required this.attachmentId, required this.page});
+  const _DocPage({
+    required this.pageNo,
+    required this.attachmentId,
+    required this.attachmentPage,
+    required this.page,
+  });
 
+  /// 文件内的全局页号（多个附件顺序连编，locator 与 UI 用它）。
   final int pageNo;
   final String attachmentId;
+
+  /// 附件内页号（1 起）：多页 PDF 渲染定位用。
+  final int attachmentPage;
   final ExtractedPage page;
 }
