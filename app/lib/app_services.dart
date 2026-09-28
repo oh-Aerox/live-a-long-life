@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'data/app_context.dart';
 import 'data/db/app_database.dart';
 import 'data/repositories/attachment_repository.dart';
+import 'data/repositories/medical_document_repository.dart';
 import 'data/repositories/message_repository.dart';
 import 'data/repositories/model_config_repository.dart';
 import 'data/repositories/health_repository.dart';
@@ -24,6 +25,7 @@ import 'services/organize_service.dart';
 import 'services/review_service.dart';
 import 'services/suggestion_service.dart';
 import 'services/sync/sync_service.dart';
+import 'services/text_extraction.dart';
 
 /// 应用级服务：数据库与各仓库。
 /// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
@@ -72,6 +74,10 @@ class AppServices {
       deviceId: ctx.deviceId,
     );
     backupService = BackupService(db: db, filesDir: filesDir);
+    textExtraction = TextExtractionService(
+      extractor: PlatformTextExtractor(),
+      cacheDir: Directory(p.join(filesDir.parent.path, 'extract_cache')),
+    );
   }
 
   final AppDatabase db;
@@ -92,10 +98,13 @@ class AppServices {
   late final AnalysisService analysisService;
   late final SuggestionService suggestionService;
   late final BackupService backupService;
+  late final TextExtractionService textExtraction;
 
   final HealthRepository health;
   late final ReviewPromptRepository reviewPrompts =
       ReviewPromptRepository(db, ctx);
+  late final MedicalDocumentRepository medicalDocuments =
+      MedicalDocumentRepository(db, ctx);
 
   /// 依赖启动时检测的时区，在 main 里赋值。
   late final HealthService healthService;

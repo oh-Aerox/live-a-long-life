@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import '../field_meta.dart' show ReviewStatus;
+
 /// 枚举值与数据库文本的对应（docs/schema.md 中的取值，snake_case）。
 String enumToDb(Enum e) => e.name.replaceAllMapped(
       RegExp('[A-Z]'),
@@ -72,7 +74,17 @@ enum ModelCallStatus { succeeded, failed, timeout }
 
 enum ModelCaller { phoneOrganize, macAnalysis, externalAgent }
 
-enum RecordType { meal, sleep, mood, symptom, exercise, note }
+enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel }
+
+/// schema.md §5.1：医疗文件类型（v0.4）。
+enum MedicalDocType {
+  labReport,
+  imagingReport,
+  visitRecord,
+  prescription,
+  dischargeSummary,
+  other,
+}
 
 enum RecordSourceKind { message, attachment, healthSample, healthDaily }
 
@@ -469,4 +481,21 @@ class ReviewPrompts extends Table with CommonColumns {
   TextColumn get outcome =>
       text().map(const EnumConverter(ReviewOutcome.values)).nullable()();
   TextColumn get answeredMessageId => text().nullable()();
+}
+
+/// schema.md §5.1：医疗文件（v0.4）。一份文件由一或多个附件页组成，
+/// 页可以来自不同消息；页序用户可调。exam_date / report_date / uploaded_at
+/// 是三个不同的时间（D-06 区分发生与记录）。
+class MedicalDocuments extends Table with CommonColumns {
+  /// JSON 有序列表：[{"attachment_id","message_id","page_no"}]。
+  TextColumn get pages => text()();
+  TextColumn get docType =>
+      text().map(const EnumConverter(MedicalDocType.values))();
+  TextColumn get institutionText => text().nullable()();
+  TextColumn get examDate => text().nullable()(); // TimeValue JSON
+  TextColumn get reportDate => text().nullable()(); // TimeValue JSON
+  IntColumn get uploadedAt => integer()();
+  TextColumn get reviewStatus => text()
+      .map(const EnumConverter(ReviewStatus.values))
+      .withDefault(const Constant('unreviewed'))();
 }

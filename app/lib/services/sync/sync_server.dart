@@ -26,6 +26,7 @@ const syncedTables = [
   'health_samples',
   'health_daily',
   'correction_suggestions',
+  'medical_documents',
 ];
 
 /// 默认监听端口。固定下来手机才能在 Mac 重启后按原地址重连；

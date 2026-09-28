@@ -53,7 +53,7 @@ v0.4 做四件事：**检查单/病历导入后能提取成可核对、可溯源
 
 | 状态 | 任务 | 备注 |
 |---|---|---|
-| [ ] | V4-M0 数据层与提取管线基础 | |
+| [x] | V4-M0 数据层与提取管线基础 | 2026-09-28：medical_documents 建表（迁移 v9）+ 仓库（页序跨消息、提取回填、核对状态、删除，每写入变更日志；同步白名单与 schema §7.4 已加）；RecordType 加 lab_panel（标签/图标/摘要）；TextExtractionService——PDF 逐页探测文字层（≥20 字直取、按行切）、扫描页渲染 PNG 走 OCR、图片直接 OCR，结果按附件哈希写 sidecar 缓存（派生缓存不入库不同步，损坏自动重算）；platform channel `life.long/medical_text`（PDFKit+Vision，zh-Hans/en，坐标转左上原点，iOS/macOS 双端同构实现）。8 个新单测全套 126 过；iOS/macOS 构建通过；Vision 中文 OCR 本机独立脚本验证通过（文字+坐标正确）。**注：** channel 在应用内的真实调用随 V4-M2 导入 UI 一起真机/本机验证。**坑：** build_runner 需 --force-jit（sqlite3 native hook 挡 AOT）|
 | [ ] | V4-M1 脱敏、页筛选与结构化提取 | |
 | [ ] | V4-M2 导入与逐项核对 UI | |
 | [ ] | V4-M3 多模态显式识图兜底 | |

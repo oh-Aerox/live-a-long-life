@@ -13,6 +13,7 @@ const recordTypeLabels = {
   RecordType.symptom: '身体不适',
   RecordType.exercise: '运动',
   RecordType.note: '其他',
+  RecordType.labPanel: '检验结果',
 };
 
 const recordTypeIcons = {
@@ -22,6 +23,7 @@ const recordTypeIcons = {
   RecordType.symptom: Icons.healing_outlined,
   RecordType.exercise: Icons.directions_run_outlined,
   RecordType.note: Icons.notes_outlined,
+  RecordType.labPanel: Icons.biotech_outlined,
 };
 
 /// data 字段的展示名；没列出的按原字段名显示。
@@ -106,6 +108,9 @@ String recordSummary(RecordType type, Map<String, Object?> data) {
           .join(' ');
     case RecordType.note:
       return '${data['text'] ?? ''}';
+    case RecordType.labPanel:
+      final results = data['results'] as List?;
+      return '检验结果 ${results?.length ?? 0} 项';
   }
 }
 

@@ -18088,6 +18088,826 @@ class BackupRunsCompanion extends UpdateCompanion<BackupRun> {
   }
 }
 
+class $MedicalDocumentsTable extends MedicalDocuments
+    with TableInfo<$MedicalDocumentsTable, MedicalDocument> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MedicalDocumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<String> createdOnDevice = GeneratedColumn<String>(
+    'created_on_device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
+  @override
+  late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
+    'change_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pagesMeta = const VerificationMeta('pages');
+  @override
+  late final GeneratedColumn<String> pages = GeneratedColumn<String>(
+    'pages',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<MedicalDocType, String> docType =
+      GeneratedColumn<String>(
+        'doc_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<MedicalDocType>($MedicalDocumentsTable.$converterdocType);
+  static const VerificationMeta _institutionTextMeta = const VerificationMeta(
+    'institutionText',
+  );
+  @override
+  late final GeneratedColumn<String> institutionText = GeneratedColumn<String>(
+    'institution_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _examDateMeta = const VerificationMeta(
+    'examDate',
+  );
+  @override
+  late final GeneratedColumn<String> examDate = GeneratedColumn<String>(
+    'exam_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reportDateMeta = const VerificationMeta(
+    'reportDate',
+  );
+  @override
+  late final GeneratedColumn<String> reportDate = GeneratedColumn<String>(
+    'report_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _uploadedAtMeta = const VerificationMeta(
+    'uploadedAt',
+  );
+  @override
+  late final GeneratedColumn<int> uploadedAt = GeneratedColumn<int>(
+    'uploaded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ReviewStatus, String>
+  reviewStatus = GeneratedColumn<String>(
+    'review_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unreviewed'),
+  ).withConverter<ReviewStatus>($MedicalDocumentsTable.$converterreviewStatus);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    pages,
+    docType,
+    institutionText,
+    examDate,
+    reportDate,
+    uploadedAt,
+    reviewStatus,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'medical_documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MedicalDocument> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('change_seq')) {
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('pages')) {
+      context.handle(
+        _pagesMeta,
+        pages.isAcceptableOrUnknown(data['pages']!, _pagesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pagesMeta);
+    }
+    if (data.containsKey('institution_text')) {
+      context.handle(
+        _institutionTextMeta,
+        institutionText.isAcceptableOrUnknown(
+          data['institution_text']!,
+          _institutionTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('exam_date')) {
+      context.handle(
+        _examDateMeta,
+        examDate.isAcceptableOrUnknown(data['exam_date']!, _examDateMeta),
+      );
+    }
+    if (data.containsKey('report_date')) {
+      context.handle(
+        _reportDateMeta,
+        reportDate.isAcceptableOrUnknown(data['report_date']!, _reportDateMeta),
+      );
+    }
+    if (data.containsKey('uploaded_at')) {
+      context.handle(
+        _uploadedAtMeta,
+        uploadedAt.isAcceptableOrUnknown(data['uploaded_at']!, _uploadedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uploadedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MedicalDocument map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MedicalDocument(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      pages: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pages'],
+      )!,
+      docType: $MedicalDocumentsTable.$converterdocType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}doc_type'],
+        )!,
+      ),
+      institutionText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}institution_text'],
+      ),
+      examDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exam_date'],
+      ),
+      reportDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}report_date'],
+      ),
+      uploadedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}uploaded_at'],
+      )!,
+      reviewStatus: $MedicalDocumentsTable.$converterreviewStatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}review_status'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $MedicalDocumentsTable createAlias(String alias) {
+    return $MedicalDocumentsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<MedicalDocType, String> $converterdocType =
+      const EnumConverter(MedicalDocType.values);
+  static TypeConverter<ReviewStatus, String> $converterreviewStatus =
+      const EnumConverter(ReviewStatus.values);
+}
+
+class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
+  final String id;
+  final String userId;
+  final int createdAt;
+  final String createdOnDevice;
+  final int version;
+  final int? changeSeq;
+  final int? deletedAt;
+
+  /// JSON 有序列表：[{"attachment_id","message_id","page_no"}]。
+  final String pages;
+  final MedicalDocType docType;
+  final String? institutionText;
+  final String? examDate;
+  final String? reportDate;
+  final int uploadedAt;
+  final ReviewStatus reviewStatus;
+  const MedicalDocument({
+    required this.id,
+    required this.userId,
+    required this.createdAt,
+    required this.createdOnDevice,
+    required this.version,
+    this.changeSeq,
+    this.deletedAt,
+    required this.pages,
+    required this.docType,
+    this.institutionText,
+    this.examDate,
+    this.reportDate,
+    required this.uploadedAt,
+    required this.reviewStatus,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['created_at'] = Variable<int>(createdAt);
+    map['created_on_device'] = Variable<String>(createdOnDevice);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || changeSeq != null) {
+      map['change_seq'] = Variable<int>(changeSeq);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['pages'] = Variable<String>(pages);
+    {
+      map['doc_type'] = Variable<String>(
+        $MedicalDocumentsTable.$converterdocType.toSql(docType),
+      );
+    }
+    if (!nullToAbsent || institutionText != null) {
+      map['institution_text'] = Variable<String>(institutionText);
+    }
+    if (!nullToAbsent || examDate != null) {
+      map['exam_date'] = Variable<String>(examDate);
+    }
+    if (!nullToAbsent || reportDate != null) {
+      map['report_date'] = Variable<String>(reportDate);
+    }
+    map['uploaded_at'] = Variable<int>(uploadedAt);
+    {
+      map['review_status'] = Variable<String>(
+        $MedicalDocumentsTable.$converterreviewStatus.toSql(reviewStatus),
+      );
+    }
+    return map;
+  }
+
+  MedicalDocumentsCompanion toCompanion(bool nullToAbsent) {
+    return MedicalDocumentsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      createdAt: Value(createdAt),
+      createdOnDevice: Value(createdOnDevice),
+      version: Value(version),
+      changeSeq: changeSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changeSeq),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      pages: Value(pages),
+      docType: Value(docType),
+      institutionText: institutionText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(institutionText),
+      examDate: examDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(examDate),
+      reportDate: reportDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reportDate),
+      uploadedAt: Value(uploadedAt),
+      reviewStatus: Value(reviewStatus),
+    );
+  }
+
+  factory MedicalDocument.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MedicalDocument(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdOnDevice: serializer.fromJson<String>(json['createdOnDevice']),
+      version: serializer.fromJson<int>(json['version']),
+      changeSeq: serializer.fromJson<int?>(json['changeSeq']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      pages: serializer.fromJson<String>(json['pages']),
+      docType: serializer.fromJson<MedicalDocType>(json['docType']),
+      institutionText: serializer.fromJson<String?>(json['institutionText']),
+      examDate: serializer.fromJson<String?>(json['examDate']),
+      reportDate: serializer.fromJson<String?>(json['reportDate']),
+      uploadedAt: serializer.fromJson<int>(json['uploadedAt']),
+      reviewStatus: serializer.fromJson<ReviewStatus>(json['reviewStatus']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'createdOnDevice': serializer.toJson<String>(createdOnDevice),
+      'version': serializer.toJson<int>(version),
+      'changeSeq': serializer.toJson<int?>(changeSeq),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'pages': serializer.toJson<String>(pages),
+      'docType': serializer.toJson<MedicalDocType>(docType),
+      'institutionText': serializer.toJson<String?>(institutionText),
+      'examDate': serializer.toJson<String?>(examDate),
+      'reportDate': serializer.toJson<String?>(reportDate),
+      'uploadedAt': serializer.toJson<int>(uploadedAt),
+      'reviewStatus': serializer.toJson<ReviewStatus>(reviewStatus),
+    };
+  }
+
+  MedicalDocument copyWith({
+    String? id,
+    String? userId,
+    int? createdAt,
+    String? createdOnDevice,
+    int? version,
+    Value<int?> changeSeq = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
+    String? pages,
+    MedicalDocType? docType,
+    Value<String?> institutionText = const Value.absent(),
+    Value<String?> examDate = const Value.absent(),
+    Value<String?> reportDate = const Value.absent(),
+    int? uploadedAt,
+    ReviewStatus? reviewStatus,
+  }) => MedicalDocument(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    createdAt: createdAt ?? this.createdAt,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    version: version ?? this.version,
+    changeSeq: changeSeq.present ? changeSeq.value : this.changeSeq,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    pages: pages ?? this.pages,
+    docType: docType ?? this.docType,
+    institutionText: institutionText.present
+        ? institutionText.value
+        : this.institutionText,
+    examDate: examDate.present ? examDate.value : this.examDate,
+    reportDate: reportDate.present ? reportDate.value : this.reportDate,
+    uploadedAt: uploadedAt ?? this.uploadedAt,
+    reviewStatus: reviewStatus ?? this.reviewStatus,
+  );
+  MedicalDocument copyWithCompanion(MedicalDocumentsCompanion data) {
+    return MedicalDocument(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      version: data.version.present ? data.version.value : this.version,
+      changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      pages: data.pages.present ? data.pages.value : this.pages,
+      docType: data.docType.present ? data.docType.value : this.docType,
+      institutionText: data.institutionText.present
+          ? data.institutionText.value
+          : this.institutionText,
+      examDate: data.examDate.present ? data.examDate.value : this.examDate,
+      reportDate: data.reportDate.present
+          ? data.reportDate.value
+          : this.reportDate,
+      uploadedAt: data.uploadedAt.present
+          ? data.uploadedAt.value
+          : this.uploadedAt,
+      reviewStatus: data.reviewStatus.present
+          ? data.reviewStatus.value
+          : this.reviewStatus,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MedicalDocument(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pages: $pages, ')
+          ..write('docType: $docType, ')
+          ..write('institutionText: $institutionText, ')
+          ..write('examDate: $examDate, ')
+          ..write('reportDate: $reportDate, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('reviewStatus: $reviewStatus')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    createdAt,
+    createdOnDevice,
+    version,
+    changeSeq,
+    deletedAt,
+    pages,
+    docType,
+    institutionText,
+    examDate,
+    reportDate,
+    uploadedAt,
+    reviewStatus,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MedicalDocument &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.createdAt == this.createdAt &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.version == this.version &&
+          other.changeSeq == this.changeSeq &&
+          other.deletedAt == this.deletedAt &&
+          other.pages == this.pages &&
+          other.docType == this.docType &&
+          other.institutionText == this.institutionText &&
+          other.examDate == this.examDate &&
+          other.reportDate == this.reportDate &&
+          other.uploadedAt == this.uploadedAt &&
+          other.reviewStatus == this.reviewStatus);
+}
+
+class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<int> createdAt;
+  final Value<String> createdOnDevice;
+  final Value<int> version;
+  final Value<int?> changeSeq;
+  final Value<int?> deletedAt;
+  final Value<String> pages;
+  final Value<MedicalDocType> docType;
+  final Value<String?> institutionText;
+  final Value<String?> examDate;
+  final Value<String?> reportDate;
+  final Value<int> uploadedAt;
+  final Value<ReviewStatus> reviewStatus;
+  final Value<int> rowid;
+  const MedicalDocumentsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.pages = const Value.absent(),
+    this.docType = const Value.absent(),
+    this.institutionText = const Value.absent(),
+    this.examDate = const Value.absent(),
+    this.reportDate = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.reviewStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MedicalDocumentsCompanion.insert({
+    required String id,
+    required String userId,
+    required int createdAt,
+    required String createdOnDevice,
+    this.version = const Value.absent(),
+    this.changeSeq = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String pages,
+    required MedicalDocType docType,
+    this.institutionText = const Value.absent(),
+    this.examDate = const Value.absent(),
+    this.reportDate = const Value.absent(),
+    required int uploadedAt,
+    this.reviewStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       createdAt = Value(createdAt),
+       createdOnDevice = Value(createdOnDevice),
+       pages = Value(pages),
+       docType = Value(docType),
+       uploadedAt = Value(uploadedAt);
+  static Insertable<MedicalDocument> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<int>? createdAt,
+    Expression<String>? createdOnDevice,
+    Expression<int>? version,
+    Expression<int>? changeSeq,
+    Expression<int>? deletedAt,
+    Expression<String>? pages,
+    Expression<String>? docType,
+    Expression<String>? institutionText,
+    Expression<String>? examDate,
+    Expression<String>? reportDate,
+    Expression<int>? uploadedAt,
+    Expression<String>? reviewStatus,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (version != null) 'version': version,
+      if (changeSeq != null) 'change_seq': changeSeq,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (pages != null) 'pages': pages,
+      if (docType != null) 'doc_type': docType,
+      if (institutionText != null) 'institution_text': institutionText,
+      if (examDate != null) 'exam_date': examDate,
+      if (reportDate != null) 'report_date': reportDate,
+      if (uploadedAt != null) 'uploaded_at': uploadedAt,
+      if (reviewStatus != null) 'review_status': reviewStatus,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MedicalDocumentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<int>? createdAt,
+    Value<String>? createdOnDevice,
+    Value<int>? version,
+    Value<int?>? changeSeq,
+    Value<int?>? deletedAt,
+    Value<String>? pages,
+    Value<MedicalDocType>? docType,
+    Value<String?>? institutionText,
+    Value<String?>? examDate,
+    Value<String?>? reportDate,
+    Value<int>? uploadedAt,
+    Value<ReviewStatus>? reviewStatus,
+    Value<int>? rowid,
+  }) {
+    return MedicalDocumentsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      version: version ?? this.version,
+      changeSeq: changeSeq ?? this.changeSeq,
+      deletedAt: deletedAt ?? this.deletedAt,
+      pages: pages ?? this.pages,
+      docType: docType ?? this.docType,
+      institutionText: institutionText ?? this.institutionText,
+      examDate: examDate ?? this.examDate,
+      reportDate: reportDate ?? this.reportDate,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      reviewStatus: reviewStatus ?? this.reviewStatus,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<String>(createdOnDevice.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (changeSeq.present) {
+      map['change_seq'] = Variable<int>(changeSeq.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (pages.present) {
+      map['pages'] = Variable<String>(pages.value);
+    }
+    if (docType.present) {
+      map['doc_type'] = Variable<String>(
+        $MedicalDocumentsTable.$converterdocType.toSql(docType.value),
+      );
+    }
+    if (institutionText.present) {
+      map['institution_text'] = Variable<String>(institutionText.value);
+    }
+    if (examDate.present) {
+      map['exam_date'] = Variable<String>(examDate.value);
+    }
+    if (reportDate.present) {
+      map['report_date'] = Variable<String>(reportDate.value);
+    }
+    if (uploadedAt.present) {
+      map['uploaded_at'] = Variable<int>(uploadedAt.value);
+    }
+    if (reviewStatus.present) {
+      map['review_status'] = Variable<String>(
+        $MedicalDocumentsTable.$converterreviewStatus.toSql(reviewStatus.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MedicalDocumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('version: $version, ')
+          ..write('changeSeq: $changeSeq, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pages: $pages, ')
+          ..write('docType: $docType, ')
+          ..write('institutionText: $institutionText, ')
+          ..write('examDate: $examDate, ')
+          ..write('reportDate: $reportDate, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('reviewStatus: $reviewStatus, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -18126,6 +18946,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AnalysisArtifactsTable analysisArtifacts =
       $AnalysisArtifactsTable(this);
   late final $BackupRunsTable backupRuns = $BackupRunsTable(this);
+  late final $MedicalDocumentsTable medicalDocuments = $MedicalDocumentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -18155,6 +18978,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncStates,
     analysisArtifacts,
     backupRuns,
+    medicalDocuments,
   ];
 }
 
@@ -26700,6 +27524,396 @@ typedef $$BackupRunsTableProcessedTableManager =
       BackupRun,
       PrefetchHooks Function()
     >;
+typedef $$MedicalDocumentsTableCreateCompanionBuilder =
+    MedicalDocumentsCompanion Function({
+      required String id,
+      required String userId,
+      required int createdAt,
+      required String createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      required String pages,
+      required MedicalDocType docType,
+      Value<String?> institutionText,
+      Value<String?> examDate,
+      Value<String?> reportDate,
+      required int uploadedAt,
+      Value<ReviewStatus> reviewStatus,
+      Value<int> rowid,
+    });
+typedef $$MedicalDocumentsTableUpdateCompanionBuilder =
+    MedicalDocumentsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<int> createdAt,
+      Value<String> createdOnDevice,
+      Value<int> version,
+      Value<int?> changeSeq,
+      Value<int?> deletedAt,
+      Value<String> pages,
+      Value<MedicalDocType> docType,
+      Value<String?> institutionText,
+      Value<String?> examDate,
+      Value<String?> reportDate,
+      Value<int> uploadedAt,
+      Value<ReviewStatus> reviewStatus,
+      Value<int> rowid,
+    });
+
+class $$MedicalDocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $MedicalDocumentsTable> {
+  $$MedicalDocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pages => $composableBuilder(
+    column: $table.pages,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MedicalDocType, MedicalDocType, String>
+  get docType => $composableBuilder(
+    column: $table.docType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get institutionText => $composableBuilder(
+    column: $table.institutionText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get examDate => $composableBuilder(
+    column: $table.examDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportDate => $composableBuilder(
+    column: $table.reportDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ReviewStatus, ReviewStatus, String>
+  get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+}
+
+class $$MedicalDocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MedicalDocumentsTable> {
+  $$MedicalDocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pages => $composableBuilder(
+    column: $table.pages,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get docType => $composableBuilder(
+    column: $table.docType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get institutionText => $composableBuilder(
+    column: $table.institutionText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get examDate => $composableBuilder(
+    column: $table.examDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportDate => $composableBuilder(
+    column: $table.reportDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MedicalDocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MedicalDocumentsTable> {
+  $$MedicalDocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get pages =>
+      $composableBuilder(column: $table.pages, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MedicalDocType, String> get docType =>
+      $composableBuilder(column: $table.docType, builder: (column) => column);
+
+  GeneratedColumn<String> get institutionText => $composableBuilder(
+    column: $table.institutionText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get examDate =>
+      $composableBuilder(column: $table.examDate, builder: (column) => column);
+
+  GeneratedColumn<String> get reportDate => $composableBuilder(
+    column: $table.reportDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<ReviewStatus, String> get reviewStatus =>
+      $composableBuilder(
+        column: $table.reviewStatus,
+        builder: (column) => column,
+      );
+}
+
+class $$MedicalDocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MedicalDocumentsTable,
+          MedicalDocument,
+          $$MedicalDocumentsTableFilterComposer,
+          $$MedicalDocumentsTableOrderingComposer,
+          $$MedicalDocumentsTableAnnotationComposer,
+          $$MedicalDocumentsTableCreateCompanionBuilder,
+          $$MedicalDocumentsTableUpdateCompanionBuilder,
+          (
+            MedicalDocument,
+            BaseReferences<
+              _$AppDatabase,
+              $MedicalDocumentsTable,
+              MedicalDocument
+            >,
+          ),
+          MedicalDocument,
+          PrefetchHooks Function()
+        > {
+  $$MedicalDocumentsTableTableManager(
+    _$AppDatabase db,
+    $MedicalDocumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MedicalDocumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MedicalDocumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MedicalDocumentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<String> createdOnDevice = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> pages = const Value.absent(),
+                Value<MedicalDocType> docType = const Value.absent(),
+                Value<String?> institutionText = const Value.absent(),
+                Value<String?> examDate = const Value.absent(),
+                Value<String?> reportDate = const Value.absent(),
+                Value<int> uploadedAt = const Value.absent(),
+                Value<ReviewStatus> reviewStatus = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MedicalDocumentsCompanion(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                pages: pages,
+                docType: docType,
+                institutionText: institutionText,
+                examDate: examDate,
+                reportDate: reportDate,
+                uploadedAt: uploadedAt,
+                reviewStatus: reviewStatus,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required int createdAt,
+                required String createdOnDevice,
+                Value<int> version = const Value.absent(),
+                Value<int?> changeSeq = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                required String pages,
+                required MedicalDocType docType,
+                Value<String?> institutionText = const Value.absent(),
+                Value<String?> examDate = const Value.absent(),
+                Value<String?> reportDate = const Value.absent(),
+                required int uploadedAt,
+                Value<ReviewStatus> reviewStatus = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MedicalDocumentsCompanion.insert(
+                id: id,
+                userId: userId,
+                createdAt: createdAt,
+                createdOnDevice: createdOnDevice,
+                version: version,
+                changeSeq: changeSeq,
+                deletedAt: deletedAt,
+                pages: pages,
+                docType: docType,
+                institutionText: institutionText,
+                examDate: examDate,
+                reportDate: reportDate,
+                uploadedAt: uploadedAt,
+                reviewStatus: reviewStatus,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MedicalDocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MedicalDocumentsTable,
+      MedicalDocument,
+      $$MedicalDocumentsTableFilterComposer,
+      $$MedicalDocumentsTableOrderingComposer,
+      $$MedicalDocumentsTableAnnotationComposer,
+      $$MedicalDocumentsTableCreateCompanionBuilder,
+      $$MedicalDocumentsTableUpdateCompanionBuilder,
+      (
+        MedicalDocument,
+        BaseReferences<_$AppDatabase, $MedicalDocumentsTable, MedicalDocument>,
+      ),
+      MedicalDocument,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -26752,4 +27966,6 @@ class $AppDatabaseManager {
       $$AnalysisArtifactsTableTableManager(_db, _db.analysisArtifacts);
   $$BackupRunsTableTableManager get backupRuns =>
       $$BackupRunsTableTableManager(_db, _db.backupRuns);
+  $$MedicalDocumentsTableTableManager get medicalDocuments =>
+      $$MedicalDocumentsTableTableManager(_db, _db.medicalDocuments);
 }
