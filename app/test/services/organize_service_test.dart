@@ -166,6 +166,55 @@ void main() {
     expect(notice.inReplyTo, m.id);
   });
 
+  test('记录上点"重新整理"：来源消息重排，模型带 record_id 更新原记录（D-05 触发 4）',
+      () async {
+    await addConfig();
+    final m = await say('晚饭吃了面');
+    model.reply(mealJson([m.id]));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    final record = (await records.byDate('2026-09-26')).single;
+    expect(
+        (await messages.byId(m.id))!.organizeState, OrganizeState.organized);
+
+    // 重新整理：模型这次把描述改了，带 record_id 更新。
+    model.reply(jsonEncode([
+      {
+        'record_id': record.id,
+        'record_type': 'meal',
+        'occurred': {'local_date': '2026-09-26', 'precision': 'date_only'},
+        'data': {'status': 'eaten', 'meal_slot': 'dinner', 'description': '牛肉面'},
+        'source_message_ids': [m.id],
+        'inferred_fields': ['meal_slot'],
+      },
+    ]));
+    final run = await service.reorganizeRecord(record.id);
+    expect(run, isNotNull);
+    expect(run!.trigger, OrganizeTrigger.userReorganize);
+    await service.pump();
+
+    // 同一条记录出了新版本，不是新建。
+    final day = await records.byDate('2026-09-26');
+    expect(day, hasLength(1));
+    final rev = await records.currentRevisionOf(record.id);
+    expect(jsonDecode(rev.data)['description'], '牛肉面');
+    expect(
+        (await messages.byId(m.id))!.organizeState, OrganizeState.organized);
+  });
+
+  test('重新整理：没有默认模型或来源消息已删除时返回 null', () async {
+    await addConfig();
+    final m = await say('晚饭吃了面');
+    model.reply(mealJson([m.id]));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    final record = (await records.byDate('2026-09-26')).single;
+
+    // 来源消息删除后没有可重排的输入。
+    await messages.markDeleted(m.id);
+    expect(await service.reorganizeRecord(record.id), isNull);
+  });
+
   test('A-30：同一天两次运动生成两条独立记录', () async {
     await addConfig();
     final m = await say('早上跑步 30 分钟，晚上游泳 1 小时');

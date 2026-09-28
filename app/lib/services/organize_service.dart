@@ -119,6 +119,28 @@ class OrganizeService {
     await enqueue(OrganizeTrigger.idle);
   }
 
+  /// 用户在记录上点"重新整理"（D-05 触发时机 4）：把这条记录的来源消息
+  /// 重新排队，再建一个 userReorganize 批次。记录本身经 _updatableRecords
+  /// 进入"已有记录"清单，模型带 record_id 更新而不是新建。
+  /// 没有默认模型或找不到可重排的来源消息时返回 null。
+  Future<OrganizeRun?> reorganizeRecord(String recordId) async {
+    final msgIds = <String>{};
+    for (final rev in await _records.revisionsOf(recordId)) {
+      for (final src in await _records.sourcesOf(rev.id)) {
+        if (src.sourceKind == RecordSourceKind.message) msgIds.add(src.sourceId);
+      }
+    }
+    var any = false;
+    for (final id in msgIds) {
+      final m = await _messages.byId(id);
+      if (m == null || m.deletedAt != null) continue;
+      await _messages.setOrganizeState(id, OrganizeState.needsReorganize);
+      any = true;
+    }
+    if (!any) return null;
+    return enqueue(OrganizeTrigger.userReorganize);
+  }
+
   /// 用户有输入动作时调用：重置"短暂无输入预整理"计时（R-08，只触发
   /// 预整理，不代表结束或确认）。
   void noteUserActivity(Duration idleAfter) {

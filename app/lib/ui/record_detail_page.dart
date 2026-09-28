@@ -107,6 +107,18 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     await _load();
   }
 
+  /// 重新整理这条记录（D-05 触发时机 4）：来源消息重新排队，批次异步执行。
+  Future<void> _reorganize() async {
+    final run =
+        await widget.services.organizeService.reorganizeRecord(widget.recordId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(run == null
+          ? '无法重新整理：没有配置模型，或这条记录没有可重排的来源消息'
+          : '已加入整理队列，稍后自动更新'),
+    ));
+  }
+
   /// 确认或修改归属日期（A-23 歧义核对：点一下即可改）。
   Future<void> _confirmDate() async {
     final record = _record!;
@@ -161,7 +173,17 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final photoCount = (data['photo_attachment_ids'] as List?)?.length ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(recordTypeLabels[record.recordType]!)),
+      appBar: AppBar(
+        title: Text(recordTypeLabels[record.recordType]!),
+        actions: [
+          if (!widget.readOnly)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: '重新整理',
+              onPressed: _reorganize,
+            ),
+        ],
+      ),
       body: ListView(
         children: [
           ListTile(
