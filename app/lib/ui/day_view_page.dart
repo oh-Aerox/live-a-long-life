@@ -106,11 +106,15 @@ class _DayViewPageState extends State<DayViewPage> {
                   ?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         ),
         centerTitle: true,
-        leading: IconButton(
-            icon: const Icon(Icons.chevron_left), onPressed: () => _shift(-1)),
+        // 前后翻页都放右侧，把 leading 留给系统返回按钮（否则挡住返回）。
         actions: [
           IconButton(
+              icon: const Icon(Icons.chevron_left),
+              tooltip: '前一天',
+              onPressed: () => _shift(-1)),
+          IconButton(
               icon: const Icon(Icons.chevron_right),
+              tooltip: '后一天',
               onPressed: () => _shift(1)),
         ],
       ),
