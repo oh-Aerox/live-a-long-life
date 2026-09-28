@@ -13,6 +13,7 @@ import '../services/notification_service.dart';
 import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'healthkit_spike_page.dart';
+import 'log_page.dart';
 import 'model_config_page.dart';
 import 'pair_mac_page.dart';
 import 'profile_page.dart';
@@ -237,6 +238,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 '不写入，数据只保存在本机'),
             value: _healthEnabled,
             onChanged: _busy ? null : (v) => _toggleHealth(v),
+          ),
+          ListTile(
+            title: const Text('运行日志'),
+            subtitle: const Text('排查问题用，可复制给开发'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LogPage()),
+            ),
           ),
           ListTile(
             title: const Text('HealthKit 试验（T1）'),

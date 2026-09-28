@@ -11,6 +11,7 @@ import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
 import 'day_view_page.dart';
 import 'mac_messages_page.dart';
+import 'log_page.dart';
 import 'model_config_page.dart';
 
 /// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
@@ -211,7 +212,16 @@ class _MacHomePageState extends State<MacHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('长寿记（Mac 副本）')),
+      appBar: AppBar(title: const Text('长寿记（Mac 副本）'), actions: [
+        IconButton(
+          icon: const Icon(Icons.article_outlined),
+          tooltip: '运行日志',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LogPage()),
+          ),
+        ),
+      ]),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

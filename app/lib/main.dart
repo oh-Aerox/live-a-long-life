@@ -6,6 +6,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'app_services.dart';
 import 'data/change_log.dart';
+import 'services/app_log.dart';
 import 'services/health_service.dart';
 import 'services/notification_service.dart';
 import 'services/review_service.dart';
@@ -15,6 +16,13 @@ import 'ui/onboarding_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppLog.init();
+  // 未捕获的框架异常也进日志，便于事后排查。
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLog.I.e('flutter', details.summary.toString(), details.exception,
+        details.stack);
+  };
   final services = await AppServices.init();
 
   // Mac 端（V3-M0）：只读副本 + 同步接收，不初始化手机专属插件

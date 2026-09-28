@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../data/db/app_database.dart';
+import 'app_log.dart';
 
 /// 一次模型调用的结果。
 class ModelResponse {
@@ -251,6 +252,8 @@ class ModelClient {
     required Map<String, Object?> body,
   }) async {
     final client = _newHttpClient();
+    // 只记地址与请求的模型，绝不记 key / Authorization（脱敏）。
+    AppLog.I.d('model', 'POST $uri model=${body['model']}');
     try {
       final request = await client.postUrl(uri).timeout(_timeout);
       request.headers.contentType = ContentType.json;
@@ -259,6 +262,8 @@ class ModelClient {
       final response = await request.close().timeout(_timeout);
       final text = await response.transform(utf8.decoder).join();
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        AppLog.I.w('model',
+            'HTTP ${response.statusCode} ${uri.path} 返回 ${_snippet(text)}');
         throw ModelClientException(
           _errorMessage(response.statusCode, text),
           statusCode: response.statusCode,
@@ -266,10 +271,14 @@ class ModelClient {
         );
       }
       try {
-        return (jsonDecode(text) as Map).cast<String, Object?>();
+        final json = (jsonDecode(text) as Map).cast<String, Object?>();
+        AppLog.I.d('model', 'HTTP 200 ${uri.path} ${text.length} 字节');
+        return json;
       } on FormatException {
         // HTTP 2xx 但返回的不是 JSON（中转站网关页、SSE 流、包装层等）：
         // 带上响应片段和实际请求地址，方便定位。
+        AppLog.I.w('model',
+            'HTTP 200 ${uri.path} 非 JSON 返回：${_snippet(text)}');
         throw ModelClientException(
             '返回不是 JSON（HTTP ${response.statusCode}，请求 $uri）：'
             '${_snippet(text)}');
@@ -278,6 +287,7 @@ class ModelClient {
       rethrow;
     } catch (e) {
       // 连接失败、超时等网络层错误：可重试。
+      AppLog.I.w('model', '网络错误 ${uri.path}：$e');
       throw ModelClientException('网络错误：$e', retriable: true);
     } finally {
       client.close(force: true);

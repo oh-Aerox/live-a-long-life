@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/ids.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
+import 'app_log.dart';
 import 'key_store.dart';
 import 'model_client.dart';
 import 'organize_service.dart' show OrganizeModelCall;
@@ -67,8 +68,10 @@ class AnalysisService {
 
   /// 生成上周周报。失败抛异常，已有的旧周报保留（product-spec §5）。
   Future<AnalysisArtifact> generateWeeklyReview() async {
+    AppLog.I.i('analysis', '开始生成周报');
     final config = await _modelConfigs.defaultConfig();
     if (config == null) {
+      AppLog.I.w('analysis', '生成周报失败：没有默认模型配置');
       throw StateError('还没有配置模型：先在"模型配置"里添加');
     }
 
@@ -144,8 +147,13 @@ class AnalysisService {
 
     final parsed = _parse(response.text);
     if (parsed == null) {
-      throw StateError('模型返回的不是预期的 JSON，本次周报未生成（旧周报保留）');
+      AppLog.I.w('analysis',
+          '生成周报失败：响应为空，无法解析。原文：${_logSnippet(response.text)}');
+      throw StateError('模型返回为空，本次周报未生成（旧周报保留）');
     }
+    AppLog.I.i('analysis',
+        '周报解析成功，正文 ${parsed.$1.length} 字，引用 ${parsed.$2.length} 条，'
+        '输入记录 ${input.length} 条');
 
     // 生成依据的手机数据截止点：接收游标（D-14）。
     final pull = await (_db.select(_db.syncStates)
@@ -223,6 +231,11 @@ class AnalysisService {
     final end = s.lastIndexOf('}');
     if (start < 0 || end <= start) return null;
     return s.substring(start, end + 1);
+  }
+
+  String _logSnippet(String s) {
+    final one = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return one.length > 200 ? '${one.substring(0, 200)}…' : one;
   }
 
   Future<AnalysisArtifact?> latest(AnalysisKind kind) =>
