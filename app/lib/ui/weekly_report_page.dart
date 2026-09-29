@@ -56,7 +56,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       messenger.showSnackBar(const SnackBar(content: Text('已获取最新周报')));
     } else {
       messenger.showSnackBar(
-          const SnackBar(content: Text('没取到：确认 Mac 上的长寿记开着，且已生成周报')));
+          const SnackBar(content: Text('没取到：确认 Mac 上的长命百岁开着，且已生成周报')));
     }
     if (mounted) setState(() => _busy = false);
     await _load();

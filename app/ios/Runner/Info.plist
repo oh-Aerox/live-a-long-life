@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>长寿记</string>
+	<string>长命百岁</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择饮食、病历等照片记入你的健康记录。照片只保存在本机，不会上传。</string>
 	<key>NSCameraUsageDescription</key>
@@ -31,7 +31,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>live_a_long_life</string>
+	<string>Live a Long Life</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

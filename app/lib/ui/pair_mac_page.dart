@@ -81,7 +81,7 @@ class _PairMacPageState extends State<PairMacPage> {
     if (raw == null) return;
     final info = PairingInfo.decode(raw);
     if (info == null) {
-      setState(() => _status = '这不是长寿记的配对二维码');
+      setState(() => _status = '这不是长命百岁的配对二维码');
       return;
     }
     setState(() {
@@ -135,7 +135,7 @@ class _PairMacPageState extends State<PairMacPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(_paired.isEmpty
-                ? '在 Mac 上打开 长寿记 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
+                ? '在 Mac 上打开 长命百岁 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
                 : '重新配对：在 Mac 上点「重新配对」后扫新的二维码。'),
           ),
           Expanded(

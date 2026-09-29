@@ -210,7 +210,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('用手机打开 长寿记 → 设置 → 连接 Mac，扫这个码：'),
+                  const Text('用手机打开 长命百岁 → 设置 → 连接 Mac，扫这个码：'),
                   const SizedBox(height: 12),
                   Center(
                     child: Container(
@@ -263,7 +263,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('关于'),
-            subtitle: Text('长寿记 Mac 副本 · 版本 $_version'),
+            subtitle: Text('长命百岁 Mac 副本 · 版本 $_version'),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 24),

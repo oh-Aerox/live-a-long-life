@@ -284,7 +284,7 @@ class _MacHomePageState extends State<MacHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('长寿记（Mac 副本）'), actions: [
+      appBar: AppBar(title: const Text('长命百岁（Mac 副本）'), actions: [
         // 顶部快捷入口（2026-09-29）：咨询与设置不属于某张卡片。
         TextButton.icon(
           icon: const Icon(Icons.forum_outlined, size: 18),

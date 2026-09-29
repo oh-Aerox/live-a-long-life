@@ -88,7 +88,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
           '将清理手机上的 ${chosen.length} 份医疗文件，释放约 ${_size(_selectedBytes)}。'
           '历史医疗记录保留，Mac 上的已归档原件不受影响。'
           '${noRemote > 0 ? '\n\n注意：其中 $noRemote 份没有确认过的其他副本，清理后可能无法再查看原件（数据保留，未核对的仍是未核对）。' : ''}'
-          '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（文件 App → 我的 iPhone → 长寿记 → exports），清理不会删除它们，需要时可自行删除。' : ''}',
+          '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（文件 App → 我的 iPhone → 长命百岁 → exports），清理不会删除它们，需要时可自行删除。' : ''}',
         ),
         actions: [
           DialogAction(

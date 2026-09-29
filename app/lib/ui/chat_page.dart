@@ -307,7 +307,7 @@ class _ChatPageState extends State<ChatPage> {
       backgroundColor: useCupertino(context)
           ? CupertinoColors.systemBackground.resolveFrom(context)
           : null,
-      appBar: adaptiveAppBar(context, title: const Text('长寿记')),
+      appBar: adaptiveAppBar(context, title: const Text('长命百岁')),
       body: Column(
         children: [
           _SigningExpiryBanner(),

@@ -299,7 +299,7 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('导出完成'),
           content: Text('已导出 ${result.messageCount} 条消息、'
               '${result.fileCount} 个文件，校验通过。\n\n'
-              '位置：文件 App → 我的 iPhone → 长寿记 → exports → $name\n\n'
+              '位置：文件 App → 我的 iPhone → 长命百岁 → exports → $name\n\n'
               '导出的内容未加密，请保存在安全的位置。$missingNote'),
           actions: [
             DialogAction(

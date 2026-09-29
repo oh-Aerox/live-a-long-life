@@ -1,4 +1,4 @@
-# Live a Long Life（长寿记）
+# Live a Long Life（长命百岁）
 
 [中文](README.md)
 
