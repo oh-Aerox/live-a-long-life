@@ -11,6 +11,7 @@
 | 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束；记录上点"重新整理" |
 | Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
 | 医疗文件结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引，用户预览修改后发出（D-28）。**不发图片；调用记录含遮蔽项数与发送范围 sent_summary** | 医疗文件详情"识别并预览"→"确认发送" |
+| 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
 | 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
@@ -199,6 +200,39 @@ data 字段（只填有依据的，缺的字段不要编造）：
 文字内容（D-28，2026-09-29 加入）：`findings` 按栏目逐字抄写诊断、所见、结论等，空文字整条丢弃；全部 unreviewed，在医疗文件详情逐段核对。用户在预览里删掉的行不发送，模型引用这些行号时同编造行号一样丢弃。
 
 识别纠错与药品（D-28，2026-09-29 联调第二轮加入）：真机门诊病历暴露两个问题——提示词要求"逐字抄写"导致 OCR 错字（会明部/感來/规辣史）被原样保留；没有药品栏位，处方药被丢。改为：模型按上下文修正明显识别错误、重组被表格拆散的行，**每处修正写进 `ocr_fixes`** 在核对页橙色显示；数值、剂量里的数字只允许修正明确字符混淆，不许按常识改；新增 `medications`。修正前的识别原文保留在 locator 的 `line_text`，可对照原件。
+
+## 3b. 医疗文件模型识图（兜底）
+
+- **系统提示词：** `labExtractImageSystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** 一句固定文字"请整理这张医疗文件图片。" + 一张 PNG（用户在裁剪页框选的局部，或确认风险后的整页；长边不超过 2048 像素）。图片只用于这次调用，不落库；调用记录的 request_text 只记图片尺寸与裁剪区域，不存图片本身
+- **触发：** 医疗文件详情"用模型识图"，只能显式发起（D-24）；默认模型测试连接没检测到图片能力时不发送，提示换模型
+- **超时：** 180 秒
+- **定位：** 没有行号，结果统一定位到"页码 + 裁剪区域"
+
+```
+你是医疗文件（检验单、检查报告、病历、处方）的结构化整理器。输入是用户拍摄或
+导入的一页医疗文件图片，可能已被用户裁剪成局部（裁掉了姓名、证件号等）。
+只输出一个 JSON 对象，不要输出其他文字，结构如下（各字段含义同检验报告提取）：
+{
+  "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
+          "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
+  "results": [{"item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "findings": [{"section_raw", "text_raw"}],
+  "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
+  "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
+}
+
+规则：
+- 只抄写图片上看得清的内容，看不清、被裁掉或被遮挡的不要猜，数值字段留 null；
+- 数值、单位、参考范围、日期、剂量按图上原样，不要按常识改；
+- 手写或潦草的字拿不准时照你能辨认的写，并宁可少收一项也不要编造；
+- 图片只是局部时，只整理图上有的部分，不要推测图外的内容；
+- 不要在任何字段里写出姓名、身份证号、门诊卡号、电话、住址等个人信息；
+- results、findings、medications、conditions 的收录范围与分类规则同检验报告提取：
+  文字内容按栏目分条放 findings，开具的药品放 medications，
+  conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
+- 没有的部分给空数组。
+```
 
 ## 4. 主动咨询
 
