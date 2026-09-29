@@ -372,7 +372,7 @@ void main() {
     // 调用记录能查到发送范围。
     final call = (await organize.recentModelCalls()).single;
     expect(call.sentSummary, contains('1/1 页'));
-    expect(call.sentSummary, contains('手动修改 1 行'));
+    expect(call.sentSummary, contains('手动改动 1 行'));
   });
 
   test('只有文字的报告（D-28）：诊断/所见保留为 findings，重新提取追加版本不另建', () async {
@@ -419,6 +419,56 @@ void main() {
     rev = await records.currentRevisionOf(first.record.id);
     expect(((jsonDecode(rev.data) as Map)['findings'] as List)[1]['text_raw'],
         '胆囊结石（单发）');
+  });
+
+  test('门诊病历（D-28）：药品按条提取、识别修正记录保留、空药名丢弃', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '主诉：咽候部寒痛不适5天', x: 0.1, y: 0.1, w: 0.5, h: 0.03),
+      OcrLine(text: '头孢味辛酯片', x: 0.1, y: 0.3, w: 0.3, h: 0.03),
+      OcrLine(text: '口服', x: 0.5, y: 0.3, w: 0.1, h: 0.03),
+      OcrLine(text: '0.25g', x: 0.6, y: 0.3, w: 0.1, h: 0.03),
+      OcrLine(text: '0.25g*12片/盒', x: 0.7, y: 0.3, w: 0.2, h: 0.03),
+    ]);
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'visit_record', 'exam_date': '2026-09-23'},
+      'results': [],
+      'findings': [
+        {
+          'section_raw': '主诉',
+          'text_raw': '咽喉部疼痛不适5天',
+          'source_lines': ['P1L1'],
+          'ocr_fixes': ['咽候部→咽喉部', '寒痛→疼痛'],
+        }
+      ],
+      'medications': [
+        {
+          'name': '头孢呋辛酯片',
+          'spec': '0.25g*12片/盒',
+          'dose': '0.25g',
+          'route': '口服',
+          'frequency': null,
+          'source_lines': ['P1L2', 'P1L3', 'P1L4', 'P1L5'],
+          'ocr_fixes': ['头孢味辛酯片→头孢呋辛酯片'],
+        },
+        {'name': ' ', 'source_lines': []},
+      ],
+    }));
+    final outcome = await buildService(extractor).extractDocument(doc.id);
+    final rev = await records.currentRevisionOf(outcome.record.id);
+    final data = jsonDecode(rev.data) as Map;
+    final med = (data['medications'] as List).single as Map;
+    expect(med['name'], '头孢呋辛酯片');
+    expect(med['frequency'], isNull);
+    expect(med['locator'] as List, hasLength(4));
+    expect(med['ocr_fixes'], ['头孢味辛酯片→头孢呋辛酯片']);
+    // 修正前的识别原文仍在 locator 里，可对照原件。
+    expect(((med['locator'] as List).first as Map)['line_text'], '头孢味辛酯片');
+    expect(((data['findings'] as List).single as Map)['ocr_fixes'], hasLength(2));
+    final meta = FieldMetaMap.decode(rev.fieldMeta);
+    expect(meta['medications.0']!.reviewStatus, ReviewStatus.unreviewed);
+    expect(meta['medications.1'], isNull);
   });
 
   test('没有默认模型：不调用、不建记录', () async {

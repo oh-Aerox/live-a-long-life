@@ -61,9 +61,11 @@ String recordSummary(RecordType type, Map<String, Object?> data) {
     case RecordType.labPanel:
       final results = (data['results'] as List?)?.length ?? 0;
       final findings = (data['findings'] as List?)?.length ?? 0;
+      final medications = (data['medications'] as List?)?.length ?? 0;
       return [
-        if (results > 0 || findings == 0) '检验结果 $results 项',
+        if (results > 0 || findings + medications == 0) '检验结果 $results 项',
         if (findings > 0) '文字内容 $findings 段',
+        if (medications > 0) '药品 $medications 种',
       ].join('，');
     case RecordType.condition:
       final status = data['status'] == 'resolved' ? '（已痊愈）' : '';

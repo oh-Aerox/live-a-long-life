@@ -77,24 +77,36 @@ void main() {
         throwsRangeError);
   });
 
-  test('文字内容（D-28）：确认、修改、全部确认覆盖 findings；旧记录无 findings 不报错', () {
+  test('文字内容与药品（D-28）：确认、修改、全部确认；旧记录无这两个字段不报错', () {
     final data = jsonEncode({
       'results': [],
       'findings': [
         {'section_raw': '诊断', 'text_raw': '咽喉炎', 'locator': []},
         {'section_raw': '处理意见', 'text_raw': '复查', 'locator': []},
       ],
+      'medications': [
+        {'name': '头孢呋辛酯片', 'dose': '0.25g', 'route': '口服', 'locator': [],
+         'ocr_fixes': ['头孢味辛酯片→头孢呋辛酯片']},
+      ],
     });
     const meta = FieldMetaMap({});
-    var (d, m) = LabReview.confirmFinding(data, meta, 0);
+    var (d, m) = LabReview.confirmEntry(data, meta, 'findings', 0);
     expect(m['findings.0']!.reviewStatus, ReviewStatus.confirmed);
-    (d, m) = LabReview.editFinding(d, m, 1, sectionRaw: '处理意见', textRaw: '两周后复查');
+    (d, m) = LabReview.editEntry(d, m, 'findings', 1,
+        {'section_raw': '处理意见', 'text_raw': '两周后复查'});
     expect(((jsonDecode(d) as Map)['findings'] as List)[1]['text_raw'], '两周后复查');
     expect(m['findings.1']!.reviewStatus, ReviewStatus.edited);
+    (d, m) = LabReview.editEntry(d, m, 'medications', 0,
+        {'name': '头孢呋辛酯片', 'frequency': '每日2次', 'dose': ''});
+    final med = ((jsonDecode(d) as Map)['medications'] as List).single as Map;
+    expect(med['frequency'], '每日2次');
+    expect(med['dose'], isNull); // 空串存 null
+    expect(med['ocr_fixes'], isNotEmpty); // 修正记录保留
     (d, m) = LabReview.confirmAll(data, meta);
     expect(m['findings.1']!.reviewStatus, ReviewStatus.confirmed);
-    expect(() => LabReview.confirmFinding(data, meta, 5), throwsRangeError);
-    // D-28 之前的记录没有 findings 字段。
+    expect(m['medications.0']!.reviewStatus, ReviewStatus.confirmed);
+    expect(() => LabReview.confirmEntry(data, meta, 'findings', 5),
+        throwsRangeError);
     LabReview.confirmAll(jsonEncode({'results': []}), meta);
   });
 }

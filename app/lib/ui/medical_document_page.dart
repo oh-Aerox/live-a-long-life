@@ -31,7 +31,8 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   List<LabResult> _results = [];
   RecordRow? _record;
   RecordRevision? _rev;
-  List<Map<String, Object?>> _findings = [];
+  /// 逐条核对的列表（D-28）：findings 文字内容、medications 处方药品。
+  Map<String, List<Map<String, Object?>>> _entries = {};
 
   @override
   void initState() {
@@ -46,24 +47,26 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final record = await s.records.labPanelOfDocument(widget.documentId);
     RecordRevision? rev;
     var results = <LabResult>[];
-    var findings = <Map<String, Object?>>[];
+    final entries = <String, List<Map<String, Object?>>>{};
     if (record != null) {
       rev = await s.records.currentRevisionOf(record.id);
       results = [
         for (final r in await s.records.labResultsOfDocument(widget.documentId))
           if (r.recordId == record.id) r
       ];
-      findings = [
-        for (final f in (jsonDecode(rev.data) as Map)['findings'] as List? ??
-            const [])
-          (f as Map).cast<String, Object?>()
-      ];
+      final data = jsonDecode(rev.data) as Map;
+      for (final list in LabReview.entryLists) {
+        entries[list] = [
+          for (final e in data[list] as List? ?? const [])
+            (e as Map).cast<String, Object?>()
+        ];
+      }
     }
     if (mounted) {
       setState(() {
         _doc = doc;
         _results = results;
-        _findings = findings;
+        _entries = entries;
         _record = record;
         _rev = rev;
       });
@@ -256,8 +259,28 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     }
   }
 
-  Future<void> _findingActions(int index) async {
-    final f = _findings[index];
+  /// 各列表修改对话框里的字段（键 → 标签）。
+  static const _entryFields = {
+    'findings': {'section_raw': '栏目', 'text_raw': '内容'},
+    'medications': {
+      'name': '药品',
+      'spec': '规格',
+      'dose': '单次用量',
+      'route': '用法',
+      'frequency': '频次',
+      'duration': '疗程',
+      'quantity': '数量',
+    },
+  };
+
+  List<Map<String, Object?>> _entryList(String list) => _entries[list] ?? const [];
+
+  ReviewStatus _entryStatus(String list, int index) =>
+      FieldMetaMap.decode(_rev!.fieldMeta)['$list.$index']?.reviewStatus ??
+      ReviewStatus.unreviewed;
+
+  Future<void> _entryActions(String list, int index) async {
+    final entry = _entryList(list)[index];
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
@@ -286,28 +309,30 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     if (action == null || rev == null || !mounted) return;
     switch (action) {
       case 'confirm':
-        final (data, meta) = LabReview.confirmFinding(
-            rev.data, FieldMetaMap.decode(rev.fieldMeta), index);
+        final (data, meta) = LabReview.confirmEntry(
+            rev.data, FieldMetaMap.decode(rev.fieldMeta), list, index);
         await _writeRevision(data, meta);
       case 'edit':
-        final sectionCtl =
-            TextEditingController(text: f['section_raw'] as String? ?? '');
-        final textCtl = TextEditingController(text: f['text_raw'] as String);
+        final labels = _entryFields[list]!;
+        final ctls = {
+          for (final k in labels.keys)
+            k: TextEditingController(text: entry[k] as String? ?? ''),
+        };
         final ok = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('修改这段文字'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                    controller: sectionCtl,
-                    decoration: const InputDecoration(labelText: '栏目')),
-                TextField(
-                    controller: textCtl,
-                    maxLines: null,
-                    decoration: const InputDecoration(labelText: '内容')),
-              ],
+            title: const Text('修改'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final e in labels.entries)
+                    TextField(
+                        controller: ctls[e.key],
+                        maxLines: null,
+                        decoration: InputDecoration(labelText: e.value)),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -319,20 +344,24 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             ],
           ),
         );
-        if (ok != true || textCtl.text.trim().isEmpty || !mounted) return;
-        final (data, meta) = LabReview.editFinding(
+        // 主字段（文字内容 / 药品名）不能改空。
+        final mainKey = list == 'findings' ? 'text_raw' : 'name';
+        if (ok != true || ctls[mainKey]!.text.trim().isEmpty || !mounted) {
+          return;
+        }
+        final (data, meta) = LabReview.editEntry(
           rev.data,
           FieldMetaMap.decode(rev.fieldMeta),
+          list,
           index,
-          sectionRaw: sectionCtl.text.trim(),
-          textRaw: textCtl.text.trim(),
+          {for (final e in ctls.entries) e.key: e.value.text.trim()},
         );
         await _writeRevision(data, meta);
       case 'source':
-        final locators = f['locator'] as List? ?? const [];
+        final locators = entry['locator'] as List? ?? const [];
         if (locators.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('这段文字没有原件定位信息')));
+              const SnackBar(content: Text('这一条没有原件定位信息')));
           return;
         }
         await Navigator.push(
@@ -341,16 +370,83 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             builder: (_) => SourceViewerPage(
               services: widget.services,
               locator: (locators.first as Map).cast<String, Object?>(),
-              title: f['section_raw'] as String? ?? '文字内容',
+              title: (entry['section_raw'] ?? entry['name'] ?? '原件') as String,
             ),
           ),
         );
     }
   }
 
-  ReviewStatus _findingStatus(int index) =>
-      FieldMetaMap.decode(_rev!.fieldMeta)['findings.$index']?.reviewStatus ??
-      ReviewStatus.unreviewed;
+  static Widget _statusText(ReviewStatus status, {bool warn = false}) => Text(
+        switch (status) {
+          ReviewStatus.unreviewed => '未核对',
+          ReviewStatus.confirmed => '已确认',
+          ReviewStatus.edited => '已修改',
+        },
+        style: TextStyle(
+          fontSize: 11,
+          color: warn
+              ? Colors.orange
+              : (status == ReviewStatus.unreviewed ? Colors.grey : Colors.green),
+        ),
+      );
+
+  /// 模型对识别错误的修正，核对时对照原件看（D-28）。
+  static Widget? _fixesText(Object? fixes) {
+    final list = [
+      for (final f in fixes as List? ?? const [])
+        if (f is String) f
+    ];
+    if (list.isEmpty) return null;
+    return Text('已修正识别错误：${list.join('；')}',
+        style: const TextStyle(fontSize: 11, color: Colors.orange));
+  }
+
+  /// 检验数值的修正记录不进索引表，从记录数据取。
+  Object? _resultFixes(int index) {
+    final results = (jsonDecode(_rev!.data) as Map)['results'] as List?;
+    if (results == null || index >= results.length) return null;
+    return (results[index] as Map)['ocr_fixes'];
+  }
+
+  List<Widget> _entrySection(String list, String title) {
+    final entries = _entryList(list);
+    if (entries.isEmpty) return const [];
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      for (var i = 0; i < entries.length; i++)
+        ListTile(
+          dense: true,
+          title: Text(list == 'findings'
+              ? (entries[i]['section_raw'] as String? ?? '文字内容')
+              : entries[i]['name'] as String),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(list == 'findings'
+                  ? entries[i]['text_raw'] as String
+                  : [
+                      for (final k in const [
+                        'dose',
+                        'route',
+                        'frequency',
+                        'duration',
+                        'spec',
+                        'quantity'
+                      ])
+                        if (entries[i][k] is String) entries[i][k] as String
+                    ].join('  ')),
+              ?_fixesText(entries[i]['ocr_fixes']),
+            ],
+          ),
+          trailing: _statusText(_entryStatus(list, i)),
+          onTap: () => _entryActions(list, i),
+        ),
+    ];
+  }
 
   /// 附件级页序调整（一份多页报告可由不同消息的照片组成，页序可调）。
   Future<void> _reorderPages() async {
@@ -423,8 +519,12 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final hasUnreviewed =
         _results.any((r) => r.reviewStatus == ReviewStatus.unreviewed) ||
             [
-              for (var i = 0; i < _findings.length; i++) _findingStatus(i)
+              for (final list in LabReview.entryLists)
+                for (var i = 0; i < _entryList(list).length; i++)
+                  _entryStatus(list, i)
             ].contains(ReviewStatus.unreviewed);
+    final hasEntries =
+        LabReview.entryLists.any((l) => _entryList(l).isNotEmpty);
 
     return Scaffold(
       appBar: AppBar(
@@ -465,67 +565,50 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
-          if (_record != null && _results.isEmpty && _findings.isEmpty)
+          if (_record != null && _results.isEmpty && !hasEntries)
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text('这份文件没有提取到检验数值或文字内容，可以重新提取。',
                   style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
-          if (_findings.isNotEmpty) ...[
+          if (_record != null && hasUnreviewed)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
               child: Row(
                 children: [
-                  const Expanded(child: Text('诊断与检查文字（点一段可核对）')),
-                  if (hasUnreviewed && _results.isEmpty)
-                    TextButton(
-                        onPressed: _confirmAll, child: const Text('全部确认')),
+                  const Expanded(
+                    child: Text('点一条可核对；未核对的内容不参与分析',
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
+                  TextButton(
+                      onPressed: _confirmAll, child: const Text('全部确认')),
                 ],
               ),
             ),
-            for (var i = 0; i < _findings.length; i++)
-              ListTile(
-                dense: true,
-                title: Text(_findings[i]['section_raw'] as String? ?? '文字内容'),
-                subtitle: Text(_findings[i]['text_raw'] as String),
-                trailing: Text(
-                  switch (_findingStatus(i)) {
-                    ReviewStatus.unreviewed => '未核对',
-                    ReviewStatus.confirmed => '已确认',
-                    ReviewStatus.edited => '已修改',
-                  },
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _findingStatus(i) == ReviewStatus.unreviewed
-                        ? Colors.grey
-                        : Colors.green,
-                  ),
-                ),
-                onTap: () => _findingActions(i),
-              ),
-          ],
+          ..._entrySection('findings', '诊断与检查文字'),
+          ..._entrySection('medications', '处方药品'),
           if (_results.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  const Expanded(child: Text('检验结果（点一项可核对）')),
-                  if (hasUnreviewed)
-                    TextButton(
-                        onPressed: _confirmAll, child: const Text('全部确认')),
-                ],
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text('检验结果',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             for (var i = 0; i < _results.length; i++)
               ListTile(
                 dense: true,
                 title: Text(_results[i].itemNameRaw),
-                subtitle: Text([
-                  _results[i].valueRaw,
-                  if (_results[i].unitRaw != null) _results[i].unitRaw!,
-                  if (_results[i].refRangeRaw != null)
-                    '参考 ${_results[i].refRangeRaw}',
-                ].join(' ')),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text([
+                      _results[i].valueRaw,
+                      if (_results[i].unitRaw != null) _results[i].unitRaw!,
+                      if (_results[i].refRangeRaw != null)
+                        '参考 ${_results[i].refRangeRaw}',
+                    ].join(' ')),
+                    ?_fixesText(_resultFixes(_results[i].resultIndex)),
+                  ],
+                ),
                 trailing: Text(
                   [
                     if (_results[i].flagRaw != null) _results[i].flagRaw!,

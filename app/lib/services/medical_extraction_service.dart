@@ -22,55 +22,88 @@ import 'text_extraction.dart';
 /// 带行索引；要求逐字段引用行号，应用据此映射回坐标写 locator）。
 /// 改动本提示词时同步更新 docs/prompts.md。
 const labExtractSystemPrompt = '''
-你是医疗文件（检验单、检查报告、病历）的结构化提取器。输入是一份医疗文件经本地文字识别后的文本，
-每行有形如 P2L5 的行号（第 2 页第 5 行）。只输出一个 JSON 对象，不要输出其他文字：
+你是医疗文件（检验单、检查报告、病历、处方）的结构化整理器。输入是一份医疗文件
+经本地文字识别（OCR）后的文本，每行有形如 P2L5 的行号（第 2 页第 5 行）。
+只输出一个 JSON 对象，不要输出其他文字：
 {
   "doc": {
     "doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
-    "institution_text": "医疗机构名称，按原文" 或 null,
-    "exam_date": "YYYY-MM-DD" 或 null（检查/采样日期）,
+    "institution_text": "医疗机构名称" 或 null,
+    "exam_date": "YYYY-MM-DD" 或 null（检查/采样/就诊日期）,
     "report_date": "YYYY-MM-DD" 或 null（报告日期）
   },
   "results": [
     {
-      "item_name_raw": "报告上的项目名称，按原文",
-      "value_raw": "报告上的数值，按原文",
+      "item_name_raw": "项目名称",
+      "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
-      "unit_raw": "报告上的单位，按原文" 或 null,
-      "ref_range_raw": "报告上的参考范围，按原文" 或 null,
+      "unit_raw": "单位" 或 null,
+      "ref_range_raw": "参考范围，按原文" 或 null,
       "ref_low": 参考范围下限 或 null,
       "ref_high": 参考范围上限 或 null,
-      "flag_raw": "报告上的异常标记（↑、↓、H、L 等）" 或 null,
-      "source_lines": ["该项数据来自的行号，如 P1L3"，至少一个]
+      "flag_raw": "异常标记（↑、↓、H、L 等）" 或 null,
+      "source_lines": ["该项数据来自的行号，如 P1L3"，至少一个],
+      "ocr_fixes": ["识别原文→修正后"，没有修正就给空数组]
     }
   ],
   "findings": [
     {
-      "section_raw": "栏目名称，按原文（如 主诉、现病史、诊断、处理意见、超声所见、超声提示、检查结论、印象）" 或 null,
-      "text_raw": "该栏目下的文字，按原文完整抄写",
-      "source_lines": ["来源行号"，至少一个]
+      "section_raw": "栏目名称（如 主诉、现病史、既往史、过敏史、体格检查、辅助检查、诊断、处理意见、医嘱、超声所见、超声提示、检查结论、印象）" 或 null,
+      "text_raw": "该栏目下的文字",
+      "source_lines": ["来源行号"，至少一个],
+      "ocr_fixes": ["识别原文→修正后"]
+    }
+  ],
+  "medications": [
+    {
+      "name": "药品名称",
+      "spec": "规格，如 0.25g*12片/盒" 或 null,
+      "dose": "单次用量，如 1片、0.25g" 或 null,
+      "route": "用法，如 口服、外用" 或 null,
+      "frequency": "频次，如 每日2次" 或 null,
+      "duration": "疗程或天数" 或 null,
+      "quantity": "开具数量，如 2盒" 或 null,
+      "source_lines": ["来源行号"，至少一个],
+      "ocr_fixes": ["识别原文→修正后"]
     }
   ],
   "conditions": [
     {
-      "name": "疾病或身体状况名称，按原文（如 胆囊结石、青霉素过敏）",
+      "name": "疾病或身体状况名称（如 胆囊结石、青霉素过敏）",
       "persistence": "long_term" | "temporary",
-      "evidence_text": "依据的原文片段（诊断、结论、印象一栏）",
+      "evidence_text": "依据的文字（诊断、结论、印象一栏）",
       "source_lines": ["来源行号"，至少一个]
     }
   ]
 }
 
-规则：
-- *_raw 字段一律按原文抄写，不要改写、翻译或归一化；
+关于识别错误（重要）：
+- 输入是 OCR 结果，常见三类问题：①形近字、错别字（如"会明部"应为"会阴部"、
+  "感來"应为"感染"、"规辣史"应为"现病史"、"悲者"应为"患者"、"处理意第"
+  应为"处理意见"）；②断行，一句话被拆到几行；③表格版式错乱，同一行的几列
+  被拆成多行、与别的栏目交错（如药品名、用法、用量、规格分散在诊断条目之间）。
+- 整理时根据医学常识和上下文修正明显的识别错误，把被拆散的内容按意思重新
+  组合、归入正确的栏目（诊断条目归"诊断"，药品归 medications，不要因为某行
+  挨着某个标题就归到那个标题下）；
+- 每处文字修正都写进该条的 ocr_fixes（"原文→修正后"），供用户核对；
+  拿不准的不要改，保留原文；
+- 数值、单位、参考范围、日期、剂量里的数字不要按常识"修正"，只允许修正
+  明确的字符混淆（如数字中间的 O→0、l→1、S→5），同样记进 ocr_fixes；
+  看不清的数字保留原文，数值字段留 null，不要猜。
+
+其他规则：
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
-- source_lines 只能用输入里出现的行号，不要编造；
+- source_lines 只能用输入里出现的行号，不要编造；一条内容来自多行时全部列出；
 - 没有检验数值表时 results 为空数组；文字内容不进 results，放进 findings；
-- findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、
-  诊断、处理意见，超声/影像/心电图等报告的所见、提示、结论、印象，
-  检验单上的结论或备注；按栏目分条，逐字抄写，不要摘要、改写或合并栏目；
-  医院介绍、注意事项、签名栏不收；没有就给空数组；
-- conditions 只收诊断/结论/印象/病史文字里明确写出的疾病或状况；
+- findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、既往史、
+  过敏史、体格检查、辅助检查、诊断、处理意见、医嘱，超声/影像/心电图等报告的所见、
+  提示、结论、印象，检验单上的结论或备注；按栏目分条，完整保留内容，不要摘要或合并
+  栏目；医院介绍、挂号就诊须知、签名栏、打印时间不收；内容只有"—""-"或"无"的栏目
+  照实写"无"；没有就给空数组；
+- medications 收处方、医嘱、处理意见里开具的全部药品，一个药品一条，药名、用法、
+  用量、规格按表格顺序对应组合；报告没写的字段（如频次）留 null，不要推断；
+  没有就给空数组；
+- conditions 只收诊断/结论/印象/病史文字里明确写出的疾病或状况，名称用修正后的；
   结石、囊肿、结节、慢性病、过敏等不会自行消失的算 long_term，
   感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
   检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
@@ -206,7 +239,7 @@ class SendDraft {
   /// 调用记录里的发送范围描述（A-38 同一字段）。
   String get summary => '医疗文件 ${includedPages.length}/${pages.length} 页，'
       '$sentLineCount 行文字（发送前已预览确认），自动遮蔽 $redactedCount 处'
-      '${edits.isEmpty ? '' : '，手动修改 ${edits.length} 行'}';
+      '${edits.isEmpty ? '' : '，手动改动 ${edits.length} 行（含删掉的）'}';
 }
 
 /// 医疗文件结构化提取（V4-M1，D-23/D-24/D-28）：
@@ -405,6 +438,7 @@ class MedicalExtractionService {
         'ref_high': r['ref_high'],
         'flag_raw': r['flag_raw'],
         'locator': locators,
+        'ocr_fixes': _ocrFixes(r['ocr_fixes']),
       });
     }
 
@@ -422,6 +456,24 @@ class MedicalExtractionService {
             : null,
         'text_raw': text.trim(),
         'locator': _locatorsOf(raw['source_lines'], lineIndex),
+        'ocr_fixes': _ocrFixes(raw['ocr_fixes']),
+      });
+    }
+
+    // 处方药品（D-28）：病历/处方里开具的药，一个药一条。
+    final medications = <Map<String, Object?>>[];
+    for (final raw in (parsed['medications'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final name = raw['name'];
+      if (name is! String || name.trim().isEmpty) continue;
+      medications.add({
+        'name': name.trim(),
+        for (final k in _medicationFields)
+          k: raw[k] is String && (raw[k] as String).trim().isNotEmpty
+              ? (raw[k] as String).trim()
+              : null,
+        'locator': _locatorsOf(raw['source_lines'], lineIndex),
+        'ocr_fixes': _ocrFixes(raw['ocr_fixes']),
       });
     }
 
@@ -443,11 +495,14 @@ class MedicalExtractionService {
     final meta = <String, FieldMeta>{
       for (var i = 0; i < results.length; i++) 'results.$i': unreviewed,
       for (var i = 0; i < findings.length; i++) 'findings.$i': unreviewed,
+      for (var i = 0; i < medications.length; i++)
+        'medications.$i': unreviewed,
     };
     final dataJson = jsonEncode({
       'medical_document_id': doc.id,
       'results': results,
       'findings': findings,
+      'medications': medications,
     });
     final sources = [
       for (final id in attachmentIds)
@@ -513,6 +568,7 @@ class MedicalExtractionService {
     );
     AppLog.I.i('extract',
         '结构化提取完成：${results.length} 项，文字 ${findings.length} 段，'
+        '药品 ${medications.length} 种，'
         '遮蔽 $redactedTotal 处，'
         '发送 ${included.length}/${draft.pages.length} 页'
         '${conditions.isEmpty ? '' : '，新增 ${conditions.length} 条状况建议'}'
@@ -674,6 +730,22 @@ class MedicalExtractionService {
     }
     return locators;
   }
+
+  /// 药品除名称外的可空文本字段（schema §5.2 medications）。
+  static const _medicationFields = [
+    'spec',
+    'dose',
+    'route',
+    'frequency',
+    'duration',
+    'quantity',
+  ];
+
+  /// 模型对 OCR 识别错误的修正（"原文→修正后"），只收字符串，给核对页展示。
+  static List<String> _ocrFixes(Object? raw) => [
+        for (final f in (raw as List? ?? const []))
+          if (f is String && f.trim().isNotEmpty) f.trim()
+      ];
 
   static OcrLine _withText(OcrLine l, String text) =>
       OcrLine(text: text, x: l.x, y: l.y, w: l.w, h: l.h);

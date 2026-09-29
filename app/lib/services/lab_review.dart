@@ -19,55 +19,63 @@ class LabReview {
     return (dataJson, FieldMetaMap(fields));
   }
 
-  /// 确认全部项（检验数值与文字内容）。
+  /// 逐条核对的列表：文字内容与处方药品（D-28）。检验数值 results 的
+  /// 修改要重算数值与参考范围，单独走 [editResult]。
+  static const entryLists = ['findings', 'medications'];
+
+  /// 确认全部项（检验数值、文字内容、药品）。
   static (String, FieldMetaMap) confirmAll(String dataJson, FieldMetaMap meta) {
     final results = _results(dataJson);
     var out = (dataJson, meta);
     for (var i = 0; i < results.length; i++) {
       out = confirmResult(out.$1, out.$2, i);
     }
-    for (var i = 0; i < _findings(dataJson).length; i++) {
-      out = confirmFinding(out.$1, out.$2, i);
+    for (final list in entryLists) {
+      for (var i = 0; i < _entries(dataJson, list).length; i++) {
+        out = confirmEntry(out.$1, out.$2, list, i);
+      }
     }
     return out;
   }
 
-  /// 确认第 [index] 段文字内容（诊断、所见、结论等，D-28）无误。
-  static (String, FieldMetaMap) confirmFinding(
-      String dataJson, FieldMetaMap meta, int index) {
-    if (index < 0 || index >= _findings(dataJson).length) {
-      throw RangeError('文字内容不存在：$index');
+  /// 确认 [list]（findings / medications）第 [index] 条无误。
+  static (String, FieldMetaMap) confirmEntry(
+      String dataJson, FieldMetaMap meta, String list, int index) {
+    if (index < 0 || index >= _entries(dataJson, list).length) {
+      throw RangeError('$list 不存在第 $index 条');
     }
     final fields = Map<String, FieldMeta>.from(meta.fields);
-    final old = fields['findings.$index'];
-    fields['findings.$index'] = FieldMeta(
+    final old = fields['$list.$index'];
+    fields['$list.$index'] = FieldMeta(
       origin: old?.origin ?? FieldOrigin.modelInferred,
       reviewStatus: ReviewStatus.confirmed,
     );
     return (dataJson, FieldMetaMap(fields));
   }
 
-  /// 修改第 [index] 段文字内容：findings.{i} 状态转 edited。
-  static (String, FieldMetaMap) editFinding(
+  /// 修改 [list] 第 [index] 条：[values] 里的字段覆盖（空串存 null），
+  /// 状态转 edited。locator 与 ocr_fixes 保留，仍可回原件对照。
+  static (String, FieldMetaMap) editEntry(
     String dataJson,
     FieldMetaMap meta,
-    int index, {
-    required String sectionRaw,
-    required String textRaw,
-  }) {
+    String list,
+    int index,
+    Map<String, String> values,
+  ) {
     final data = jsonDecode(dataJson) as Map<String, Object?>;
-    final findings = (data['findings'] as List).cast<Map<String, Object?>>();
-    if (index < 0 || index >= findings.length) {
-      throw RangeError('文字内容不存在：$index');
+    final entries = (data[list] as List? ?? const [])
+        .cast<Map<String, Object?>>()
+        .toList();
+    if (index < 0 || index >= entries.length) {
+      throw RangeError('$list 不存在第 $index 条');
     }
-    findings[index] = {
-      ...findings[index],
-      'section_raw': sectionRaw.isEmpty ? null : sectionRaw,
-      'text_raw': textRaw,
+    entries[index] = {
+      ...entries[index],
+      for (final e in values.entries) e.key: e.value.isEmpty ? null : e.value,
     };
-    data['findings'] = findings;
+    data[list] = entries;
     final fields = Map<String, FieldMeta>.from(meta.fields);
-    fields['findings.$index'] = const FieldMeta(
+    fields['$list.$index'] = const FieldMeta(
         origin: FieldOrigin.userEdited, reviewStatus: ReviewStatus.edited);
     return (jsonEncode(data), FieldMetaMap(fields));
   }
@@ -120,9 +128,9 @@ class LabReview {
   static List<Object?> _results(String dataJson) =>
       (jsonDecode(dataJson) as Map)['results'] as List? ?? const [];
 
-  /// 旧记录（D-28 之前提取的）没有 findings 字段，按空处理。
-  static List<Object?> _findings(String dataJson) =>
-      (jsonDecode(dataJson) as Map)['findings'] as List? ?? const [];
+  /// 旧记录（D-28 之前提取的）没有 findings / medications 字段，按空处理。
+  static List<Object?> _entries(String dataJson, String list) =>
+      (jsonDecode(dataJson) as Map)[list] as List? ?? const [];
 
   static void _requireIndex(String dataJson, int index) {
     final results = _results(dataJson);
