@@ -88,6 +88,23 @@ void main() {
       expect(seen.single.body['model'], 'test-model');
     });
 
+    test('带图片（识图兜底）：content 是文字 + data URL 图片；不带图片仍是纯文字', () async {
+      final config =
+          _config(protocol: ModelProtocol.openaiCompatible, baseUrl: base());
+      await ModelClient().complete(
+          config: config, apiKey: 'good-key', userText: '整理这张图',
+          imagePngBase64: 'QUJD');
+      final content =
+          ((seen.single.body['messages'] as List).first as Map)['content'] as List;
+      expect((content[0] as Map)['text'], '整理这张图');
+      expect(((content[1] as Map)['image_url'] as Map)['url'],
+          'data:image/png;base64,QUJD');
+
+      await ModelClient()
+          .complete(config: config, apiKey: 'good-key', userText: '纯文字');
+      expect(((seen.last.body['messages'] as List).first as Map)['content'], '纯文字');
+    });
+
     test('key 错误：不可重试的异常，带服务方错误信息', () async {
       await expectLater(
         ModelClient().complete(

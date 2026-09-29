@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -12,6 +13,7 @@ import 'package:live_a_long_life/data/repositories/organize_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/medical_extraction_service.dart';
+import 'package:live_a_long_life/services/model_client.dart';
 import 'package:live_a_long_life/services/text_extraction.dart';
 
 import '../data/test_helpers.dart';
@@ -322,6 +324,15 @@ void main() {
     expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
+  Future<ModelConfig> addConfigReturning() => configs.add(
+        preset: ModelPreset.anthropic,
+        protocol: ModelProtocol.anthropic,
+        baseUrl: 'https://api.example.com',
+        model: 'm',
+        dataBoundary: DataBoundary.cloud,
+        keychainRef: '',
+      );
+
   Future<void> addConfig() => configs.add(
         preset: ModelPreset.anthropic,
         protocol: ModelProtocol.anthropic,
@@ -469,6 +480,99 @@ void main() {
     final meta = FieldMetaMap.decode(rev.fieldMeta);
     expect(meta['medications.0']!.reviewStatus, ReviewStatus.unreviewed);
     expect(meta['medications.1'], isNull);
+  });
+
+  group('模型识图兜底（V4-M3，D-24）', () {
+    ImageSend send(String attId) => ImageSend(
+          attachmentId: attId,
+          pageNo: 1,
+          attachmentPage: 1,
+          png: Uint8List.fromList([1, 2, 3]),
+          width: 800,
+          height: 400,
+          cropBox: const {'x': 0.1, 'y': 0.3, 'w': 0.8, 'h': 0.5},
+        );
+
+    test('默认模型不支持图片：不发送、不建记录，提示换模型', () async {
+      await addConfig(); // 没测过连接：capabilities 为空
+      final doc = await importDoc();
+      final images = <String>[];
+      final service = MedicalExtractionService(
+        attachments: attachments,
+        documents: documents,
+        records: records,
+        organize: organize,
+        modelConfigs: configs,
+        keyStore: KeyStore(),
+        extraction: TextExtractionService(
+            extractor: FakeExtractor(), cacheDir: Directory('${tmp.path}/cache')),
+        imageCall: ({required config, required apiKey, system,
+            required userText, required maxTokens, required imagePngBase64}) async {
+          images.add(imagePngBase64);
+          throw StateError('不该调用');
+        },
+      );
+      expect(await service.defaultModelSupportsImage(), isFalse);
+      final att = MedicalPageRef.decodeList(doc.pages).single.attachmentId;
+      await expectLater(
+          service.extractFromImage(doc.id, send(att)), throwsStateError);
+      expect(images, isEmpty);
+      expect(await organize.recentModelCalls(), isEmpty);
+    });
+
+    test('支持图片：发裁剪图，结果按裁剪区域定位，调用记录不存图片', () async {
+      final config = await addConfigReturning();
+      await configs.updateTestResult(config.id,
+          result: '连接成功（支持图片）', capabilities: ['text', 'image']);
+      final doc = await importDoc();
+      final att = MedicalPageRef.decodeList(doc.pages).single.attachmentId;
+      final images = <String>[];
+      final service = MedicalExtractionService(
+        attachments: attachments,
+        documents: documents,
+        records: records,
+        organize: organize,
+        modelConfigs: configs,
+        keyStore: KeyStore(),
+        extraction: TextExtractionService(
+            extractor: FakeExtractor(), cacheDir: Directory('${tmp.path}/cache')),
+        imageCall: ({required config, required apiKey, system,
+            required userText, required maxTokens, required imagePngBase64}) async {
+          images.add(imagePngBase64);
+          return ModelResponse(
+              text: jsonEncode({
+                'doc': {'doc_type': 'lab_report', 'exam_date': '2026-09-20'},
+                'results': [
+                  {'item_name_raw': '血糖', 'value_raw': '6.8', 'value_num': 6.8,
+                   'ref_range_raw': '3.9-6.1', 'ref_low': 3.9, 'ref_high': 6.1}
+                ],
+                'findings': [
+                  {'section_raw': '备注', 'text_raw': '空腹'}
+                ],
+              }),
+              tokensIn: 100,
+              tokensOut: 50);
+        },
+      );
+      expect(await service.defaultModelSupportsImage(), isTrue);
+      final outcome = await service.extractFromImage(doc.id, send(att));
+
+      expect(images.single, base64Encode([1, 2, 3]));
+      final rev = await records.currentRevisionOf(outcome.record.id);
+      final data = jsonDecode(rev.data) as Map;
+      final loc = (((data['results'] as List).single as Map)['locator'] as List)
+          .single as Map;
+      expect(loc['attachment_id'], att);
+      expect(loc['box'], {'x': 0.1, 'y': 0.3, 'w': 0.8, 'h': 0.5});
+      expect(FieldMetaMap.decode(rev.fieldMeta)['results.0']!.reviewStatus,
+          ReviewStatus.unreviewed);
+      expect(await records.labResultsOfDocument(doc.id), hasLength(1));
+
+      final call = (await organize.recentModelCalls()).single;
+      expect(call.sentSummary, contains('裁剪'));
+      expect(call.requestText, isNot(contains(base64Encode([1, 2, 3]))));
+      expect(jsonDecode(call.sentAttachmentIds), [att]);
+    });
   });
 
   test('没有默认模型：不调用、不建记录', () async {
