@@ -1,16 +1,3 @@
 # live_a_long_life
 
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+长寿记的 Flutter 应用（iPhone 与 Mac 共用）。项目介绍、功能说明与构建方法见根目录 [README.md](../README.md)（[English](../README.en.md)）。
