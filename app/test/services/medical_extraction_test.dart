@@ -322,6 +322,105 @@ void main() {
     expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
+  Future<void> addConfig() => configs.add(
+        preset: ModelPreset.anthropic,
+        protocol: ModelProtocol.anthropic,
+        baseUrl: 'https://api.example.com',
+        model: 'm',
+        dataBoundary: DataBoundary.cloud,
+        keychainRef: '',
+      );
+
+  test('发送前预览（D-28）：准备阶段不调模型；用户改掉漏网信息后按改后文本发送', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '姓名：张三 性别：男', x: 0.1, y: 0.08, w: 0.5, h: 0.03),
+      OcrLine(text: '家属 李四 电话 13800001111', x: 0.1, y: 0.12, w: 0.5, h: 0.03),
+      OcrLine(text: '白细胞 6.2 10^9/L 3.5-9.5', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+
+    final draft = await service.prepareSend(doc.id);
+    expect(model.calls, isEmpty); // 预览全程本地
+    final page = draft.pages.single;
+    expect(draft.lineText(page, 0), contains('【姓名】'));
+    expect(draft.redactedCount, 1);
+    // 规则漏掉的家属姓名和电话：用户在预览里改掉。
+    draft.edits[SendDraft.lineKey(1, 1)] = '';
+    expect(draft.payload, isNot(contains('李四')));
+    expect(draft.sentLineCount, 2);
+
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'lab_report', 'exam_date': '2026-09-20'},
+      'results': [
+        {
+          'item_name_raw': '白细胞',
+          'value_raw': '6.2',
+          'source_lines': ['P1L3', 'P1L2'], // P1L2 已删没发送，应丢弃
+        }
+      ],
+    }));
+    final outcome = await service.sendDraft(draft);
+    // 发出的正是预览所见。
+    expect(model.calls.single, draft.payload);
+    expect(model.calls.single, isNot(contains('张三')));
+    expect(model.calls.single, isNot(contains('13800001111')));
+    final rev = await records.currentRevisionOf(outcome.record.id);
+    final result = ((jsonDecode(rev.data) as Map)['results'] as List).single;
+    expect((result as Map)['locator'] as List, hasLength(1));
+    // 调用记录能查到发送范围。
+    final call = (await organize.recentModelCalls()).single;
+    expect(call.sentSummary, contains('1/1 页'));
+    expect(call.sentSummary, contains('手动修改 1 行'));
+  });
+
+  test('只有文字的报告（D-28）：诊断/所见保留为 findings，重新提取追加版本不另建', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '彩色多普勒超声检查报告', x: 0.1, y: 0.02, w: 0.5, h: 0.03),
+      OcrLine(text: '超声所见：胆囊大小正常，腔内见一强回声，大小约 0.8cm', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+      OcrLine(text: '超声提示：胆囊结石', x: 0.1, y: 0.3, w: 0.5, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    String reply(String conclusion) => jsonEncode({
+          'doc': {'doc_type': 'imaging_report', 'exam_date': '2026-09-20'},
+          'results': [],
+          'findings': [
+            {
+              'section_raw': '超声所见',
+              'text_raw': '胆囊大小正常，腔内见一强回声，大小约 0.8cm',
+              'source_lines': ['P1L2'],
+            },
+            {'section_raw': '超声提示', 'text_raw': conclusion, 'source_lines': ['P1L3']},
+            {'section_raw': '空的', 'text_raw': '  ', 'source_lines': []},
+          ],
+        });
+
+    model.reply(reply('胆囊结石'));
+    final first = await service.extractDocument(doc.id);
+    var rev = await records.currentRevisionOf(first.record.id);
+    final findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+    expect(findings, hasLength(2)); // 空文字丢弃
+    expect((findings[1] as Map)['text_raw'], '胆囊结石');
+    expect(((findings[1] as Map)['locator'] as List).single, isNotNull);
+    expect(FieldMetaMap.decode(rev.fieldMeta)['findings.0']!.reviewStatus,
+        ReviewStatus.unreviewed);
+    // 没有数值也能按文件找回记录（索引表里没有行）。
+    expect(await records.labResultsOfDocument(doc.id), isEmpty);
+    expect((await records.labPanelOfDocument(doc.id))!.id, first.record.id);
+
+    model.reply(reply('胆囊结石（单发）'));
+    final second = await service.extractDocument(doc.id);
+    expect(second.record.id, first.record.id);
+    expect(second.record.version, 2);
+    expect(await records.byType(RecordType.labPanel), hasLength(1));
+    rev = await records.currentRevisionOf(first.record.id);
+    expect(((jsonDecode(rev.data) as Map)['findings'] as List)[1]['text_raw'],
+        '胆囊结石（单发）');
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

@@ -334,6 +334,27 @@ class RecordRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
           .get();
 
+  /// 一份医疗文件的提取记录（lab_panel，含检验数值与文字内容）。
+  /// 只有文字、没有数值的报告不进索引表，所以按记录数据查而不是走索引。
+  /// 历史上重复提取可能留下多条，取最新建的一条。
+  Future<RecordRow?> labPanelOfDocument(String medicalDocumentId) async {
+    final recs = await (_db.select(_db.records)
+          ..where((t) =>
+              t.recordType.equalsValue(RecordType.labPanel) &
+              t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+    for (final rec in recs) {
+      if (rec.currentRevisionId == null) continue;
+      final rev = await currentRevisionOf(rec.id);
+      final data = jsonDecode(rev.data);
+      if (data is Map && data['medical_document_id'] == medicalDocumentId) {
+        return rec;
+      }
+    }
+    return null;
+  }
+
   /// 出现过的检验项目（去重），带最近一次的日期与数值，按项目名排序。
   Future<List<LabResult>> labResultLatestPerItem() async {
     final all = await (_db.select(_db.labResults)

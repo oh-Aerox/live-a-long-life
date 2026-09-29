@@ -18,7 +18,9 @@ flutter build ios --release
 # 出现时先 flutter clean 再重跑（不要只删 build/ios，hooks 缓存在 .dart_tool）。
 for fw in sqlite3 objective_c; do
   path="build/ios/iphoneos/Runner.app/Frameworks/$fw.framework"
-  if [ ! -d "$path" ] || ! codesign -dv "$path" 2>&1 | grep -q "TeamIdentifier=XXXXXXXXXX"; then
+  # 先存输出再匹配：pipefail 下 grep -q 提前退出会让 codesign 收 SIGPIPE 误判失败。
+  sig="$(codesign -dv "$path" 2>&1 || true)"
+  if [ ! -d "$path" ] || [[ "$sig" != *"TeamIdentifier=XXXXXXXXXX"* ]]; then
     echo "!! $fw.framework 缺失或未用团队证书签名，先在 app/ 下 flutter clean 后重跑本脚本" >&2
     exit 1
   fi

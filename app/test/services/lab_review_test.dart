@@ -76,4 +76,25 @@ void main() {
     expect(() => LabReview.editResult(dataJson, meta, -1, valueRaw: '1'),
         throwsRangeError);
   });
+
+  test('文字内容（D-28）：确认、修改、全部确认覆盖 findings；旧记录无 findings 不报错', () {
+    final data = jsonEncode({
+      'results': [],
+      'findings': [
+        {'section_raw': '诊断', 'text_raw': '咽喉炎', 'locator': []},
+        {'section_raw': '处理意见', 'text_raw': '复查', 'locator': []},
+      ],
+    });
+    const meta = FieldMetaMap({});
+    var (d, m) = LabReview.confirmFinding(data, meta, 0);
+    expect(m['findings.0']!.reviewStatus, ReviewStatus.confirmed);
+    (d, m) = LabReview.editFinding(d, m, 1, sectionRaw: '处理意见', textRaw: '两周后复查');
+    expect(((jsonDecode(d) as Map)['findings'] as List)[1]['text_raw'], '两周后复查');
+    expect(m['findings.1']!.reviewStatus, ReviewStatus.edited);
+    (d, m) = LabReview.confirmAll(data, meta);
+    expect(m['findings.1']!.reviewStatus, ReviewStatus.confirmed);
+    expect(() => LabReview.confirmFinding(data, meta, 5), throwsRangeError);
+    // D-28 之前的记录没有 findings 字段。
+    LabReview.confirmAll(jsonEncode({'results': []}), meta);
+  });
 }

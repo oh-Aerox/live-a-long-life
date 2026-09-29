@@ -48,12 +48,15 @@ class TestConnectionResult {
 ///
 /// 不引第三方 LLM SDK（plan-v0.2 §2），只用 dart:io。
 class ModelClient {
-  ModelClient({HttpClient Function()? httpClientFactory})
-      : _newHttpClient = httpClientFactory ?? (() => HttpClient());
+  ModelClient({
+    HttpClient Function()? httpClientFactory,
+    this.timeout = const Duration(seconds: 60),
+  }) : _newHttpClient = httpClientFactory ?? (() => HttpClient());
 
   final HttpClient Function() _newHttpClient;
 
-  static const _timeout = Duration(seconds: 60);
+  /// 单次请求超时。默认 60 秒；输出长的调用（医疗文件提取）单独放宽。
+  final Duration timeout;
   static const anthropicVersion = '2023-06-01';
 
   /// 发送一轮纯文字对话，返回模型回复。M2 的整理管线在此之上组装。
@@ -255,11 +258,11 @@ class ModelClient {
     // 只记地址与请求的模型，绝不记 key / Authorization（脱敏）。
     AppLog.I.d('model', 'POST $uri model=${body['model']}');
     try {
-      final request = await client.postUrl(uri).timeout(_timeout);
+      final request = await client.postUrl(uri).timeout(timeout);
       request.headers.contentType = ContentType.json;
       headers.forEach(request.headers.set);
       request.write(jsonEncode(body));
-      final response = await request.close().timeout(_timeout);
+      final response = await request.close().timeout(timeout);
       final text = await response.transform(utf8.decoder).join();
       if (response.statusCode < 200 || response.statusCode >= 300) {
         AppLog.I.w('model',

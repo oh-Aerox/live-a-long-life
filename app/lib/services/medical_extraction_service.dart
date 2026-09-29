@@ -18,11 +18,11 @@ import 'page_filter.dart';
 import 'redaction.dart';
 import 'text_extraction.dart';
 
-/// 检验单结构化提取提示词（D-23：输入是经页筛选、脱敏的 OCR 文本，
+/// 医疗文件结构化提取提示词（D-23：输入是经页筛选、脱敏的 OCR 文本，
 /// 带行索引；要求逐字段引用行号，应用据此映射回坐标写 locator）。
 /// 改动本提示词时同步更新 docs/prompts.md。
 const labExtractSystemPrompt = '''
-你是检验报告的结构化提取器。输入是一份医疗文件经本地文字识别后的文本，
+你是医疗文件（检验单、检查报告、病历）的结构化提取器。输入是一份医疗文件经本地文字识别后的文本，
 每行有形如 P2L5 的行号（第 2 页第 5 行）。只输出一个 JSON 对象，不要输出其他文字：
 {
   "doc": {
@@ -44,6 +44,13 @@ const labExtractSystemPrompt = '''
       "source_lines": ["该项数据来自的行号，如 P1L3"，至少一个]
     }
   ],
+  "findings": [
+    {
+      "section_raw": "栏目名称，按原文（如 主诉、现病史、诊断、处理意见、超声所见、超声提示、检查结论、印象）" 或 null,
+      "text_raw": "该栏目下的文字，按原文完整抄写",
+      "source_lines": ["来源行号"，至少一个]
+    }
+  ],
   "conditions": [
     {
       "name": "疾病或身体状况名称，按原文（如 胆囊结石、青霉素过敏）",
@@ -58,7 +65,11 @@ const labExtractSystemPrompt = '''
 - *_raw 字段一律按原文抄写，不要改写、翻译或归一化；
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
 - source_lines 只能用输入里出现的行号，不要编造；
-- 没有检验数值表时 results 为空数组；检查所见、结论等文字内容不进 results；
+- 没有检验数值表时 results 为空数组；文字内容不进 results，放进 findings；
+- findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、
+  诊断、处理意见，超声/影像/心电图等报告的所见、提示、结论、印象，
+  检验单上的结论或备注；按栏目分条，逐字抄写，不要摘要、改写或合并栏目；
+  医院介绍、注意事项、签名栏不收；没有就给空数组；
 - conditions 只收诊断/结论/印象/病史文字里明确写出的疾病或状况；
   结石、囊肿、结节、慢性病、过敏等不会自行消失的算 long_term，
   感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
@@ -112,8 +123,94 @@ class PagePreview {
   final String firstLine;
 }
 
-/// 检验单结构化提取（V4-M1，D-23/D-24）：
-/// 本地 OCR（带缓存）→ 页筛选 → 脱敏 → 纯文本模型调用 → lab_panel 记录
+/// 发送草稿的一页：本地识别 + 页筛选判定 + 脱敏后的行（坐标保留）。
+class DraftPage {
+  const DraftPage({
+    required this.pageNo,
+    required this.attachmentId,
+    required this.attachmentPage,
+    required this.source,
+    required this.included,
+    required this.reason,
+    required this.overridden,
+    required this.lines,
+    required this.redactedCount,
+  });
+
+  final int pageNo;
+  final String attachmentId;
+  final int attachmentPage;
+  final PageTextSource source;
+  final bool included;
+  final String reason;
+
+  /// 当前判定是否来自用户覆盖（而不是规则默认）。
+  final bool overridden;
+
+  /// 已脱敏的行，占位符见 [RedactionService]。
+  final List<OcrLine> lines;
+  final int redactedCount;
+}
+
+/// 发送草稿（D-28）：发给模型之前的完整内容，预览页所见即所发。
+/// 用户在预览页可改写或删除任意行（[edits]，键 P{页}L{行}，空串 = 这行
+/// 不发送）；修改只作用于这次发送，不改原件和本地识别缓存。
+class SendDraft {
+  SendDraft({required this.documentId, required this.pages});
+
+  final String documentId;
+  final List<DraftPage> pages;
+  final Map<String, String> edits = {};
+
+  static String lineKey(int pageNo, int lineIndex) =>
+      'P${pageNo}L${lineIndex + 1}';
+
+  List<DraftPage> get includedPages => [
+        for (final p in pages)
+          if (p.included) p
+      ];
+
+  /// 一行将要发送的文本（用户改过则用改后的）。
+  String lineText(DraftPage page, int index) =>
+      edits[lineKey(page.pageNo, index)] ?? page.lines[index].text;
+
+  bool isEdited(DraftPage page, int index) =>
+      edits.containsKey(lineKey(page.pageNo, index));
+
+  int get redactedCount =>
+      includedPages.fold(0, (sum, p) => sum + p.redactedCount);
+
+  int get sentLineCount {
+    var n = 0;
+    for (final p in includedPages) {
+      for (var i = 0; i < p.lines.length; i++) {
+        if (lineText(p, i).trim().isNotEmpty) n++;
+      }
+    }
+    return n;
+  }
+
+  /// 发给模型的全文：`P{页}L{行}: 文本`，删掉的行不发。
+  String get payload {
+    final buf = StringBuffer();
+    for (final p in includedPages) {
+      for (var i = 0; i < p.lines.length; i++) {
+        final text = lineText(p, i);
+        if (text.trim().isEmpty) continue;
+        buf.writeln('${lineKey(p.pageNo, i)}: $text');
+      }
+    }
+    return buf.toString();
+  }
+
+  /// 调用记录里的发送范围描述（A-38 同一字段）。
+  String get summary => '医疗文件 ${includedPages.length}/${pages.length} 页，'
+      '$sentLineCount 行文字（发送前已预览确认），自动遮蔽 $redactedCount 处'
+      '${edits.isEmpty ? '' : '，手动修改 ${edits.length} 行'}';
+}
+
+/// 医疗文件结构化提取（V4-M1，D-23/D-24/D-28）：
+/// 本地 OCR（带缓存）→ 页筛选 → 脱敏 →【用户预览修改】→ 纯文本模型调用 → lab_panel 记录
 /// （全部 unreviewed，D-04 关键字段确认后才算事实）→ 回填文件级信息。
 class MedicalExtractionService {
   MedicalExtractionService({
@@ -156,75 +253,80 @@ class MedicalExtractionService {
     required String userText,
     required int maxTokens,
   }) =>
-      ModelClient().complete(
+      // 提取输出长（逐项抄写数值与文字），60 秒常超时，单独放宽。
+      ModelClient(timeout: const Duration(seconds: 180)).complete(
           config: config,
           apiKey: apiKey,
           system: system,
           userText: userText,
           maxTokens: maxTokens);
 
-  /// 对一份医疗文件做结构化提取。[knownNames] 是脱敏用的已知姓名
-  /// （用户资料里的本人姓名，D-24 第三层）。
+  /// 对一份医疗文件做结构化提取（不经预览直接发送；测试与批量场景用）。
+  /// 界面走 [prepareSend] → 用户预览修改 → [sendDraft] 两步（D-28）。
   Future<MedicalExtractOutcome> extractDocument(
+    String documentId, {
+    List<String> knownNames = const [],
+  }) async =>
+      sendDraft(await prepareSend(documentId, knownNames: knownNames));
+
+  /// 发送前准备（D-28 第一步，全程本地、不调模型）：本地识别 → 页筛选
+  /// （规则默认 + 用户覆盖）→ 脱敏。返回的草稿即将要发送的全部内容，
+  /// 预览页逐行展示，用户可改可删，确认后交给 [sendDraft]。
+  /// [knownNames] 是脱敏用的已知姓名（D-24 第三层）。
+  Future<SendDraft> prepareSend(
     String documentId, {
     List<String> knownNames = const [],
   }) async {
     final doc = await _documents.byId(documentId);
     if (doc == null) throw StateError('医疗文件不存在：$documentId');
-    final config = await _modelConfigs.defaultConfig();
-    if (config == null) {
-      throw StateError('还没有配置模型：先在"模型配置"里添加');
-    }
 
     // 1. 本地提取（带缓存）。一个附件可能是多页 PDF，页号在文件内连续编。
     final docPages = await _loadDocPages(doc);
     if (docPages.isEmpty) throw StateError('没有可提取的页');
-    final attachmentIds = {for (final p in docPages) p.attachmentId};
 
-    // 2. 页筛选（D-23）：规则默认 + 用户覆盖（导入页每页可点选，不静默丢）。
+    // 2. 页筛选（D-23）：规则默认 + 用户覆盖（预览页每页可点选，不静默丢）。
+    // 3. 脱敏（D-24）：只作用于发送副本，坐标保留供 locator 回映射。
+    //    排除页也脱敏，用户在预览里改成发送时所见即所发。
     final overrides =
         MedicalDocumentRepository.decodePageOverrides(doc.pageOverrides);
-    final decisions = <PageDecision>[];
+    final pages = <DraftPage>[];
     for (final p in docPages) {
       final byRule = pageFilter.decide(p.page);
       final override = overrides[p.pageNo];
-      decisions.add(override == null
-          ? byRule
-          : PageDecision(
-              pageNo: p.pageNo,
-              included: override,
-              reason: override ? '用户选择发送' : '用户选择排除'));
-    }
-    final included = <_DocPage>[
-      for (var i = 0; i < docPages.length; i++)
-        if (decisions[i].included) docPages[i],
-    ];
-    if (included.isEmpty) {
-      throw StateError('全部页都被筛除了：在导入页恢复要发送的页再试');
-    }
-
-    // 3. 脱敏（D-24）：只作用于发送副本，坐标保留供 locator 回映射。
-    var redactedTotal = 0;
-    final redactedPages = <_DocPage>[];
-    for (final p in included) {
       final r = redaction.redactPage(p.page.lines, knownNames: knownNames);
-      redactedTotal += r.redactedCount;
-      redactedPages.add(_DocPage(
+      pages.add(DraftPage(
         pageNo: p.pageNo,
         attachmentId: p.attachmentId,
         attachmentPage: p.attachmentPage,
-        page: ExtractedPage(
-            pageNo: p.pageNo, source: p.page.source, lines: r.lines),
+        source: p.page.source,
+        included: override ?? byRule.included,
+        reason: override == null
+            ? byRule.reason
+            : (override ? '用户选择发送' : '用户选择排除'),
+        overridden: override != null,
+        lines: r.lines,
+        redactedCount: r.redactedCount,
       ));
     }
+    return SendDraft(documentId: doc.id, pages: pages);
+  }
 
-    // 4. 组装输入：P{页}L{行}: 文本。
-    final buf = StringBuffer();
-    for (final p in redactedPages) {
-      for (var i = 0; i < p.page.lines.length; i++) {
-        buf.writeln('P${p.pageNo}L${i + 1}: ${p.page.lines[i].text}');
-      }
+  /// 按草稿发送并建记录（D-28 第二步）：发出去的正是 [SendDraft.payload]，
+  /// 与预览页所见一致；用户改过的行按改后文本发送并写入 locator 原文。
+  Future<MedicalExtractOutcome> sendDraft(SendDraft draft) async {
+    final doc = await _documents.byId(draft.documentId);
+    if (doc == null) throw StateError('医疗文件不存在：${draft.documentId}');
+    final config = await _modelConfigs.defaultConfig();
+    if (config == null) {
+      throw StateError('还没有配置模型：先在"模型配置"里添加');
     }
+    final included = draft.includedPages;
+    if (included.isEmpty) {
+      throw StateError('全部页都被排除了：至少选一页发送');
+    }
+    final attachmentIds = {for (final p in draft.pages) p.attachmentId};
+    final redactedTotal = draft.redactedCount;
+    final sentSummary = draft.summary;
 
     final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
@@ -236,7 +338,7 @@ class MedicalExtractionService {
         config: config,
         apiKey: apiKey,
         system: labExtractSystemPrompt,
-        userText: buf.toString(),
+        userText: draft.payload,
         maxTokens: 8192,
       );
     } catch (e) {
@@ -250,6 +352,7 @@ class MedicalExtractionService {
         status: ModelCallStatus.failed,
         caller: ModelCaller.phoneMedicalExtract,
         redactedCount: redactedTotal,
+        sentSummary: sentSummary,
       );
       rethrow;
     }
@@ -266,6 +369,7 @@ class MedicalExtractionService {
       responseText: response.text,
       caller: ModelCaller.phoneMedicalExtract,
       redactedCount: redactedTotal,
+      sentSummary: sentSummary,
     );
 
     final parsed = _parse(response.text);
@@ -276,12 +380,13 @@ class MedicalExtractionService {
     final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
     final rawResults = (parsed['results'] as List?) ?? const [];
 
-    // 5. source_lines → locator（附件 ID + 文件页号 + 附件内页号 + 坐标；
-    //    文字层无坐标时只有页号和原文行）。
-    final lineIndex = <String, (_DocPage, OcrLine)>{};
-    for (final p in redactedPages) {
-      for (var i = 0; i < p.page.lines.length; i++) {
-        lineIndex['P${p.pageNo}L${i + 1}'] = (p, p.page.lines[i]);
+    // 5. source_lines → locator（见 [_locatorsOf]）。
+    final lineIndex = <String, (DraftPage, OcrLine)>{};
+    for (final p in included) {
+      for (var i = 0; i < p.lines.length; i++) {
+        final text = draft.lineText(p, i);
+        if (text.trim().isEmpty) continue; // 用户删掉的行没发送
+        lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
       }
     }
     final results = <Map<String, Object?>>[];
@@ -289,20 +394,7 @@ class MedicalExtractionService {
       if (raw is! Map) continue;
       final r = raw.cast<String, Object?>();
       if (r['item_name_raw'] is! String || r['value_raw'] is! String) continue;
-      final locators = <Map<String, Object?>>[];
-      for (final key in (r['source_lines'] as List? ?? const [])) {
-        final hit = lineIndex[key];
-        if (hit == null) continue; // 编造的行号丢弃
-        final (page, line) = hit;
-        locators.add({
-          'attachment_id': page.attachmentId,
-          'page_no': page.pageNo,
-          'attachment_page': page.attachmentPage,
-          if (line.hasBox)
-            'box': {'x': line.x, 'y': line.y, 'w': line.w, 'h': line.h},
-          'line_text': line.text,
-        });
-      }
+      final locators = _locatorsOf(r['source_lines'], lineIndex);
       results.add({
         'item_name_raw': r['item_name_raw'],
         'value_raw': r['value_raw'],
@@ -313,6 +405,23 @@ class MedicalExtractionService {
         'ref_high': r['ref_high'],
         'flag_raw': r['flag_raw'],
         'locator': locators,
+      });
+    }
+
+    // 文字内容（D-28）：病历的主诉/诊断/处理意见、超声等报告的所见/结论。
+    // 只有文字、没有数值的报告靠它保留，不因 results 为空而丢掉。
+    final findings = <Map<String, Object?>>[];
+    for (final raw in (parsed['findings'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final text = raw['text_raw'];
+      if (text is! String || text.trim().isEmpty) continue;
+      final section = raw['section_raw'];
+      findings.add({
+        'section_raw': section is String && section.trim().isNotEmpty
+            ? section.trim()
+            : null,
+        'text_raw': text.trim(),
+        'locator': _locatorsOf(raw['source_lines'], lineIndex),
       });
     }
 
@@ -328,26 +437,43 @@ class MedicalExtractionService {
           : TimeValueSource.inferredFromSentAt,
       rawText: examDate,
     );
+    const unreviewed = FieldMeta(
+        origin: FieldOrigin.modelInferred,
+        reviewStatus: ReviewStatus.unreviewed);
     final meta = <String, FieldMeta>{
-      for (var i = 0; i < results.length; i++)
-        'results.$i': const FieldMeta(
-            origin: FieldOrigin.modelInferred,
-            reviewStatus: ReviewStatus.unreviewed),
+      for (var i = 0; i < results.length; i++) 'results.$i': unreviewed,
+      for (var i = 0; i < findings.length; i++) 'findings.$i': unreviewed,
     };
-    final record = await _records.create(
-      recordType: RecordType.labPanel,
-      occurred: occurred,
-      dataJson: jsonEncode({
-        'medical_document_id': doc.id,
-        'results': results,
-      }),
-      fieldMeta: FieldMetaMap(meta),
-      producedBy: ProducedBy.medicalExtract(call.id),
-      sources: [
-        for (final id in attachmentIds)
-          SourceLink(sourceKind: RecordSourceKind.attachment, sourceId: id),
-      ],
-    );
+    final dataJson = jsonEncode({
+      'medical_document_id': doc.id,
+      'results': results,
+      'findings': findings,
+    });
+    final sources = [
+      for (final id in attachmentIds)
+        SourceLink(sourceKind: RecordSourceKind.attachment, sourceId: id),
+    ];
+    // 重新提取：在同一条记录上追加新版本（旧版本与核对历史保留，R-34），
+    // 不另建一条——否则同一份文件的数值会在索引和分析里出现两遍。
+    final existing = await _records.labPanelOfDocument(doc.id);
+    final record = existing == null
+        ? await _records.create(
+            recordType: RecordType.labPanel,
+            occurred: occurred,
+            dataJson: dataJson,
+            fieldMeta: FieldMetaMap(meta),
+            producedBy: ProducedBy.medicalExtract(call.id),
+            sources: sources,
+          )
+        : await _records.addRevision(
+            recordId: existing.id,
+            baseVersion: existing.version,
+            occurred: occurred,
+            dataJson: dataJson,
+            fieldMeta: FieldMetaMap(meta),
+            producedBy: ProducedBy.medicalExtract(call.id),
+            sources: sources,
+          );
 
     // 7. 回填文件级信息（uploaded_at 不动，三个时间各自独立，D-06）。
     final docTypeRaw = docInfo['doc_type'] as String?;
@@ -386,13 +512,17 @@ class MedicalExtractionService {
       attachmentIds: attachmentIds,
     );
     AppLog.I.i('extract',
-        '结构化提取完成：${results.length} 项，遮蔽 $redactedTotal 处，'
-        '发送 ${redactedPages.length}/${docPages.length} 页'
+        '结构化提取完成：${results.length} 项，文字 ${findings.length} 段，'
+        '遮蔽 $redactedTotal 处，'
+        '发送 ${included.length}/${draft.pages.length} 页'
         '${conditions.isEmpty ? '' : '，新增 ${conditions.length} 条状况建议'}'
         '${duplicates.isEmpty ? '' : '，疑似与 ${duplicates.length} 条已有记录重复'}');
     return MedicalExtractOutcome(
       record: record,
-      pageDecisions: decisions,
+      pageDecisions: [
+        for (final p in draft.pages)
+          PageDecision(pageNo: p.pageNo, included: p.included, reason: p.reason),
+      ],
       redactedCount: redactedTotal,
       possibleDuplicateRecordIds: duplicates,
       conditionRecords: conditions,
@@ -458,7 +588,7 @@ class MedicalExtractionService {
   /// 用户在档案页核对后才算事实。同名（去空白）状况已有档案时不重复建。
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
-    required Map<String, (_DocPage, OcrLine)> lineIndex,
+    required Map<String, (DraftPage, OcrLine)> lineIndex,
     required String? examDate,
     required String documentId,
     required String callId,
@@ -485,21 +615,8 @@ class MedicalExtractionService {
       final key = RecordRepository.labItemKey(name);
       if (!existingKeys.add(key)) continue; // 同名已有，不重复建档
 
-      Map<String, Object?>? locator;
-      for (final lineKey in (c['source_lines'] as List? ?? const [])) {
-        final hit = lineIndex[lineKey];
-        if (hit == null) continue;
-        final (page, line) = hit;
-        locator = {
-          'attachment_id': page.attachmentId,
-          'page_no': page.pageNo,
-          'attachment_page': page.attachmentPage,
-          if (line.hasBox)
-            'box': {'x': line.x, 'y': line.y, 'w': line.w, 'h': line.h},
-          'line_text': line.text,
-        };
-        break;
-      }
+      final locators = _locatorsOf(c['source_lines'], lineIndex);
+      final locator = locators.isEmpty ? null : locators.first;
       final record = await _records.create(
         recordType: RecordType.condition,
         occurred: TimeValue(
@@ -536,6 +653,30 @@ class MedicalExtractionService {
     }
     return created;
   }
+
+  /// source_lines → locator（附件 ID + 文件页号 + 附件内页号 + 坐标；
+  /// 文字层无坐标时只有页号和原文行）。编造或未发送的行号丢弃。
+  static List<Map<String, Object?>> _locatorsOf(
+      Object? sourceLines, Map<String, (DraftPage, OcrLine)> lineIndex) {
+    final locators = <Map<String, Object?>>[];
+    for (final key in (sourceLines as List? ?? const [])) {
+      final hit = lineIndex[key];
+      if (hit == null) continue;
+      final (page, line) = hit;
+      locators.add({
+        'attachment_id': page.attachmentId,
+        'page_no': page.pageNo,
+        'attachment_page': page.attachmentPage,
+        if (line.hasBox)
+          'box': {'x': line.x, 'y': line.y, 'w': line.w, 'h': line.h},
+        'line_text': line.text,
+      });
+    }
+    return locators;
+  }
+
+  static OcrLine _withText(OcrLine l, String text) =>
+      OcrLine(text: text, x: l.x, y: l.y, w: l.w, h: l.h);
 
   /// 近似重复（D-10 第一版）：同检查日期、同项目 key 的其他 lab_panel 记录。
   Future<List<String>> _findNearDuplicates(

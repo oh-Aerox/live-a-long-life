@@ -19,14 +19,57 @@ class LabReview {
     return (dataJson, FieldMetaMap(fields));
   }
 
-  /// 确认全部项。
+  /// 确认全部项（检验数值与文字内容）。
   static (String, FieldMetaMap) confirmAll(String dataJson, FieldMetaMap meta) {
     final results = _results(dataJson);
     var out = (dataJson, meta);
     for (var i = 0; i < results.length; i++) {
       out = confirmResult(out.$1, out.$2, i);
     }
+    for (var i = 0; i < _findings(dataJson).length; i++) {
+      out = confirmFinding(out.$1, out.$2, i);
+    }
     return out;
+  }
+
+  /// 确认第 [index] 段文字内容（诊断、所见、结论等，D-28）无误。
+  static (String, FieldMetaMap) confirmFinding(
+      String dataJson, FieldMetaMap meta, int index) {
+    if (index < 0 || index >= _findings(dataJson).length) {
+      throw RangeError('文字内容不存在：$index');
+    }
+    final fields = Map<String, FieldMeta>.from(meta.fields);
+    final old = fields['findings.$index'];
+    fields['findings.$index'] = FieldMeta(
+      origin: old?.origin ?? FieldOrigin.modelInferred,
+      reviewStatus: ReviewStatus.confirmed,
+    );
+    return (dataJson, FieldMetaMap(fields));
+  }
+
+  /// 修改第 [index] 段文字内容：findings.{i} 状态转 edited。
+  static (String, FieldMetaMap) editFinding(
+    String dataJson,
+    FieldMetaMap meta,
+    int index, {
+    required String sectionRaw,
+    required String textRaw,
+  }) {
+    final data = jsonDecode(dataJson) as Map<String, Object?>;
+    final findings = (data['findings'] as List).cast<Map<String, Object?>>();
+    if (index < 0 || index >= findings.length) {
+      throw RangeError('文字内容不存在：$index');
+    }
+    findings[index] = {
+      ...findings[index],
+      'section_raw': sectionRaw.isEmpty ? null : sectionRaw,
+      'text_raw': textRaw,
+    };
+    data['findings'] = findings;
+    final fields = Map<String, FieldMeta>.from(meta.fields);
+    fields['findings.$index'] = const FieldMeta(
+        origin: FieldOrigin.userEdited, reviewStatus: ReviewStatus.edited);
+    return (jsonEncode(data), FieldMetaMap(fields));
   }
 
   /// 修改第 [index] 项：只更新传入的字段，results.{i} 状态转 edited。
@@ -76,6 +119,10 @@ class LabReview {
 
   static List<Object?> _results(String dataJson) =>
       (jsonDecode(dataJson) as Map)['results'] as List? ?? const [];
+
+  /// 旧记录（D-28 之前提取的）没有 findings 字段，按空处理。
+  static List<Object?> _findings(String dataJson) =>
+      (jsonDecode(dataJson) as Map)['findings'] as List? ?? const [];
 
   static void _requireIndex(String dataJson, int index) {
     final results = _results(dataJson);

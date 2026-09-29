@@ -15,7 +15,7 @@ const recordTypeLabels = {
   RecordType.symptom: '身体不适',
   RecordType.exercise: '运动',
   RecordType.note: '其他',
-  RecordType.labPanel: '检验结果',
+  RecordType.labPanel: '报告提取',
   RecordType.condition: '身体状况',
 };
 

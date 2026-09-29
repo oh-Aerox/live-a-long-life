@@ -59,8 +59,12 @@ String recordSummary(RecordType type, Map<String, Object?> data) {
     case RecordType.note:
       return '${data['text'] ?? ''}';
     case RecordType.labPanel:
-      final results = data['results'] as List?;
-      return '检验结果 ${results?.length ?? 0} 项';
+      final results = (data['results'] as List?)?.length ?? 0;
+      final findings = (data['findings'] as List?)?.length ?? 0;
+      return [
+        if (results > 0 || findings == 0) '检验结果 $results 项',
+        if (findings > 0) '文字内容 $findings 段',
+      ].join('，');
     case RecordType.condition:
       final status = data['status'] == 'resolved' ? '（已痊愈）' : '';
       final kind = data['persistence'] == 'long_term' ? '长期' : '近期';
