@@ -10,6 +10,7 @@ import '../data/repositories/peer_repository.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
 import 'conditions_page.dart';
+import 'consult_page.dart';
 import 'day_view_page.dart';
 import 'lab_trends_page.dart';
 import 'mac_messages_page.dart';
@@ -421,6 +422,18 @@ class _MacHomePageState extends State<MacHomePage> {
                         ),
                         const SizedBox(width: 8),
                       ],
+                      // 咨询只读副本、不写记录（D-12/D-26）；历史只存本机，
+                      // 与手机上的咨询各自独立（consult_messages 不同步）。
+                      OutlinedButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  ConsultPage(services: widget.services)),
+                        ),
+                        child: const Text('咨询'),
+                      ),
+                      const SizedBox(width: 8),
                       OutlinedButton(
                         onPressed: () => Navigator.push(
                           context,
@@ -433,8 +446,8 @@ class _MacHomePageState extends State<MacHomePage> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text('周报由这台 Mac 上配置的模型生成（配置不与手机同步），'
-                      '手机在"周报"页拉取查看。',
+                  const Text('周报和咨询用这台 Mac 上配置的模型（配置不与手机同步），'
+                      '手机在"周报"页拉取周报；Mac 上的咨询记录只存在这台 Mac。',
                       style: TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),

@@ -70,6 +70,25 @@ class ExportService {
     };
   }
 
+  /// [shas] 中哪些在导出目录里还留着副本（导出布局：
+  /// `<exportsRoot>/<每次导出>/files/<sha256><扩展名>`）。清理手机原件不动
+  /// 导出目录，清理确认时据此说明（2026-09-29 联调）。目录不存在返回空。
+  static Future<Set<String>> exportedCopies(
+      Directory exportsRoot, Set<String> shas) async {
+    final found = <String>{};
+    if (shas.isEmpty || !await exportsRoot.exists()) return found;
+    await for (final run in exportsRoot.list()) {
+      if (run is! Directory) continue;
+      final files = Directory(p.join(run.path, 'files'));
+      if (!await files.exists()) continue;
+      await for (final f in files.list()) {
+        final name = p.basenameWithoutExtension(f.path);
+        if (shas.contains(name)) found.add(name);
+      }
+    }
+    return found;
+  }
+
   Future<ExportResult> export(Directory target) async {
     await target.create(recursive: true);
     final filesOut = Directory(p.join(target.path, 'files'));

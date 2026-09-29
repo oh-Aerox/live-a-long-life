@@ -274,4 +274,24 @@ void main() {
       expect(await oldDb.readAsString(), '原来的资料库');
     });
   });
+
+  test('导出目录里的原件副本按内容哈希识别（清理确认提示用，2026-09-29）', () async {
+    final root = await Directory.systemTemp.createTemp('exports');
+    addTearDown(() => root.delete(recursive: true));
+    final run1 = Directory(p.join(root.path, '导出-20260929-1437', 'files'))
+      ..createSync(recursive: true);
+    File(p.join(run1.path, 'aaa.png')).writeAsBytesSync([1]);
+    File(p.join(run1.path, 'bbb.pdf')).writeAsBytesSync([1]);
+    Directory(p.join(root.path, '导出-20260930-0900', 'files'))
+        .createSync(recursive: true);
+    File(p.join(root.path, '导出-20260930-0900', 'files', 'aaa.png'))
+        .writeAsBytesSync([1]);
+
+    expect(await ExportService.exportedCopies(root, {'aaa', 'ccc'}), {'aaa'});
+    expect(await ExportService.exportedCopies(root, {'ccc'}), isEmpty);
+    expect(
+        await ExportService.exportedCopies(
+            Directory(p.join(root.path, 'none')), {'aaa'}),
+        isEmpty);
+  });
 }
