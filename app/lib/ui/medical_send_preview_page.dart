@@ -26,6 +26,9 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
   String? _error;
   bool _sending = false;
 
+  /// 分批进度（体检报告按页分批发送）。
+  (int, int)? _progress;
+
   @override
   void initState() {
     super.initState();
@@ -101,7 +104,10 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     setState(() => _sending = true);
     try {
       final outcome =
-          await widget.services.medicalExtraction.sendDraft(_draft!);
+          await widget.services.medicalExtraction.sendDraft(_draft!,
+              onProgress: (done, total) {
+        if (mounted) setState(() => _progress = (done, total));
+      });
       if (mounted) Navigator.pop(context, outcome);
     } catch (e) {
       if (mounted) {
@@ -248,7 +254,11 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
             label: Text(_config == null
                 ? '还没有配置模型'
                 : _sending
-                    ? '模型整理中（最长 3 分钟）…'
+                    ? switch (_progress) {
+                        (final done, final total) when total > 1 =>
+                          '模型整理中：已完成 $done/$total 批…',
+                        _ => '模型整理中（最长 3 分钟）…',
+                      }
                     : '确认发送 ${draft.includedPages.length} 页、'
                         '${draft.sentLineCount} 行'),
           ),

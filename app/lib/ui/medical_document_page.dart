@@ -96,8 +96,12 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     try {
       final skipped = outcome.pageDecisions.where((d) => !d.included).length;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: outcome.failedPages.isEmpty
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 10),
         content: Text('提取完成，已遮蔽 ${outcome.redactedCount} 处隐私信息'
             '${skipped > 0 ? '，$skipped 页未发送' : ''}'
+            '${outcome.failedPages.isEmpty ? '' : '。第 ${outcome.failedPages.join('、')} 页没有提取成功（其余已保存），可以稍后重新提取'}'
             '${outcome.conditionRecords.isNotEmpty ? '，发现 ${outcome.conditionRecords.length} 条身体状况建议（在长期状况档案里核对）' : ''}。'
             '结果未核对，确认后才参与分析'),
       ));

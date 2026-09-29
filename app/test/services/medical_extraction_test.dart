@@ -575,6 +575,134 @@ void main() {
     });
   });
 
+  group('体检报告分批发送（2026-09-29 联调：12 页 364 行超时）', () {
+    Future<MedicalDocument> importBooklet() async {
+      final src = File('${tmp.path}/exam.pdf')..writeAsBytesSync([5, 5, 5]);
+      final att = (await attachments.importFile(src, mimeType: 'application/pdf'))
+          .attachment;
+      return documents.create(
+        pages: [MedicalPageRef(attachmentId: att.id, messageId: 'm', pageNo: 1)],
+        docType: MedicalDocType.physicalExam,
+      );
+    }
+
+    // 4 页，每页 3 行检验数据（都带数值密度，页筛选保留）。
+    FakeExtractor booklet() => FakeExtractor(pageCount: 4, pageTexts: {
+          for (var i = 0; i < 4; i++)
+            i: '项目${i}A 1.$i mmol/L 1.0-2.0\n项目${i}B 2.$i mmol/L 2.0-3.0\n'
+                '项目${i}C 3.$i mmol/L 3.0-4.0',
+        });
+
+    String replyFor(String userText, {String? examDate}) {
+      final pages = RegExp(r'^P(\d+)L1:', multiLine: true)
+          .allMatches(userText)
+          .map((m) => int.parse(m.group(1)!))
+          .toList();
+      return jsonEncode({
+        'doc': {'doc_type': 'physical_exam', 'exam_date': examDate},
+        'results': [
+          for (final p in pages)
+            {'item_name_raw': '项目${p - 1}A', 'value_raw': '1.${p - 1}',
+             'source_lines': ['P${p}L1']}
+        ],
+        'conditions': [
+          {'name': '脂肪肝', 'persistence': 'long_term', 'source_lines': ['P${pages.first}L1']}
+        ],
+      });
+    }
+
+    MedicalExtractionService service(
+            Future<ModelResponse> Function(String userText) reply) =>
+        MedicalExtractionService(
+          attachments: attachments,
+          documents: documents,
+          records: records,
+          organize: organize,
+          modelConfigs: configs,
+          keyStore: KeyStore(),
+          extraction: TextExtractionService(
+              extractor: booklet(), cacheDir: Directory('${tmp.path}/cache')),
+          modelCall: ({required config, required apiKey, system,
+              required userText, required maxTokens}) => reply(userText),
+          batchMaxLines: 6, // 两页一批
+        );
+
+    test('按行数切批、整页不拆；行数少的文件仍一次发完', () async {
+      await addConfig();
+      final doc = await importBooklet();
+      final draft = await service((_) async => throw StateError('x'))
+          .prepareSend(doc.id);
+      expect(draft.batches(maxLines: 6).map((b) => b.map((p) => p.pageNo).toList()),
+          [[1, 2], [3, 4]]);
+      expect(draft.batches(maxLines: 4).length, 4); // 单页超了也单独成批
+      expect(draft.batches().length, 1); // 默认 90 行：一次发完
+    });
+
+    test('分批发送后合并成一条记录：定位按各自行号，日期取第一个非空，状况不重复', () async {
+      await addConfig();
+      final doc = await importBooklet();
+      final progress = <(int, int)>[];
+      final sent = <String>[];
+      final ex = service((userText) async {
+        sent.add(userText);
+        final firstBatch = userText.contains('P1L1:');
+        return ModelResponse(
+            text: replyFor(userText, examDate: firstBatch ? null : '2026-09-10'),
+            tokensIn: 1,
+            tokensOut: 1);
+      });
+      final outcome = await ex.sendDraft(await ex.prepareSend(doc.id),
+          onProgress: (d, t) => progress.add((d, t)));
+
+      expect(sent, hasLength(2));
+      expect(sent.every((t) => !(t.contains('P1L1:') && t.contains('P3L1:'))), isTrue);
+      expect(progress.last, (2, 2));
+      expect(outcome.failedPages, isEmpty);
+      final data = jsonDecode(
+          (await records.currentRevisionOf(outcome.record.id)).data) as Map;
+      final results = data['results'] as List;
+      expect(results.map((r) => (r as Map)['item_name_raw']),
+          ['项目0A', '项目1A', '项目2A', '项目3A']);
+      expect((((results[3] as Map)['locator'] as List).single as Map)['page_no'], 4);
+      expect((await documents.byId(doc.id))!.examDate, contains('2026-09-10'));
+      expect(await records.byType(RecordType.condition), hasLength(1));
+      final calls = await organize.recentModelCalls();
+      expect(calls, hasLength(2));
+      expect(calls.map((c) => c.sentSummary), everyElement(contains('分 2 批')));
+    });
+
+    test('一批重试后仍失败：其余批次保存，点名失败的页', () async {
+      await addConfig();
+      final doc = await importBooklet();
+      var failures = 0;
+      final ex = service((userText) async {
+        if (userText.contains('P3L1:')) {
+          failures++;
+          throw ModelClientException('请求超时', retriable: true);
+        }
+        return ModelResponse(text: replyFor(userText), tokensIn: 1, tokensOut: 1);
+      });
+      final outcome = await ex.sendDraft(await ex.prepareSend(doc.id));
+      expect(failures, 2); // 重试过一次
+      expect(outcome.failedPages, [3, 4]);
+      final data = jsonDecode(
+          (await records.currentRevisionOf(outcome.record.id)).data) as Map;
+      expect(data['results'] as List, hasLength(2));
+      final calls = await organize.recentModelCalls();
+      expect(calls.where((c) => c.status == ModelCallStatus.failed), hasLength(2));
+    });
+
+    test('全部批次失败：抛出原错误，不建记录', () async {
+      await addConfig();
+      final doc = await importBooklet();
+      final ex = service((_) async =>
+          throw ModelClientException('请求超时', retriable: true));
+      await expectLater(ex.sendDraft(await ex.prepareSend(doc.id)),
+          throwsA(isA<ModelClientException>()));
+      expect(await records.byType(RecordType.labPanel), isEmpty);
+    });
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

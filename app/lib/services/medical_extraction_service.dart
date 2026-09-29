@@ -198,6 +198,7 @@ class MedicalExtractOutcome {
     required this.redactedCount,
     this.possibleDuplicateRecordIds = const [],
     this.conditionRecords = const [],
+    this.failedPages = const [],
   });
 
   final RecordRow record;
@@ -207,6 +208,9 @@ class MedicalExtractOutcome {
 
   /// 本次新建的身体状况建议（unreviewed，D-25）；同名已有档案时不重复建。
   final List<RecordRow> conditionRecords;
+
+  /// 分批发送时重试后仍失败的页（其余批次的结果照常保存，可重新提取补上）。
+  final List<int> failedPages;
 }
 
 /// 一页的预览信息（提取前的页筛选展示：默认判定 + 用户覆盖）。
@@ -302,9 +306,12 @@ class SendDraft {
   }
 
   /// 发给模型的全文：`P{页}L{行}: 文本`，删掉的行不发。
-  String get payload {
+  String get payload => payloadOf(includedPages);
+
+  /// 若干页的发送文本（分批发送时每批一段）。
+  String payloadOf(List<DraftPage> pages) {
     final buf = StringBuffer();
-    for (final p in includedPages) {
+    for (final p in pages) {
       for (var i = 0; i < p.lines.length; i++) {
         final text = lineText(p, i);
         if (text.trim().isEmpty) continue;
@@ -313,6 +320,34 @@ class SendDraft {
     }
     return buf.toString();
   }
+
+  int sentLinesOf(DraftPage page) => [
+        for (var i = 0; i < page.lines.length; i++)
+          if (lineText(page, i).trim().isNotEmpty) i
+      ].length;
+
+  /// 按发送行数把要发的页切成批（整页不拆）：体检报告十几页、几百行，一次
+  /// 发给模型要逐项抄写几百个数值，既超时又超出单次输出上限（2026-09-29
+  /// 联调：12 页 364 行 180 秒超时）。每批约 [maxLines] 行；单页超过也单独成批。
+  List<List<DraftPage>> batches({int maxLines = batchMaxLines}) {
+    final out = <List<DraftPage>>[];
+    var current = <DraftPage>[];
+    var lines = 0;
+    for (final p in includedPages) {
+      final n = sentLinesOf(p);
+      if (current.isNotEmpty && lines + n > maxLines) {
+        out.add(current);
+        current = [];
+        lines = 0;
+      }
+      current.add(p);
+      lines += n;
+    }
+    if (current.isNotEmpty) out.add(current);
+    return out;
+  }
+
+  static const batchMaxLines = 90;
 
   /// 调用记录里的发送范围描述（A-38 同一字段）。
   String get summary => '医疗文件 ${includedPages.length}/${pages.length} 页，'
@@ -336,6 +371,7 @@ class MedicalExtractionService {
     this.redaction = const RedactionService(),
     OrganizeModelCall? modelCall,
     MedicalImageCall? imageCall,
+    this.batchMaxLines = SendDraft.batchMaxLines,
     this.ids = const IdGenerator(),
   })  : _attachments = attachments,
         _documents = documents,
@@ -358,6 +394,9 @@ class MedicalExtractionService {
   final RedactionService redaction;
   final OrganizeModelCall _modelCall;
   final MedicalImageCall _imageCall;
+
+  /// 每批发送的行数上限（见 [SendDraft.batches]）。
+  final int batchMaxLines;
   final IdGenerator ids;
 
   static Future<ModelResponse> _defaultCall({
@@ -582,7 +621,8 @@ class MedicalExtractionService {
 
   /// 按草稿发送并建记录（D-28 第二步）：发出去的正是 [SendDraft.payload]，
   /// 与预览页所见一致；用户改过的行按改后文本发送并写入 locator 原文。
-  Future<MedicalExtractOutcome> sendDraft(SendDraft draft) async {
+  Future<MedicalExtractOutcome> sendDraft(SendDraft draft,
+      {void Function(int done, int total)? onProgress}) async {
     final doc = await _documents.byId(draft.documentId);
     if (doc == null) throw StateError('医疗文件不存在：${draft.documentId}');
     final config = await _modelConfigs.defaultConfig();
@@ -595,19 +635,105 @@ class MedicalExtractionService {
     }
     final attachmentIds = {for (final p in draft.pages) p.attachmentId};
     final redactedTotal = draft.redactedCount;
-    final sentSummary = draft.summary;
-
-    final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
         ? ''
         : (await _keyStore.read(config.keychainRef) ?? '');
+
+    // 分批发送（体检报告页多行多）：最多两批同时在途，每批失败重试一次。
+    final batches = draft.batches(maxLines: batchMaxLines);
+    final outcomes = List<_BatchOutcome?>.filled(batches.length, null);
+    Object? lastError;
+    var next = 0;
+    var done = 0;
+    onProgress?.call(0, batches.length);
+    Future<void> worker() async {
+      while (next < batches.length) {
+        final i = next++;
+        for (var attempt = 0; attempt < 2 && outcomes[i] == null; attempt++) {
+          try {
+            outcomes[i] = await _sendBatch(draft, batches[i], i, batches.length,
+                config: config, apiKey: apiKey, attachmentIds: attachmentIds);
+          } catch (e) {
+            lastError = e;
+            AppLog.I.w('extract',
+                '第 ${i + 1}/${batches.length} 批第 ${attempt + 1} 次失败：$e');
+          }
+        }
+        onProgress?.call(++done, batches.length);
+      }
+    }
+
+    await Future.wait([worker(), if (batches.length > 1) worker()]);
+    final succeeded = [for (final o in outcomes) ?o];
+    if (succeeded.isEmpty) {
+      throw lastError ?? StateError('模型调用失败，本次提取未生成记录');
+    }
+    final failedPages = [
+      for (var i = 0; i < batches.length; i++)
+        if (outcomes[i] == null) for (final p in batches[i]) p.pageNo
+    ];
+    final parsed = _mergeParsed([for (final o in succeeded) o.parsed]);
+    // 记录的 produced_by 指向第一批的调用；每批调用都在调用记录里可查。
+    final callId = succeeded.first.callId;
+
+    // 5. source_lines → locator（见 [_locatorsOf]）。
+    final lineIndex = <String, (DraftPage, OcrLine)>{};
+    for (final p in included) {
+      for (var i = 0; i < p.lines.length; i++) {
+        final text = draft.lineText(p, i);
+        if (text.trim().isEmpty) continue; // 用户删掉的行没发送
+        lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
+      }
+    }
+    final saved = await _saveParsed(doc, parsed,
+        lineIndex: lineIndex, callId: callId, attachmentIds: attachmentIds);
+    AppLog.I.i('extract',
+        '结构化提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
+        '药品 ${saved.medications} 种，'
+        '遮蔽 $redactedTotal 处，'
+        '发送 ${included.length}/${draft.pages.length} 页，分 ${batches.length} 批'
+        '${failedPages.isEmpty ? '' : '，第 ${failedPages.join('、')} 页失败'}'
+        '${saved.conditions.isEmpty ? '' : '，新增 ${saved.conditions.length} 条状况建议'}'
+        '${saved.duplicates.isEmpty ? '' : '，疑似与 ${saved.duplicates.length} 条已有记录重复'}');
+    return MedicalExtractOutcome(
+      record: saved.record,
+      pageDecisions: [
+        for (final p in draft.pages)
+          PageDecision(pageNo: p.pageNo, included: p.included, reason: p.reason),
+      ],
+      redactedCount: redactedTotal,
+      possibleDuplicateRecordIds: saved.duplicates,
+      conditionRecords: saved.conditions,
+      failedPages: failedPages,
+    );
+  }
+
+  /// 发一批页：调用模型、记调用记录、解析。解析失败按调用失败处理（抛出，
+  /// 由调用方重试）。
+  Future<_BatchOutcome> _sendBatch(
+    SendDraft draft,
+    List<DraftPage> pages,
+    int index,
+    int total, {
+    required ModelConfig config,
+    required String apiKey,
+    required Set<String> attachmentIds,
+  }) async {
+    final payload = draft.payloadOf(pages);
+    final lines = pages.fold(0, (n, p) => n + draft.sentLinesOf(p));
+    final summary = total == 1
+        ? draft.summary
+        : '${draft.summary} · 分 $total 批，第 ${index + 1} 批：'
+            '第 ${pages.map((p) => p.pageNo).join('、')} 页 $lines 行';
+    final redacted = pages.fold(0, (n, p) => n + p.redactedCount);
+    final requestAt = ids.nowMs();
     ModelResponse response;
     try {
       response = await _modelCall(
         config: config,
         apiKey: apiKey,
         system: labExtractSystemPrompt,
-        userText: draft.payload,
+        userText: payload,
         maxTokens: 8192,
       );
     } catch (e) {
@@ -620,9 +746,9 @@ class MedicalExtractionService {
         responseAt: ids.nowMs(),
         status: ModelCallStatus.failed,
         caller: ModelCaller.phoneMedicalExtract,
-        redactedCount: redactedTotal,
-        sentSummary: sentSummary,
-        requestText: draft.payload,
+        redactedCount: redacted,
+        sentSummary: summary,
+        requestText: payload,
       );
       rethrow;
     }
@@ -638,44 +764,39 @@ class MedicalExtractionService {
       tokensOut: response.tokensOut,
       responseText: response.text,
       caller: ModelCaller.phoneMedicalExtract,
-      redactedCount: redactedTotal,
-      sentSummary: sentSummary,
-      requestText: draft.payload,
+      redactedCount: redacted,
+      sentSummary: summary,
+      requestText: payload,
     );
-
     final parsed = _parse(response.text);
     if (parsed == null) {
       AppLog.I.w('extract', '结构化提取解析失败：${_snippet(response.text)}');
       throw StateError('模型返回无法解析，本次提取未生成记录');
     }
-    // 5. source_lines → locator（见 [_locatorsOf]）。
-    final lineIndex = <String, (DraftPage, OcrLine)>{};
-    for (final p in included) {
-      for (var i = 0; i < p.lines.length; i++) {
-        final text = draft.lineText(p, i);
-        if (text.trim().isEmpty) continue; // 用户删掉的行没发送
-        lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
+    return _BatchOutcome(parsed: parsed, callId: call.id);
+  }
+
+  /// 合并各批结果：文件级信息取第一个非空值（批次按页序），各列表按页序拼接。
+  /// 同名状况在建档时去重（[_createConditionSuggestions]）。
+  static Map<String, Object?> _mergeParsed(List<Map<String, Object?>> parts) {
+    if (parts.length == 1) return parts.single;
+    final doc = <String, Object?>{};
+    for (final part in parts) {
+      final d = (part['doc'] as Map?)?.cast<String, Object?>() ?? const {};
+      for (final e in d.entries) {
+        if (e.value != null) doc.putIfAbsent(e.key, () => e.value);
       }
     }
-    final saved = await _saveParsed(doc, parsed,
-        lineIndex: lineIndex, callId: call.id, attachmentIds: attachmentIds);
-    AppLog.I.i('extract',
-        '结构化提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
-        '药品 ${saved.medications} 种，'
-        '遮蔽 $redactedTotal 处，'
-        '发送 ${included.length}/${draft.pages.length} 页'
-        '${saved.conditions.isEmpty ? '' : '，新增 ${saved.conditions.length} 条状况建议'}'
-        '${saved.duplicates.isEmpty ? '' : '，疑似与 ${saved.duplicates.length} 条已有记录重复'}');
-    return MedicalExtractOutcome(
-      record: saved.record,
-      pageDecisions: [
-        for (final p in draft.pages)
-          PageDecision(pageNo: p.pageNo, included: p.included, reason: p.reason),
-      ],
-      redactedCount: redactedTotal,
-      possibleDuplicateRecordIds: saved.duplicates,
-      conditionRecords: saved.conditions,
-    );
+    List<Object?> all(String key) => [
+          for (final part in parts) ...(part[key] as List? ?? const []),
+        ];
+    return {
+      'doc': doc,
+      'results': all('results'),
+      'findings': all('findings'),
+      'medications': all('medications'),
+      'conditions': all('conditions'),
+    };
   }
 
   /// 模型返回 → 记录（文字路径与识图路径共用）：检验数值、文字内容、药品
@@ -1120,4 +1241,11 @@ class _Saved {
   final int medications;
   final List<String> duplicates;
   final List<RecordRow> conditions;
+}
+
+class _BatchOutcome {
+  const _BatchOutcome({required this.parsed, required this.callId});
+
+  final Map<String, Object?> parsed;
+  final String callId;
 }
