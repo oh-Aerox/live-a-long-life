@@ -67,9 +67,37 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
       for (final d in all)
         if ((d.docType == MedicalDocType.physicalExam) == widget.physicalExam)
           d,
-    ];
+    ]
+      // 按就诊/体检日期从新到旧；还没识别出日期的按上传日期，新加的仍在最上面。
+      ..sort((a, b) {
+        final c = _sortDate(b).compareTo(_sortDate(a));
+        return c != 0 ? c : b.uploadedAt.compareTo(a.uploadedAt);
+      });
     if (mounted) setState(() => _docs = docs);
   }
+
+  static String _day(DateTime t) =>
+      '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+
+  static DateTime _uploaded(MedicalDocument d) =>
+      DateTime.fromMillisecondsSinceEpoch(d.uploadedAt, isUtc: true).toLocal();
+
+  /// 就诊/检查/体检日期（提取时从报告上识别，D-06 与上传时间各自独立）。
+  static String? _examDate(MedicalDocument d) =>
+      d.examDate == null ? null : TimeValue.decode(d.examDate!).localDate;
+
+  static String _sortDate(MedicalDocument d) =>
+      _examDate(d) ?? _day(_uploaded(d));
+
+  /// 日期叫法随文件类型：体检报告叫体检日期，病历类叫就诊日期，检验影像叫检查日期。
+  static String _dateLabel(MedicalDocType type) => switch (type) {
+        MedicalDocType.physicalExam => '体检日期',
+        MedicalDocType.visitRecord ||
+        MedicalDocType.prescription ||
+        MedicalDocType.dischargeSummary =>
+          '就诊日期',
+        _ => '检查日期',
+      };
 
   static String _mimeOf(String path) {
     switch (p.extension(path).toLowerCase()) {
@@ -339,19 +367,36 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
               itemBuilder: (context, i) {
                 final d = _docs[i];
                 final pages = MedicalPageRef.decodeList(d.pages);
-                final uploaded = DateTime.fromMillisecondsSinceEpoch(
-                        d.uploadedAt,
-                        isUtc: true)
-                    .toLocal();
-                final subtitle = [
+                final date = _examDate(d);
+                final detail = [
                   if (d.institutionText != null) d.institutionText!,
                   '${pages.length} 页',
-                  '上传于 ${uploaded.year}-${uploaded.month.toString().padLeft(2, '0')}-${uploaded.day.toString().padLeft(2, '0')}',
+                  '上传于 ${_day(_uploaded(d))}',
                 ].join(' · ');
                 return ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: Text(medicalDocTypeLabels[d.docType]!),
-                  subtitle: Text(subtitle),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        date == null
+                            ? '${_dateLabel(d.docType)}未识别（提取后自动填入）'
+                            : '${_dateLabel(d.docType)} $date',
+                        style: TextStyle(
+                          color: date == null
+                              ? Colors.grey
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontWeight:
+                              date == null ? null : FontWeight.w500,
+                        ),
+                      ),
+                      Text(detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
                   onTap: () async {
                     await Navigator.push(
                       context,
