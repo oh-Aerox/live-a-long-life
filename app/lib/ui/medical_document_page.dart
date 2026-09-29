@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,7 @@ import '../data/repositories/medical_document_repository.dart';
 import '../data/time_value.dart';
 import '../services/lab_review.dart';
 import '../services/medical_extraction_service.dart';
+import 'medical_crop_page.dart';
 import 'medical_folder_page.dart' show medicalDocTypeLabels;
 import 'medical_send_preview_page.dart';
 import 'source_viewer_page.dart';
@@ -39,6 +41,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   RecordRevision? _rev;
   /// 逐条核对的列表（D-28）：findings 文字内容、medications 处方药品。
   Map<String, List<Map<String, Object?>>> _entries = {};
+  bool _imageSending = false;
 
   @override
   void initState() {
@@ -116,6 +119,98 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         );
       }
     } finally {
+      await _load();
+    }
+  }
+
+  /// 模型识图兜底（V4-M3，D-24）：本机识别不准时显式发起。先看默认模型能否
+  /// 识图（不能就提示换模型，不算失败）→ 选页 → 裁剪 → 发送。
+  Future<void> _extractByImage() async {
+    final ex = widget.services.medicalExtraction;
+    final messenger = ScaffoldMessenger.of(context);
+    if (!await ex.defaultModelSupportsImage()) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('当前模型不能识图'),
+          content: const Text('默认模型在测试连接时没有检测到图片能力。可以在'
+              '"设置 → 模型配置"里换一个支持图片的模型设为默认，或对它重新测试连接。'
+              '\n\n也可以继续用"识别并预览"，在本机识别文字后发送。'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('知道了')),
+          ],
+        ),
+      );
+      return;
+    }
+    final List<ImagePageChoice> pages;
+    try {
+      pages = await ex.imagePages(widget.documentId);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      return;
+    }
+    if (pages.isEmpty || !mounted) return;
+    var page = pages.first;
+    if (pages.length > 1) {
+      final picked = await showDialog<ImagePageChoice>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: const Text('识别哪一页？'),
+          children: [
+            for (final p in pages)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, p),
+                child: Text('第 ${p.pageNo} 页'),
+              ),
+          ],
+        ),
+      );
+      if (picked == null) return;
+      page = picked;
+    }
+    final Uint8List bytes;
+    try {
+      bytes = await ex.pageImage(page);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      return;
+    }
+    if (!mounted) return;
+    final crop = await Navigator.push<CropResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            MedicalCropPage(bytes: bytes, title: '第 ${page.pageNo} 页'),
+      ),
+    );
+    if (crop == null || !mounted) return;
+    setState(() => _imageSending = true);
+    try {
+      final outcome = await ex.extractFromImage(
+        widget.documentId,
+        ImageSend(
+          attachmentId: page.attachmentId,
+          pageNo: page.pageNo,
+          attachmentPage: page.attachmentPage,
+          png: crop.png,
+          width: crop.width,
+          height: crop.height,
+          cropBox: crop.cropBox,
+        ),
+      );
+      messenger.showSnackBar(SnackBar(
+        content: Text('识图完成'
+            '${outcome.conditionRecords.isNotEmpty ? '，发现 ${outcome.conditionRecords.length} 条身体状况建议' : ''}。'
+            '结果未核对，确认后才参与分析；点一条可看它在原件上的区域'),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('识图失败：$e')));
+    } finally {
+      if (mounted) setState(() => _imageSending = false);
       await _load();
     }
   }
@@ -607,6 +702,30 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               label: Text(_record == null ? '识别并预览' : '重新提取'),
             ),
           ),
+          if (!widget.readOnly)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _imageSending ? null : _extractByImage,
+                    icon: _imageSending
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.image_search_outlined),
+                    label: Text(
+                        _imageSending ? '模型识图中（最长 3 分钟）…' : '用模型识图'),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  ),
+                ],
+              ),
+            ),
           if (_record == null && !widget.readOnly)
             const Padding(
               padding: EdgeInsets.all(16),
