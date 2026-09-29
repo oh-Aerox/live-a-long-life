@@ -7,12 +7,16 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import 'record_detail_page.dart';
 
-/// 手机端周报页（V3-M5，A-17）：显示 Mac 生成的周报，
+/// 周报页（V3-M5，A-17）：显示 Mac 生成的周报，
 /// 数据有更新时提示"需要更新"（D-14），事实陈述可点回来源记录。
+/// 手机从 Mac 拉取；Mac 端 [readOnly] 直接看本机生成的全文（2026-09-29 联调：
+/// Mac 首页只有 8 行预览，看不到后面的"下周建议"）。
 class WeeklyReportPage extends StatefulWidget {
-  const WeeklyReportPage({super.key, required this.services});
+  const WeeklyReportPage(
+      {super.key, required this.services, this.readOnly = false});
 
   final AppServices services;
+  final bool readOnly;
 
   @override
   State<WeeklyReportPage> createState() => _WeeklyReportPageState();
@@ -63,10 +67,11 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
     final report = _report;
     return Scaffold(
       appBar: AppBar(title: const Text('周报'), actions: [
-        TextButton(
-          onPressed: _busy ? null : _fetch,
-          child: Text(_busy ? '获取中…' : '从 Mac 获取'),
-        ),
+        if (!widget.readOnly)
+          TextButton(
+            onPressed: _busy ? null : _fetch,
+            child: Text(_busy ? '获取中…' : '从 Mac 获取'),
+          ),
       ]),
       body: report == null
           ? const Center(
@@ -138,8 +143,10 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (_) =>
-              RecordDetailPage(services: widget.services, recordId: rev.recordId)),
+          builder: (_) => RecordDetailPage(
+              services: widget.services,
+              recordId: rev.recordId,
+              readOnly: widget.readOnly)),
     );
   }
 }

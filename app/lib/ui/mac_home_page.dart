@@ -18,6 +18,7 @@ import 'markdown_text.dart';
 import 'medical_folder_page.dart';
 import 'model_config_page.dart';
 import 'visit_timeline_page.dart';
+import 'weekly_report_page.dart';
 
 /// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
 /// Mac 只保存手机同步来的副本，不能编辑（D-12）；
@@ -408,6 +409,18 @@ class _MacHomePageState extends State<MacHomePage> {
                         child: Text(_generating ? '生成中…' : '生成周报'),
                       ),
                       const SizedBox(width: 8),
+                      if (_latestReport != null) ...[
+                        OutlinedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => WeeklyReportPage(
+                                    services: widget.services, readOnly: true)),
+                          ),
+                          child: const Text('查看全文'),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       OutlinedButton(
                         onPressed: () => Navigator.push(
                           context,
