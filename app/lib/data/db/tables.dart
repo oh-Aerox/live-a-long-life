@@ -328,6 +328,10 @@ class ModelCalls extends Table with CommonColumns {
   /// 本次发送内容范围的人话描述（D-26/A-38 透明度），比如
   /// "问题 + 基本资料 + 长期状况 2 条"。老调用为 null。
   TextColumn get sentSummary => text().nullable()();
+
+  /// 实际发给模型的用户侧内容（2026-09-29 联调：调用记录只见返回、不见发送）。
+  /// 系统提示词是代码常量，见 docs/prompts.md，不重复存。老调用为 null。
+  TextColumn get requestText => text().nullable()();
 }
 
 /// schema.md §3.3：记录。数据类名避开 dart:core 的 Record。

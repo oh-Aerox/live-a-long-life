@@ -9169,6 +9169,17 @@ class $ModelCallsTable extends ModelCalls
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _requestTextMeta = const VerificationMeta(
+    'requestText',
+  );
+  @override
+  late final GeneratedColumn<String> requestText = GeneratedColumn<String>(
+    'request_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9192,6 +9203,7 @@ class $ModelCallsTable extends ModelCalls
     caller,
     redactedCount,
     sentSummary,
+    requestText,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9350,6 +9362,15 @@ class $ModelCallsTable extends ModelCalls
         ),
       );
     }
+    if (data.containsKey('request_text')) {
+      context.handle(
+        _requestTextMeta,
+        requestText.isAcceptableOrUnknown(
+          data['request_text']!,
+          _requestTextMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -9449,6 +9470,10 @@ class $ModelCallsTable extends ModelCalls
         DriftSqlType.string,
         data['${effectivePrefix}sent_summary'],
       ),
+      requestText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}request_text'],
+      ),
     );
   }
 
@@ -9492,6 +9517,10 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
   /// 本次发送内容范围的人话描述（D-26/A-38 透明度），比如
   /// "问题 + 基本资料 + 长期状况 2 条"。老调用为 null。
   final String? sentSummary;
+
+  /// 实际发给模型的用户侧内容（2026-09-29 联调：调用记录只见返回、不见发送）。
+  /// 系统提示词是代码常量，见 docs/prompts.md，不重复存。老调用为 null。
+  final String? requestText;
   const ModelCall({
     required this.id,
     required this.userId,
@@ -9514,6 +9543,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     required this.caller,
     this.redactedCount,
     this.sentSummary,
+    this.requestText,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9569,6 +9599,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     if (!nullToAbsent || sentSummary != null) {
       map['sent_summary'] = Variable<String>(sentSummary);
     }
+    if (!nullToAbsent || requestText != null) {
+      map['request_text'] = Variable<String>(requestText);
+    }
     return map;
   }
 
@@ -9613,6 +9646,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       sentSummary: sentSummary == null && nullToAbsent
           ? const Value.absent()
           : Value(sentSummary),
+      requestText: requestText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(requestText),
     );
   }
 
@@ -9643,6 +9679,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       caller: serializer.fromJson<ModelCaller>(json['caller']),
       redactedCount: serializer.fromJson<int?>(json['redactedCount']),
       sentSummary: serializer.fromJson<String?>(json['sentSummary']),
+      requestText: serializer.fromJson<String?>(json['requestText']),
     );
   }
   @override
@@ -9670,6 +9707,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       'caller': serializer.toJson<ModelCaller>(caller),
       'redactedCount': serializer.toJson<int?>(redactedCount),
       'sentSummary': serializer.toJson<String?>(sentSummary),
+      'requestText': serializer.toJson<String?>(requestText),
     };
   }
 
@@ -9695,6 +9733,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     ModelCaller? caller,
     Value<int?> redactedCount = const Value.absent(),
     Value<String?> sentSummary = const Value.absent(),
+    Value<String?> requestText = const Value.absent(),
   }) => ModelCall(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -9721,6 +9760,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
         ? redactedCount.value
         : this.redactedCount,
     sentSummary: sentSummary.present ? sentSummary.value : this.sentSummary,
+    requestText: requestText.present ? requestText.value : this.requestText,
   );
   ModelCall copyWithCompanion(ModelCallsCompanion data) {
     return ModelCall(
@@ -9765,6 +9805,9 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
       sentSummary: data.sentSummary.present
           ? data.sentSummary.value
           : this.sentSummary,
+      requestText: data.requestText.present
+          ? data.requestText.value
+          : this.requestText,
     );
   }
 
@@ -9791,7 +9834,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           ..write('responseText: $responseText, ')
           ..write('caller: $caller, ')
           ..write('redactedCount: $redactedCount, ')
-          ..write('sentSummary: $sentSummary')
+          ..write('sentSummary: $sentSummary, ')
+          ..write('requestText: $requestText')
           ..write(')'))
         .toString();
   }
@@ -9819,6 +9863,7 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
     caller,
     redactedCount,
     sentSummary,
+    requestText,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -9844,7 +9889,8 @@ class ModelCall extends DataClass implements Insertable<ModelCall> {
           other.responseText == this.responseText &&
           other.caller == this.caller &&
           other.redactedCount == this.redactedCount &&
-          other.sentSummary == this.sentSummary);
+          other.sentSummary == this.sentSummary &&
+          other.requestText == this.requestText);
 }
 
 class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
@@ -9869,6 +9915,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
   final Value<ModelCaller> caller;
   final Value<int?> redactedCount;
   final Value<String?> sentSummary;
+  final Value<String?> requestText;
   final Value<int> rowid;
   const ModelCallsCompanion({
     this.id = const Value.absent(),
@@ -9892,6 +9939,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     this.caller = const Value.absent(),
     this.redactedCount = const Value.absent(),
     this.sentSummary = const Value.absent(),
+    this.requestText = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ModelCallsCompanion.insert({
@@ -9916,6 +9964,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     required ModelCaller caller,
     this.redactedCount = const Value.absent(),
     this.sentSummary = const Value.absent(),
+    this.requestText = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -9950,6 +9999,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Expression<String>? caller,
     Expression<int>? redactedCount,
     Expression<String>? sentSummary,
+    Expression<String>? requestText,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9974,6 +10024,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       if (caller != null) 'caller': caller,
       if (redactedCount != null) 'redacted_count': redactedCount,
       if (sentSummary != null) 'sent_summary': sentSummary,
+      if (requestText != null) 'request_text': requestText,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10000,6 +10051,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     Value<ModelCaller>? caller,
     Value<int?>? redactedCount,
     Value<String?>? sentSummary,
+    Value<String?>? requestText,
     Value<int>? rowid,
   }) {
     return ModelCallsCompanion(
@@ -10024,6 +10076,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
       caller: caller ?? this.caller,
       redactedCount: redactedCount ?? this.redactedCount,
       sentSummary: sentSummary ?? this.sentSummary,
+      requestText: requestText ?? this.requestText,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10100,6 +10153,9 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
     if (sentSummary.present) {
       map['sent_summary'] = Variable<String>(sentSummary.value);
     }
+    if (requestText.present) {
+      map['request_text'] = Variable<String>(requestText.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10130,6 +10186,7 @@ class ModelCallsCompanion extends UpdateCompanion<ModelCall> {
           ..write('caller: $caller, ')
           ..write('redactedCount: $redactedCount, ')
           ..write('sentSummary: $sentSummary, ')
+          ..write('requestText: $requestText, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -24832,6 +24889,7 @@ typedef $$ModelCallsTableCreateCompanionBuilder =
       required ModelCaller caller,
       Value<int?> redactedCount,
       Value<String?> sentSummary,
+      Value<String?> requestText,
       Value<int> rowid,
     });
 typedef $$ModelCallsTableUpdateCompanionBuilder =
@@ -24857,6 +24915,7 @@ typedef $$ModelCallsTableUpdateCompanionBuilder =
       Value<ModelCaller> caller,
       Value<int?> redactedCount,
       Value<String?> sentSummary,
+      Value<String?> requestText,
       Value<int> rowid,
     });
 
@@ -24976,6 +25035,11 @@ class $$ModelCallsTableFilterComposer
     column: $table.sentSummary,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get requestText => $composableBuilder(
+    column: $table.requestText,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ModelCallsTableOrderingComposer
@@ -25091,6 +25155,11 @@ class $$ModelCallsTableOrderingComposer
     column: $table.sentSummary,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get requestText => $composableBuilder(
+    column: $table.requestText,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ModelCallsTableAnnotationComposer
@@ -25185,6 +25254,11 @@ class $$ModelCallsTableAnnotationComposer
     column: $table.sentSummary,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get requestText => $composableBuilder(
+    column: $table.requestText,
+    builder: (column) => column,
+  );
 }
 
 class $$ModelCallsTableTableManager
@@ -25239,6 +25313,7 @@ class $$ModelCallsTableTableManager
                 Value<ModelCaller> caller = const Value.absent(),
                 Value<int?> redactedCount = const Value.absent(),
                 Value<String?> sentSummary = const Value.absent(),
+                Value<String?> requestText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion(
                 id: id,
@@ -25262,6 +25337,7 @@ class $$ModelCallsTableTableManager
                 caller: caller,
                 redactedCount: redactedCount,
                 sentSummary: sentSummary,
+                requestText: requestText,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -25287,6 +25363,7 @@ class $$ModelCallsTableTableManager
                 required ModelCaller caller,
                 Value<int?> redactedCount = const Value.absent(),
                 Value<String?> sentSummary = const Value.absent(),
+                Value<String?> requestText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ModelCallsCompanion.insert(
                 id: id,
@@ -25310,6 +25387,7 @@ class $$ModelCallsTableTableManager
                 caller: caller,
                 redactedCount: redactedCount,
                 sentSummary: sentSummary,
+                requestText: requestText,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -237,7 +237,10 @@
 | `status` | 成功、失败或超时 |
 | `tokens_in` / `tokens_out` | 可空 |
 | `response_text` | 可空。模型返回内容，按调试保存策略管理；手机医疗原件清理不触发派生文字级联清除 |
-| `caller` | `phone_organize` 手机整理 / `mac_analysis` Mac 分析 / `external_agent` 用户开启的外部 agent 读取（D-20） |
+| `caller` | `phone_organize` 手机整理 / `mac_analysis` Mac 分析 / `phone_medical_extract` 医疗文件提取 / `user_consult` 主动咨询 / `external_agent` 用户开启的外部 agent 读取（D-20） |
+| `redacted_count` | 可空。发送前本地脱敏遮蔽项数（D-24） |
+| `sent_summary` | 可空。发送范围的人话描述（D-26/D-28） |
+| `request_text` | 可空（v14 起）。实际发送的用户侧内容；系统提示词见 prompts.md 不重复存。与 response_text 同属调试/透明度数据，随记录同步到 Mac |
 
 ### 3.3 `records` 记录
 

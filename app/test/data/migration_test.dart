@@ -38,7 +38,7 @@ void main() {
     addTearDown(db.close);
     expect(await userVersion(db), db.schemaVersion);
     expect(await columnsOf(db, 'model_calls'),
-        containsAll(['redacted_count', 'sent_summary']));
+        containsAll(['redacted_count', 'sent_summary', 'request_text']));
     expect(await columnsOf(db, 'medical_documents'), contains('page_overrides'));
     expect(await columnsOf(db, 'lab_results'), isNotEmpty);
     expect(await columnsOf(db, 'consult_messages'), isNotEmpty);
@@ -51,6 +51,7 @@ void main() {
       }
       await db.customStatement('ALTER TABLE model_calls DROP COLUMN redacted_count');
       await db.customStatement('ALTER TABLE model_calls DROP COLUMN sent_summary');
+      await db.customStatement('ALTER TABLE model_calls DROP COLUMN request_text');
     });
     await expectUpgradesToCurrent();
   });

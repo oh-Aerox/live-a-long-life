@@ -11,7 +11,7 @@
 | 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束；记录上点"重新整理" |
 | Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
 | 医疗文件结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引，用户预览修改后发出（D-28）。**不发图片；调用记录含遮蔽项数与发送范围 sent_summary** | 医疗文件详情"识别并预览"→"确认发送" |
-| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary** | 主页"咨询"入口，用户手动提问 |
+| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
 `ModelCaller.externalAgent` 只有枚举定义，无调用路径（D-20 外部 agent 入口默认关闭，未实现）。
@@ -203,7 +203,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
 ## 4. 主动咨询
 
 - **系统提示词：** `consultSystemPrompt`（consult_service.dart）
-- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对长期状况）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有）、`conversation`（本会话历史，最多 20 条 + 当前问题）
+- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对长期状况）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有；每条 date/type/summary 一行摘要。医疗类只发已核对内容：未核对的状况不发，报告提取只发已核对的诊断/结论文字、异常检验值、处方药名，没有已核对要点的报告整条不发——2026-09-29 联调修订）、`conversation`（本会话历史，最多 20 条 + 当前问题）
 - **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）
 
 ```

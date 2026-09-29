@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +108,10 @@ class AppDatabase extends _$AppDatabase {
             // v0.4 主动咨询（D-26）+ 调用记录的发送内容范围描述。
             await m.createTable(consultMessages);
             await _addColumnIfMissing(m, modelCalls, modelCalls.sentSummary);
+          }
+          if (from < 14) {
+            // 调用记录保存实际发送内容（D-16 透明度）。
+            await _addColumnIfMissing(m, modelCalls, modelCalls.requestText);
           }
         },
         beforeOpen: (details) async {

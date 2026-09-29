@@ -303,6 +303,11 @@ class OrganizeService {
 
     // 调模型并记录调用（D-16）。
     final requestAt = ids.nowMs();
+    final userText = buildOrganizeInput(
+      messages: usable,
+      attachmentCounts: attachmentCounts,
+      existingRecords: existingRecords,
+    );
     ModelResponse response;
     try {
       final apiKey = config.keychainRef.isEmpty
@@ -312,11 +317,7 @@ class OrganizeService {
         config: config,
         apiKey: apiKey,
         system: organizeSystemPrompt,
-        userText: buildOrganizeInput(
-          messages: usable,
-          attachmentCounts: attachmentCounts,
-          existingRecords: existingRecords,
-        ),
+        userText: userText,
         maxTokens: 8192,
       );
     } on ModelClientException catch (e) {
@@ -330,6 +331,7 @@ class OrganizeService {
         status: ModelCallStatus.failed,
         responseText: e.message,
         caller: ModelCaller.phoneOrganize,
+        requestText: userText,
       );
       // 本机/局域网模型不可达：排队等待，绝不改走云端（A-11、D-16）。
       final status =
@@ -353,6 +355,7 @@ class OrganizeService {
       tokensOut: response.tokensOut,
       responseText: response.text,
       caller: ModelCaller.phoneOrganize,
+      requestText: userText,
     );
 
     final parsed = parseOrganizeResponse(

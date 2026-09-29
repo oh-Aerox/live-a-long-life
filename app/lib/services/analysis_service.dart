@@ -158,24 +158,25 @@ class AnalysisService {
     final apiKey = config.keychainRef.isEmpty
         ? ''
         : (await _keyStore.read(config.keychainRef) ?? '');
+    final userText = jsonEncode({
+      'period': [periodStart, periodEnd],
+      'records': input,
+      'health_daily': [
+        for (final h in daily)
+          {
+            'date': h.localDate,
+            'metric': enumToDb(h.metric),
+            'value': h.value,
+          },
+      ],
+      'long_term_conditions': longTermConditions,
+      'recent_temporary_conditions': recentTemporary,
+    });
     final response = await _modelCall(
       config: config,
       apiKey: apiKey,
       system: weeklyReviewSystemPrompt,
-      userText: jsonEncode({
-        'period': [periodStart, periodEnd],
-        'records': input,
-        'health_daily': [
-          for (final h in daily)
-            {
-              'date': h.localDate,
-              'metric': enumToDb(h.metric),
-              'value': h.value,
-            },
-        ],
-        'long_term_conditions': longTermConditions,
-        'recent_temporary_conditions': recentTemporary,
-      }),
+      userText: userText,
       maxTokens: 8192,
     );
     final call = await _organize.recordModelCall(
@@ -190,6 +191,7 @@ class AnalysisService {
       tokensOut: response.tokensOut,
       responseText: response.text,
       caller: ModelCaller.macAnalysis,
+      requestText: userText,
     );
 
     final parsed = _parse(response.text);

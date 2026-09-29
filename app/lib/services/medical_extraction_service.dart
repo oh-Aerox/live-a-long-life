@@ -386,6 +386,7 @@ class MedicalExtractionService {
         caller: ModelCaller.phoneMedicalExtract,
         redactedCount: redactedTotal,
         sentSummary: sentSummary,
+        requestText: draft.payload,
       );
       rethrow;
     }
@@ -403,6 +404,7 @@ class MedicalExtractionService {
       caller: ModelCaller.phoneMedicalExtract,
       redactedCount: redactedTotal,
       sentSummary: sentSummary,
+      requestText: draft.payload,
     );
 
     final parsed = _parse(response.text);

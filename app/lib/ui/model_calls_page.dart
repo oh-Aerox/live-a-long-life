@@ -9,7 +9,7 @@ const _callerLabels = {
   ModelCaller.phoneOrganize: '手机整理',
   ModelCaller.macAnalysis: 'Mac 分析',
   ModelCaller.externalAgent: '外部 agent',
-  ModelCaller.phoneMedicalExtract: '检验单提取',
+  ModelCaller.phoneMedicalExtract: '医疗文件提取',
   ModelCaller.userConsult: '主动咨询',
 };
 
@@ -82,16 +82,73 @@ class _CallTile extends StatelessWidget {
               if (call.tokensIn != null || call.tokensOut != null)
                 Text('token：输入 ${call.tokensIn ?? "—"}，'
                     '输出 ${call.tokensOut ?? "—"}'),
+              if (call.redactedCount != null)
+                Text('发送前自动遮蔽：${call.redactedCount} 处'),
+              if (call.sentSummary != null) Text('发送范围：${call.sentSummary}'),
               const SizedBox(height: 4),
-              Text('发送的消息 ID：${call.sentMessageIds}'),
+              if (_sentMessageCount > 0)
+                Text('发送的消息 ID：${call.sentMessageIds}'),
               if (_sentAttachmentCount > 0)
                 Text('发送的附件 ID：${call.sentAttachmentIds}'),
-              if (call.responseText != null) ...[
-                const SizedBox(height: 4),
-                Text('返回内容：${call.responseText}'),
-              ],
+              _Payload(
+                title: '发送的内容',
+                text: call.requestText,
+                note: '另附固定的系统提示词（规则说明，不含个人数据）',
+                missing: '这条调用发生在保存发送内容之前，只能看到上面的发送范围',
+              ),
+              _Payload(title: '返回的内容', text: call.responseText),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 一段可展开查看、可选中复制的内容；JSON 缩进排版便于阅读。
+class _Payload extends StatelessWidget {
+  const _Payload(
+      {required this.title, required this.text, this.note, this.missing});
+
+  final String title;
+  final String? text;
+  final String? note;
+  final String? missing;
+
+  static String _pretty(String raw) {
+    final t = raw.trim();
+    if (!(t.startsWith('{') || t.startsWith('['))) return raw;
+    try {
+      return const JsonEncoder.withIndent('  ').convert(jsonDecode(t));
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final grey = TextStyle(
+        fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant);
+    if (text == null) {
+      return missing == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('$title：$missing', style: grey),
+            );
+    }
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      dense: true,
+      title: Text('$title（${text!.length} 字）'),
+      subtitle: note == null ? null : Text(note!, style: grey),
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(8),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: SelectableText(_pretty(text!),
+              style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
         ),
       ],
     );

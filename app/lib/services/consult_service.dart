@@ -139,11 +139,25 @@ class ConsultService {
       for (final rec in await _records.since(_daysAgo(7))) {
         if (rec.currentRevisionId == null) continue;
         final rev = await _records.currentRevisionOf(rec.id);
+        final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+        final meta = FieldMetaMap.decode(rev.fieldMeta);
+        final String summary;
+        switch (rec.recordType) {
+          // 医疗类只发已核对的内容（D-04）：未核对的状况、报告要点不算事实。
+          case RecordType.condition:
+            if (!(meta['condition']?.isProtected ?? false)) continue;
+            summary = recordSummary(rec.recordType, data);
+          case RecordType.labPanel:
+            final s = reviewedMedicalSummary(data, meta);
+            if (s == null) continue;
+            summary = s;
+          default:
+            summary = recordSummary(rec.recordType, data);
+        }
         recentRecords.add({
           'date': rec.localDate,
           'type': enumToDb(rec.recordType),
-          'summary': recordSummary(
-              rec.recordType, (jsonDecode(rev.data) as Map).cast()),
+          'summary': summary,
         });
       }
     }
@@ -163,23 +177,23 @@ class ConsultService {
     final apiKey = config.keychainRef.isEmpty
         ? ''
         : (await _keyStore.read(config.keychainRef) ?? '');
+    final userText = jsonEncode({
+      'profile': profile,
+      'long_term_conditions': longTerm,
+      'recent_temporary_conditions': temporary,
+      'recent_records': ?recentRecords,
+      'conversation': [
+        for (final m in history.takeLast(20)) {'role': m.role, 'text': m.body},
+        {'role': 'user', 'text': question},
+      ],
+    });
     ModelResponse response;
     try {
       response = await _modelCall(
         config: config,
         apiKey: apiKey,
         system: consultSystemPrompt,
-        userText: jsonEncode({
-          'profile': profile,
-          'long_term_conditions': longTerm,
-          'recent_temporary_conditions': temporary,
-          'recent_records': ?recentRecords,
-          'conversation': [
-            for (final m in history.takeLast(20))
-              {'role': m.role, 'text': m.body},
-            {'role': 'user', 'text': question},
-          ],
-        }),
+        userText: userText,
         maxTokens: 4096,
       );
     } catch (e) {
@@ -193,6 +207,7 @@ class ConsultService {
         status: ModelCallStatus.failed,
         caller: ModelCaller.userConsult,
         sentSummary: contextNote,
+        requestText: userText,
       );
       rethrow;
     }
@@ -209,6 +224,7 @@ class ConsultService {
       responseText: response.text,
       caller: ModelCaller.userConsult,
       sentSummary: contextNote,
+      requestText: userText,
     );
 
     final reply = response.text.trim();
