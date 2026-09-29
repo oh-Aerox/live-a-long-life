@@ -7,6 +7,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../services/data_boundary.dart';
 import '../services/model_client.dart';
+import 'adaptive.dart';
 import 'model_calls_page.dart';
 
 const _boundaryLabels = {
@@ -49,19 +50,20 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
   /// 删除一个配置：确认后清 Keychain 里的 key 并标记删除。
   /// 删的是默认配置时，剩下的第一个自动补为默认，避免没有默认可用。
   Future<void> _delete(ModelConfig c) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('删除这个模型配置？'),
         content: Text(
             '${ModelPresetDefaults.byPreset[c.preset]?.label ?? c.preset.name} · ${c.model}\n'
             'key 会一并从系统安全存储中移除。'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, true),
+              isDestructiveAction: true,
               child: const Text('删除')),
         ],
       ),
@@ -293,18 +295,19 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
 
   Future<void> _delete() async {
     final existing = widget.existing!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('删除这个模型配置？'),
         content: const Text('key 会一并从系统安全存储中移除。'
             '删除默认配置后整理会暂停在"待整理"，不会自动改用其他配置。'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, true),
+              isDestructiveAction: true,
               child: const Text('删除')),
         ],
       ),
@@ -378,7 +381,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage> {
             trailing: Text(_boundaryLabels[boundary]!,
                 style: Theme.of(context).textTheme.titleMedium),
           ),
-          SwitchListTile(
+          SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('设为默认模型'),
             value: _makeDefault,

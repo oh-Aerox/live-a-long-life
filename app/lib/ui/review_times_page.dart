@@ -70,10 +70,10 @@ class _ReviewTimesPageState extends State<ReviewTimesPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('每日回顾')),
       body: times == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : ListView(
               children: [
-                SwitchListTile(
+                SwitchListTile.adaptive(
                   title: const Text('开启提醒'),
                   subtitle: const Text('在设定的时间提醒你记录今天'),
                   value: _enabled,

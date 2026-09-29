@@ -12,6 +12,7 @@ import '../services/export_service.dart';
 import '../services/notification_service.dart';
 import '../services/restore_service.dart';
 import '../services/signing_info.dart';
+import 'adaptive.dart';
 import 'healthkit_spike_page.dart';
 import 'log_page.dart';
 import 'medical_space_page.dart';
@@ -170,15 +171,15 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('数据存储位置'),
             subtitle: const Text('全部数据只保存在这台手机上'),
-            onTap: () => showDialog<void>(
+            onTap: () => showAdaptiveDialog<void>(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (context) => AlertDialog.adaptive(
                 title: const Text('数据存储位置'),
                 content: const Text('消息、照片、PDF 和资料都保存在本机应用'
                     '沙盒里，没有任何网络上传。删除应用会一并删除数据，'
                     '重要内容请先用"导出数据"备份。'),
                 actions: [
-                  TextButton(
+                  DialogAction(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('知道了')),
                 ],
@@ -243,7 +244,7 @@ class _SettingsPageState extends State<SettingsPage> {
               await _load();
             },
           ),
-          SwitchListTile(
+          SwitchListTile.adaptive(
             title: const Text('读取健康数据'),
             subtitle: const Text('睡眠、步数、体能训练、活动能量。只读取，'
                 '不写入，数据只保存在本机'),
@@ -292,16 +293,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ? ''
           : '\n\n注意：${result.missingFiles.length} 个附件本机没有文件，'
               '未包含在导出里。';
-      await showDialog<void>(
+      await showAdaptiveDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => AlertDialog.adaptive(
           title: const Text('导出完成'),
           content: Text('已导出 ${result.messageCount} 条消息、'
               '${result.fileCount} 个文件，校验通过。\n\n'
               '位置：文件 App → 我的 iPhone → 长寿记 → exports → $name\n\n'
               '导出的内容未加密，请保存在安全的位置。$missingNote'),
           actions: [
-            TextButton(
+            DialogAction(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('知道了')),
           ],
@@ -324,19 +325,20 @@ class _SettingsPageState extends State<SettingsPage> {
     final hasData = await widget.services.hasExistingData();
     if (!mounted) return;
     if (hasData) {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAdaptiveDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => AlertDialog.adaptive(
           title: const Text('替换全部数据？'),
           content: const Text('应用里已有数据。恢复会用导出的内容替换现有'
               '全部数据，且无法撤销。\n\n建议先用"导出数据"备份现有内容，'
               '再进行恢复。'),
           actions: [
-            TextButton(
+            DialogAction(
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('取消')),
-            TextButton(
+            DialogAction(
                 onPressed: () => Navigator.pop(context, true),
+                isDestructiveAction: true,
                 child: const Text('替换全部数据')),
           ],
         ),
@@ -364,16 +366,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ? '\n\n${result.missingFiles.length} 个附件文件缺失或损坏，'
               '对应内容以"文件缺失"显示，其余已照常导入。'
           : '';
-      await showDialog<void>(
+      await showAdaptiveDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (context) => AlertDialog.adaptive(
           title: Text(title),
           content: Text('已恢复 ${result.messageCount} 条消息、'
               '${result.restoredFiles} 个文件。$missingNote\n\n'
               '请关闭应用后重新打开，加载恢复的数据。'),
           actions: [
-            TextButton(
+            DialogAction(
                 onPressed: () => exit(0), child: const Text('关闭应用')),
           ],
         ),

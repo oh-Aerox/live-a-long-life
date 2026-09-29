@@ -8,6 +8,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../services/export_service.dart';
 import '../services/medical_space_service.dart';
+import 'adaptive.dart';
 import 'medical_folder_page.dart' show medicalDocTypeLabels;
 
 /// 医疗文件空间（D-22/schema §8）：清理手机原件，保留记录。
@@ -79,9 +80,9 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
           .length;
     } catch (_) {}
     if (!mounted) return;
-    final ok = await showDialog<bool>(
+    final ok = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('清理手机原件'),
         content: Text(
           '将清理手机上的 ${chosen.length} 份医疗文件，释放约 ${_size(_selectedBytes)}。'
@@ -90,11 +91,12 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
           '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（文件 App → 我的 iPhone → 长寿记 → exports），清理不会删除它们，需要时可自行删除。' : ''}',
         ),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, true),
+              isDestructiveAction: true,
               child: const Text('清理手机原件')),
         ],
       ),
@@ -148,7 +150,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
     ].where((s) => s.isNotEmpty).join(' · ');
 
     if (cleanable) {
-      return CheckboxListTile(
+      return CheckboxListTile.adaptive(
         dense: true,
         value: _selected.contains(att.id),
         title: Text(att.originalFilename ?? att.sha256.substring(0, 12)),

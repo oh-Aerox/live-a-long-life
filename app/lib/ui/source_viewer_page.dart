@@ -78,7 +78,7 @@ class _SourceViewerPageState extends State<SourceViewerPage> {
         child: Text(_error!, textAlign: TextAlign.center),
       ));
     } else if (_image == null) {
-      body = const Center(child: CircularProgressIndicator());
+      body = const Center(child: CircularProgressIndicator.adaptive());
     } else {
       final image = _image!;
       body = InteractiveViewer(

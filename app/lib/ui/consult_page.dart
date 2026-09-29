@@ -172,7 +172,7 @@ class _ConsultPageState extends State<ConsultPage> {
               child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
             ),
           SafeArea(
             child: Padding(

@@ -194,7 +194,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final rev = _rev;
     if (record == null || rev == null) {
       return Scaffold(
-          appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+          appBar: AppBar(), body: const Center(child: CircularProgressIndicator.adaptive()));
     }
     final data = decodeData(rev);
     final meta = FieldMetaMap.decode(rev.fieldMeta);

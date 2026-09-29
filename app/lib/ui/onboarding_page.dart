@@ -130,7 +130,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         '${_reviewTime.hour.toString().padLeft(2, '0')}:'
                         '${_reviewTime.minute.toString().padLeft(2, '0')}'),
                   ),
-                  SwitchListTile(
+                  SwitchListTile.adaptive(
                     title: const Text('开启提醒'),
                     value: _reviewEnabled,
                     onChanged: (v) => setState(() => _reviewEnabled = v),

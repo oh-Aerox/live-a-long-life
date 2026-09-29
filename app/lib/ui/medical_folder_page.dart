@@ -12,6 +12,7 @@ import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/time_value.dart';
 import '../services/medical_duplicate.dart';
+import 'adaptive.dart';
 import 'medical_document_page.dart';
 
 const medicalDocTypeLabels = {
@@ -298,22 +299,22 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
   }
 
   Future<String?> _askSimilar(SimilarDocumentHit hit, String filename) {
-    return showDialog<String>(
+    return showAdaptiveDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('可能已经上传过'),
         content: Text('这份文件识别出的文字与已有的「${_docLabel(hit.document)}」'
             '${(hit.textScore * 100).round()}% 相同，数字（日期、编号、结果）'
             '${(hit.numberScore * 100).round()}% 对得上，可能是同一张纸重拍或重新导出。'
             '\n\n确定是另一份报告（比如复查）可以仍然添加。'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, 'view'),
               child: const Text('查看已有')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, 'add'),
               child: const Text('仍然添加')),
         ],
@@ -326,20 +327,20 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
             existing.firstImportedAt,
             isUtc: true)
         .toLocal();
-    return showDialog<String>(
+    return showAdaptiveDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('这个文件已经记录过'),
         content: Text('「$filename」与 ${imported.year}-${imported.month} 月导入的'
             '文件内容相同。仍要加进这份医疗文件吗？（不会重复占用空间）'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, 'view'),
               child: const Text('查看已有')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, 'add'),
               child: const Text('仍然添加')),
         ],
@@ -420,7 +421,7 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                child: CircularProgressIndicator.adaptive(strokeWidth: 2))
             : const Icon(Icons.add),
       ),
     );

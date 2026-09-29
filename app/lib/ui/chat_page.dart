@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
@@ -13,6 +14,7 @@ import '../data/ids.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
+import 'adaptive.dart';
 import 'conditions_page.dart';
 import 'consult_page.dart';
 import 'day_view_page.dart';
@@ -94,44 +96,32 @@ class _ChatPageState extends State<ChatPage> {
   /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
   /// 医疗入口（D-27）：病例夹 / 体检 / 长期状况档案 / 指标趋势 / 时间线。
   Future<void> _openMedicalFolders() async {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.folder_shared_outlined),
-              title: const Text('我的病例夹'),
-              subtitle: const Text('病历、检查检验报告、处方'),
-              onTap: () => Navigator.pop(context, 'records'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.monitor_heart_outlined),
-              title: const Text('我的体检'),
-              subtitle: const Text('体检报告'),
-              onTap: () => Navigator.pop(context, 'exams'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.medical_services_outlined),
-              title: const Text('长期状况档案'),
-              subtitle: const Text('结石、过敏等长期状况与近期疾病'),
-              onTap: () => Navigator.pop(context, 'conditions'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.show_chart),
-              title: const Text('指标趋势'),
-              subtitle: const Text('每项检验指标的历史变化'),
-              onTap: () => Navigator.pop(context, 'trends'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.timeline_outlined),
-              title: const Text('就诊时间线'),
-              onTap: () => Navigator.pop(context, 'timeline'),
-            ),
-          ],
-        ),
-      ),
-    );
+    final choice = await showActionSheet<String>(context, actions: const [
+      SheetAction(
+          value: 'records',
+          label: '我的病例夹',
+          subtitle: '病历、检查检验报告、处方',
+          icon: Icons.folder_shared_outlined),
+      SheetAction(
+          value: 'exams',
+          label: '我的体检',
+          subtitle: '体检报告',
+          icon: Icons.monitor_heart_outlined),
+      SheetAction(
+          value: 'conditions',
+          label: '长期状况档案',
+          subtitle: '结石、过敏等长期状况与近期疾病',
+          icon: Icons.medical_services_outlined),
+      SheetAction(
+          value: 'trends',
+          label: '指标趋势',
+          subtitle: '每项检验指标的历史变化',
+          icon: Icons.show_chart),
+      SheetAction(
+          value: 'timeline',
+          label: '就诊时间线',
+          icon: Icons.timeline_outlined),
+    ]);
     if (choice == null || !mounted) return;
     final Widget page = switch (choice) {
       'records' => MedicalFolderPage(services: _s, physicalExam: false),
@@ -174,31 +164,18 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _showAttachSheet() async {
     // 先收起输入法，否则选项被键盘遮挡。
     FocusManager.instance.primaryFocus?.unfocus();
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('拍照'),
-              onTap: () => Navigator.pop(context, 'camera'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('选照片（可多选）'),
-              onTap: () => Navigator.pop(context, 'photos'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: const Text('导入文件（PDF 或图片）'),
-              onTap: () => Navigator.pop(context, 'files'),
-            ),
-          ],
-        ),
-      ),
-    );
+    final choice = await showActionSheet<String>(context, actions: const [
+      SheetAction(
+          value: 'camera', label: '拍照', icon: Icons.photo_camera_outlined),
+      SheetAction(
+          value: 'photos',
+          label: '选照片（可多选）',
+          icon: Icons.photo_library_outlined),
+      SheetAction(
+          value: 'files',
+          label: '导入文件（PDF 或图片）',
+          icon: Icons.description_outlined),
+    ]);
     if (choice == null) return;
 
     List<String> paths;
@@ -284,22 +261,22 @@ class _ChatPageState extends State<ChatPage> {
     final imported = DateTime.fromMillisecondsSinceEpoch(
         existing.firstImportedAt,
         isUtc: true).toLocal();
-    return showDialog<String>(
+    return showAdaptiveDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('这个文件已经记录过'),
         content: Text(
             '「$filename」与 ${imported.month}月${imported.day}日 导入的文件内容完全相同。'),
         actions: [
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, 'view'),
             child: const Text('查看已有'),
           ),
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, 'add'),
             child: const Text('仍然添加'),
           ),
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, 'cancel'),
             child: const Text('取消'),
           ),
@@ -327,42 +304,10 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('长寿记'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today_outlined),
-            tooltip: '按日查看',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => DayViewPage(services: _s)),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.medical_information_outlined),
-            tooltip: '病例夹与体检',
-            onPressed: _openMedicalFolders,
-          ),
-          IconButton(
-            icon: const Icon(Icons.psychology_alt_outlined),
-            tooltip: '咨询',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ConsultPage(services: _s)),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: '设置',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => SettingsPage(
-                      services: _s, notifications: widget.notifications)),
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: useCupertino(context)
+          ? CupertinoColors.systemBackground.resolveFrom(context)
+          : null,
+      appBar: adaptiveAppBar(context, title: const Text('长寿记')),
       body: Column(
         children: [
           _SigningExpiryBanner(),
@@ -386,6 +331,45 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
+
+  /// 底栏入口：按日查看、病例夹与体检、咨询、设置（原在顶栏，移到输入框下面）。
+  List<NavAction> _navActions() => [
+        NavAction(
+          icon: Icons.calendar_today_outlined,
+          cupertinoIcon: CupertinoIcons.calendar,
+          tooltip: '按日查看',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => DayViewPage(services: _s)),
+          ),
+        ),
+        NavAction(
+          icon: Icons.medical_information_outlined,
+          cupertinoIcon: CupertinoIcons.folder,
+          tooltip: '病例夹与体检',
+          onPressed: _openMedicalFolders,
+        ),
+        NavAction(
+          icon: Icons.psychology_alt_outlined,
+          cupertinoIcon: CupertinoIcons.chat_bubble_2,
+          tooltip: '咨询',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ConsultPage(services: _s)),
+          ),
+        ),
+        NavAction(
+          icon: Icons.settings_outlined,
+          cupertinoIcon: CupertinoIcons.gear,
+          tooltip: '设置',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => SettingsPage(
+                    services: _s, notifications: widget.notifications)),
+          ),
+        ),
+      ];
 
   Widget _buildList(List<Message> messages) {
     // 组装为（日期头 + 消息）的条目列表，倒序显示（最新在底部）。
@@ -468,6 +452,7 @@ class _ChatPageState extends State<ChatPage> {
             )
           : Text(m.body ?? '', style: textStyle);
     }
+    final cupertino = useCupertino(context);
     final bubble = Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -476,8 +461,10 @@ class _ChatPageState extends State<ChatPage> {
       decoration: BoxDecoration(
         color: isUser
             ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
+            : cupertino
+                ? CupertinoColors.systemGrey5.resolveFrom(context)
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(cupertino ? 18 : 14),
       ),
       child: content,
     );
@@ -573,33 +560,19 @@ class _ChatPageState extends State<ChatPage> {
     // 先收起输入法，否则菜单被键盘遮挡。
     FocusManager.instance.primaryFocus?.unfocus();
     final canEdit = m.kind == MessageKind.text;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (canEdit)
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('编辑'),
-                onTap: () => Navigator.pop(context, 'edit'),
-              ),
-            if (canEdit && m.revisionNo > 0)
-              ListTile(
-                leading: const Icon(Icons.history),
-                title: const Text('查看原文'),
-                onTap: () => Navigator.pop(context, 'history'),
-              ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('删除（误发）'),
-              onTap: () => Navigator.pop(context, 'delete'),
-            ),
-          ],
-        ),
-      ),
-    );
+    final action = await showActionSheet<String>(context, actions: [
+      if (canEdit)
+        const SheetAction(
+            value: 'edit', label: '编辑', icon: Icons.edit_outlined),
+      if (canEdit && m.revisionNo > 0)
+        const SheetAction(
+            value: 'history', label: '查看原文', icon: Icons.history),
+      const SheetAction(
+          value: 'delete',
+          label: '删除（误发）',
+          icon: Icons.delete_outline,
+          isDestructiveAction: true),
+    ]);
     if (action == null || !mounted) return;
     switch (action) {
       case 'edit':
@@ -612,30 +585,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _editMessage(Message m) async {
-    final controller = TextEditingController(text: m.body ?? '');
-    final newText = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('编辑消息'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 5,
-          minLines: 1,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
+    final values = await showFieldsDialog(context, title: '编辑消息', fields: [
+      DialogField(initial: m.body ?? '', maxLines: 5, minLines: 1),
+    ]);
+    final newText = values?.single.trim();
     if (newText == null || newText.isEmpty || newText == m.body) return;
     await _s.messages.edit(m.id, newText);
   }
@@ -643,9 +596,9 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _showHistory(Message m) async {
     final revisions = await _s.messages.revisionsOf(m.id);
     if (!mounted) return;
-    await showDialog<void>(
+    await showAdaptiveDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('修改历史'),
         content: SingleChildScrollView(
           child: Column(
@@ -670,7 +623,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
         actions: [
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context),
             child: const Text('关闭'),
           ),
@@ -680,19 +633,20 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _confirmDelete(Message m) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('删除这条消息？'),
         content: const Text('消息会从对话流移除。这是给误发准备的，'
             '写错内容用"编辑"更合适。'),
         actions: [
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('取消'),
           ),
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, true),
+            isDestructiveAction: true,
             child: const Text('删除'),
           ),
         ],
@@ -718,55 +672,163 @@ class _ChatPageState extends State<ChatPage> {
                     SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
                     SizedBox(width: 8),
                     Text('正在保存附件…', style: TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  tooltip: '添加照片或文件',
-                  onPressed: _savingBatches > 0 ? null : _showAttachSheet,
+            useCupertino(context)
+                ? _buildCupertinoInputRow()
+                : _buildMaterialInputRow(),
+            // 打字时收起底栏，给对话留出空间。
+            if (MediaQuery.viewInsetsOf(context).bottom == 0)
+              _BottomNavRow(actions: _navActions()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMaterialInputRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          tooltip: '添加照片或文件',
+          onPressed: _savingBatches > 0 ? null : _showAttachSheet,
+        ),
+        Expanded(
+          child: TextField(
+            controller: _textController,
+            minLines: 1,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              hintText: '说点什么…',
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            ),
+          ),
+        ),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _textController,
+          builder: (context, value, _) =>
+              value.text.trim().isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_upward),
+                      tooltip: '发送',
+                      onPressed: _sendText,
+                    )
+                  : TextButton(
+                      onPressed: _sendDoneMarker,
+                      child: const Text('记好了'),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  /// iOS 输入栏：圆角输入框，发送是实心上箭头，空输入时显示"记好了"。
+  Widget _buildCupertinoInputRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          minimumSize: const Size(36, 36),
+          onPressed: _savingBatches > 0 ? null : _showAttachSheet,
+          child: const Icon(CupertinoIcons.add_circled, size: 28),
+        ),
+        Expanded(
+          child: CupertinoTextField(
+            controller: _textController,
+            minLines: 1,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            placeholder: '说点什么…',
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemBackground.resolveFrom(context),
+              border: Border.all(
+                  color: CupertinoColors.systemGrey4.resolveFrom(context)),
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+        ),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _textController,
+          builder: (context, value, _) => value.text.trim().isNotEmpty
+              ? CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  minimumSize: const Size(36, 36),
+                  onPressed: _sendText,
+                  child: const Icon(CupertinoIcons.arrow_up_circle_fill,
+                      size: 32),
+                )
+              : CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: const Size(36, 36),
+                  onPressed: _sendDoneMarker,
+                  child: const Text('记好了'),
                 ),
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    minLines: 1,
-                    maxLines: 5,
-                    textInputAction: TextInputAction.newline,
-                    decoration: const InputDecoration(
-                      hintText: '说点什么…',
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(20)),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        ),
+      ],
+    );
+  }
+}
+
+/// 输入框下面的一排入口：图标加小字，四等分。
+class _BottomNavRow extends StatelessWidget {
+  const _BottomNavRow({required this.actions});
+
+  final List<NavAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final cupertino = useCupertino(context);
+    final color = cupertino
+        ? CupertinoColors.secondaryLabel.resolveFrom(context)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          for (final a in actions)
+            Expanded(
+              child: Semantics(
+                label: a.tooltip,
+                button: true,
+                excludeSemantics: true,
+                child: InkResponse(
+                  onTap: a.onPressed,
+                  radius: 32,
+                  // iOS 点按没有水波纹。
+                  splashFactory: cupertino ? NoSplash.splashFactory : null,
+                  highlightShape: BoxShape.rectangle,
+                  highlightColor: cupertino ? Colors.transparent : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(cupertino ? a.cupertinoIcon : a.icon,
+                            size: 24, color: color),
+                        const SizedBox(height: 2),
+                        Text(a.tooltip,
+                            style: TextStyle(fontSize: 10, color: color)),
+                      ],
                     ),
                   ),
                 ),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _textController,
-                  builder: (context, value, _) =>
-                      value.text.trim().isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.arrow_upward),
-                              tooltip: '发送',
-                              onPressed: _sendText,
-                            )
-                          : TextButton(
-                              onPressed: _sendDoneMarker,
-                              child: const Text('记好了'),
-                            ),
-                ),
-              ],
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -817,7 +879,7 @@ class _AttachmentTiles extends StatelessWidget {
           return const SizedBox(
               width: 60,
               height: 60,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+              child: Center(child: CircularProgressIndicator.adaptive(strokeWidth: 2)));
         }
         return Wrap(
           spacing: 4,
@@ -983,17 +1045,30 @@ class _ReviewPromptSkipState extends State<_ReviewPromptSkip> {
       );
     }
     if (_outcome != null) return const SizedBox.shrink();
+    Future<void> skip() async {
+      await widget.services.reviewPrompts
+          .markOutcome(widget.promptRowId, ReviewOutcome.skipped);
+      if (mounted) setState(() => _outcome = ReviewOutcome.skipped);
+    }
+
+    if (useCupertino(context)) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          minimumSize: Size.zero,
+          onPressed: skip,
+          child: const Text('跳过', style: TextStyle(fontSize: 13)),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(left: 8),
       child: TextButton(
         style: TextButton.styleFrom(
             minimumSize: Size.zero,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
-        onPressed: () async {
-          await widget.services.reviewPrompts
-              .markOutcome(widget.promptRowId, ReviewOutcome.skipped);
-          if (mounted) setState(() => _outcome = ReviewOutcome.skipped);
-        },
+        onPressed: skip,
         child: const Text('跳过', style: TextStyle(fontSize: 12)),
       ),
     );

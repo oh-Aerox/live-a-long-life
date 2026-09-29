@@ -34,7 +34,7 @@ class ModelCallsPage extends StatelessWidget {
         builder: (context, snapshot) {
           final calls = snapshot.data;
           if (calls == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator.adaptive());
           }
           if (calls.isEmpty) {
             return const Center(child: Text('还没有调用过模型'));

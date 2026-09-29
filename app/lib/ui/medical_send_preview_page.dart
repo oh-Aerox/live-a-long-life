@@ -4,6 +4,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../services/medical_extraction_service.dart';
 import '../services/redaction.dart';
+import 'adaptive.dart';
 import '../services/text_extraction.dart' show PageTextSource;
 
 /// 发送前预览（D-28）：本地识别 + 脱敏的结果逐行展示，这里看到的就是
@@ -160,17 +161,17 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
 
   Future<void> _resetAll() async {
     final draft = _draft!;
-    final ok = await showDialog<bool>(
+    final ok = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('全部还原？'),
         content: Text('撤销对 ${draft.edits.length} 行的修改和删除，恢复成本机识别的原文'
             '（自动遮蔽的姓名、证件号、卡号仍然遮蔽）。'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('取消')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('全部还原')),
         ],
@@ -257,7 +258,7 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
+              CircularProgressIndicator.adaptive(),
               SizedBox(height: 12),
               Text('正在本机识别文字…'),
             ],
@@ -293,7 +294,7 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     ];
     final selecting = _selected != null;
     for (final page in draft.pages) {
-      items.add(SwitchListTile(
+      items.add(SwitchListTile.adaptive(
         value: page.included,
         onChanged: _sending ? null : (_) => _togglePage(page),
         title: Text('第 ${page.pageNo} 页'
@@ -429,7 +430,7 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2))
                 : const Icon(Icons.send_outlined),
             label: Text(_config == null
                 ? '还没有配置模型'

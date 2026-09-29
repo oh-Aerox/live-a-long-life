@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'adaptive.dart';
 
 /// 裁剪结果：只在内存里交给识图调用，不落库（D-24）。
 class CropResult {
@@ -104,18 +105,18 @@ class _MedicalCropPageState extends State<MedicalCropPage> {
   }
 
   Future<void> _sendWhole() async {
-    final ok = await showDialog<bool>(
+    final ok = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('发送整页？'),
         content: const Text('整页图片可能带着姓名、证件号、门诊卡号等个人信息，'
             '会一起发给模型。有些报告姓名和指标混在一起裁不开，可以整页发送，'
             '但建议先试着框出需要识别的部分。'),
         actions: [
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('回去框选')),
-          TextButton(
+          DialogAction(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('仍然发送整页')),
         ],
@@ -150,7 +151,7 @@ class _MedicalCropPageState extends State<MedicalCropPage> {
             child: _error != null
                 ? Center(child: Text(_error!))
                 : img == null
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator.adaptive())
                     : LayoutBuilder(builder: (context, c) {
                         final shown = _fit(c.biggest, img);
                         return GestureDetector(
@@ -192,7 +193,7 @@ class _MedicalCropPageState extends State<MedicalCropPage> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator.adaptive(strokeWidth: 2))
                         : const Icon(Icons.send_outlined),
                     label: const Text('发送框选的部分'),
                   ),
