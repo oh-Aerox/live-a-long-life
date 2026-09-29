@@ -65,6 +65,10 @@ class RestoreDrillResult {
 /// - 生成用临时目录名，逐文件解密校验通过后才改正式名并登记 published；
 /// - Mac 缺失的原件列入清单 missing，不当作业务记录删除。
 class BackupService {
+  /// Mac 端备份存放目录（~/Documents/长寿记备份）；主页备份与设置页共用。
+  static Directory macBackupRoot() => Directory(
+      p.join(Platform.environment['HOME'] ?? '.', 'Documents', '长寿记备份'));
+
   BackupService({
     required AppDatabase db,
     required Directory filesDir,

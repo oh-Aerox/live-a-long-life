@@ -1,23 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
-import '../services/sync/secure_channel.dart';
+import '../services/backup_service.dart';
 import '../services/sync/sync_server.dart';
 import 'conditions_page.dart';
 import 'consult_page.dart';
 import 'day_view_page.dart';
 import 'lab_trends_page.dart';
 import 'mac_messages_page.dart';
-import 'log_page.dart';
+import 'mac_settings_page.dart';
 import 'markdown_text.dart';
 import 'medical_folder_page.dart';
-import 'model_config_page.dart';
 import 'visit_timeline_page.dart';
 import 'weekly_report_page.dart';
 
@@ -38,7 +35,9 @@ class _MacHomePageState extends State<MacHomePage> {
   int _recordCount = 0;
   List<Peer> _peers = [];
   SyncServer? _server;
-  PairingInfo? _pairing;
+
+  /// 配对成功事件，设置页据此收起二维码。
+  final _pairedEvents = ValueNotifier<int>(0);
 
   late final PeerRepository _peerRepo =
       PeerRepository(widget.services.db);
@@ -57,8 +56,7 @@ class _MacHomePageState extends State<MacHomePage> {
     if (pass == null) return;
     setState(() => _backingUp = true);
     try {
-      final home = Platform.environment['HOME'] ?? '.';
-      final target = Directory(p.join(home, 'Documents', '长寿记备份'));
+      final target = BackupService.macBackupRoot();
       await target.create(recursive: true);
       final run = await widget.services.backupService
           .backup(targetRoot: target, passphrase: pass);
@@ -151,6 +149,7 @@ class _MacHomePageState extends State<MacHomePage> {
   @override
   void dispose() {
     _server?.stop();
+    _pairedEvents.dispose();
     super.dispose();
   }
 
@@ -203,18 +202,28 @@ class _MacHomePageState extends State<MacHomePage> {
         if (mounted) _load();
       }
       ..onPaired = () {
-        // 配对成功：收起二维码并刷新设备列表。
-        if (mounted) setState(() => _pairing = null);
+        // 配对成功：通知设置页收起二维码，并刷新设备列表。
+        _pairedEvents.value++;
         _load();
       };
     await _server!.start();
     if (mounted) setState(() {});
   }
 
-  Future<void> _startPairing() async {
+  Future<void> _openSettings() async {
     await _ensureServer();
-    final info = await _server!.startPairing();
-    if (mounted) setState(() => _pairing = info);
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MacSettingsPage(
+          services: widget.services,
+          server: _server,
+          pairedEvents: _pairedEvents,
+        ),
+      ),
+    );
+    await _load();
   }
 
   /// 病例与健康档案（2026-09-29 联调补，D-29）：手机上那一套医疗视图的
@@ -269,14 +278,22 @@ class _MacHomePageState extends State<MacHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('长寿记（Mac 副本）'), actions: [
-        IconButton(
-          icon: const Icon(Icons.article_outlined),
-          tooltip: '运行日志',
+        // 顶部快捷入口（2026-09-29）：咨询与设置不属于某张卡片。
+        TextButton.icon(
+          icon: const Icon(Icons.forum_outlined, size: 18),
+          label: const Text('咨询'),
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const LogPage()),
+            MaterialPageRoute(
+                builder: (_) => ConsultPage(services: widget.services)),
           ),
         ),
+        TextButton.icon(
+          icon: const Icon(Icons.settings_outlined, size: 18),
+          label: const Text('设置'),
+          onPressed: _openSettings,
+        ),
+        const SizedBox(width: 8),
       ]),
       body: ListView(
         padding: const EdgeInsets.all(24),
@@ -295,6 +312,12 @@ class _MacHomePageState extends State<MacHomePage> {
                   Text('消息：$_messageCount 条'),
                   Text('记录：$_recordCount 条'),
                   Text('同步：$_syncText'),
+                  if (_peers.isEmpty)
+                    TextButton.icon(
+                      icon: const Icon(Icons.qr_code_2, size: 18),
+                      label: const Text('还没有配对手机，去设置里配对'),
+                      onPressed: _openSettings,
+                    ),
                   if (_server?.running ?? false)
                     Text('接收服务：端口 ${_server!.port}',
                         style:
@@ -339,54 +362,6 @@ class _MacHomePageState extends State<MacHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('配对', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  for (final peer in _peers)
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.phone_iphone),
-                      title: Text(peer.displayName),
-                      subtitle: Text(
-                          '指纹 ${peer.certFingerprint.substring(0, 16)}… · '
-                          '最近地址 ${peer.lastSeenAddr ?? "—"}'),
-                    ),
-                  if (_pairing != null) ...[
-                    const Text('用手机打开 长寿记 → 设置 → 连接 Mac，扫这个码：'),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.all(12),
-                        child: QrImageView(
-                          data: _pairing!.encode(),
-                          size: 240,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                        '地址 ${_pairing!.hosts.join(" / ")} 端口 ${_pairing!.port}',
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.grey)),
-                  ] else
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton.tonal(
-                        onPressed: _startPairing,
-                        child: Text(_peers.isEmpty ? '开始配对' : '重新配对'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
                   Text('周报分析',
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -422,32 +397,11 @@ class _MacHomePageState extends State<MacHomePage> {
                         ),
                         const SizedBox(width: 8),
                       ],
-                      // 咨询只读副本、不写记录（D-12/D-26）；历史只存本机，
-                      // 与手机上的咨询各自独立（consult_messages 不同步）。
-                      OutlinedButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  ConsultPage(services: widget.services)),
-                        ),
-                        child: const Text('咨询'),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  ModelConfigPage(services: widget.services)),
-                        ),
-                        child: const Text('模型配置'),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text('周报和咨询用这台 Mac 上配置的模型（配置不与手机同步），'
-                      '手机在"周报"页拉取周报；Mac 上的咨询记录只存在这台 Mac。',
+                  const Text('周报用这台 Mac 上配置的模型（设置 → 模型配置，不与手机同步），'
+                      '手机在"周报"页拉取查看。',
                       style: TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),

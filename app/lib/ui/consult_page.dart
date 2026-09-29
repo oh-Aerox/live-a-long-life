@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'markdown_text.dart';
@@ -100,17 +102,19 @@ class _ConsultPageState extends State<ConsultPage> {
         children: [
           Expanded(
             child: _messages.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(24),
                       child: Text(
                         '临时想问点什么就在这里问。\n\n'
                         '提问会附带基本资料和已确认的状况档案，让建议贴合你；'
                         '发送了什么在"模型调用记录"里可查。\n\n'
                         '咨询是问答不是录入：这里聊的不会变成健康记录，'
-                        '要记录的事请回消息流正常发。',
+                        '要记录的事请回消息流正常发。'
+                        // Mac 端（D-29）：用 Mac 的模型，咨询历史不同步。
+                        '${Platform.isMacOS ? '\n\n在 Mac 上用这台 Mac 配置的模型；这里的咨询记录只存在这台 Mac，和手机上的咨询互不相通。' : ''}',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, height: 1.6),
+                        style: const TextStyle(color: Colors.grey, height: 1.6),
                       ),
                     ),
                   )
