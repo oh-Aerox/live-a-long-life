@@ -33,6 +33,9 @@ const backupTables = [
   'health_samples',
   'health_daily',
   'analysis_artifacts',
+  // v0.4（2026-09-29 联调补）：医疗文件的页组成、类型、检查日期等。
+  // lab_results 是派生索引，恢复后按记录重建，不进备份（D-27）。
+  'medical_documents',
 ];
 
 /// 恢复演练的结果（D-15：早期完成一次"从备份恢复到新环境"）。

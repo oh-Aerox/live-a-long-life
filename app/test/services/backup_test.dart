@@ -1,12 +1,13 @@
-import 'package:drift/drift.dart' show Value;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
 import 'package:live_a_long_life/data/repositories/message_repository.dart';
 import 'package:live_a_long_life/services/backup_service.dart';
+import 'package:live_a_long_life/services/sync/sync_server.dart' show syncedTables;
 import 'package:path/path.dart' as p;
 
 import '../data/test_helpers.dart';
@@ -163,5 +164,9 @@ void main() {
     final manifest = jsonDecode(run.manifest) as Map;
     expect(manifest['generation'], 'phone-generation');
     expect(manifest['cutoff_seq'], 597);
+  });
+
+  test('同步到 Mac 的表都在备份清单里（防新增表只加同步、漏加备份）', () {
+    expect(backupTables, containsAll(syncedTables));
   });
 }
