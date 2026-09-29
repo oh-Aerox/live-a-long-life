@@ -12,9 +12,11 @@ import 'record_detail_page.dart';
 /// 就诊时间线（v0.4）：症状起始、身体状况（诊断/发现）、检查报告
 /// 按日期倒序排成一条线。康复复查是追加的新事件，既往不改写（R-34）。
 class VisitTimelinePage extends StatefulWidget {
-  const VisitTimelinePage({super.key, required this.services});
+  const VisitTimelinePage(
+      {super.key, required this.services, this.readOnly = false});
 
   final AppServices services;
+  final bool readOnly;
 
   @override
   State<VisitTimelinePage> createState() => _VisitTimelinePageState();
@@ -136,7 +138,9 @@ class _VisitTimelinePageState extends State<VisitTimelinePage> {
               context,
               MaterialPageRoute(
                 builder: (_) => MedicalDocumentPage(
-                    services: widget.services, documentId: e.documentId!),
+                    services: widget.services,
+                    documentId: e.documentId!,
+                    readOnly: widget.readOnly),
               ),
             ).then((_) => _load());
           } else if (e.recordId != null) {
@@ -144,7 +148,9 @@ class _VisitTimelinePageState extends State<VisitTimelinePage> {
               context,
               MaterialPageRoute(
                 builder: (_) => RecordDetailPage(
-                    services: widget.services, recordId: e.recordId!),
+                    services: widget.services,
+                    recordId: e.recordId!,
+                    readOnly: widget.readOnly),
               ),
             ).then((_) => _load());
           }

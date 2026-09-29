@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'markdown_text.dart';
 import 'package:path/path.dart' as p;
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -10,10 +9,15 @@ import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
+import 'conditions_page.dart';
 import 'day_view_page.dart';
+import 'lab_trends_page.dart';
 import 'mac_messages_page.dart';
 import 'log_page.dart';
+import 'markdown_text.dart';
+import 'medical_folder_page.dart';
 import 'model_config_page.dart';
+import 'visit_timeline_page.dart';
 
 /// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
 /// Mac 只保存手机同步来的副本，不能编辑（D-12）；
@@ -210,6 +214,54 @@ class _MacHomePageState extends State<MacHomePage> {
     if (mounted) setState(() => _pairing = info);
   }
 
+  /// 病例与健康档案（2026-09-29 联调补，D-29）：手机上那一套医疗视图的
+  /// 只读版——看提取结果、核对状态、原件位置、趋势与时间线；添加、提取、
+  /// 核对、修改都只在手机上（D-12）。
+  Widget _medicalCard(BuildContext context) {
+    Widget entry(IconData icon, String label, Widget Function() page) =>
+        OutlinedButton.icon(
+          icon: Icon(icon, size: 18),
+          label: Text(label),
+          onPressed: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => page())),
+        );
+    final s = widget.services;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('病例与健康档案',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            const Text('手机同步来的医疗文件与提取结果，只读查看；添加、提取与核对在手机上进行。',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                entry(Icons.folder_shared_outlined, '我的病例夹',
+                    () => MedicalFolderPage(
+                        services: s, physicalExam: false, readOnly: true)),
+                entry(Icons.assignment_outlined, '我的体检',
+                    () => MedicalFolderPage(
+                        services: s, physicalExam: true, readOnly: true)),
+                entry(Icons.health_and_safety_outlined, '长期状况档案',
+                    () => ConditionsPage(services: s, readOnly: true)),
+                entry(Icons.show_chart, '指标趋势',
+                    () => LabTrendsPage(services: s)),
+                entry(Icons.timeline_outlined, '就诊时间线',
+                    () => VisitTimelinePage(services: s, readOnly: true)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -275,6 +327,8 @@ class _MacHomePageState extends State<MacHomePage> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _medicalCard(context),
           const SizedBox(height: 16),
           Card(
             child: Padding(

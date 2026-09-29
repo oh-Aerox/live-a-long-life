@@ -12,9 +12,11 @@ import 'source_viewer_page.dart';
 /// 提取建议的状况带"未核对"标记，确认后才参与分析；复查进展追加
 /// 新版本，既往诊断不改写（R-34）。
 class ConditionsPage extends StatefulWidget {
-  const ConditionsPage({super.key, required this.services});
+  const ConditionsPage(
+      {super.key, required this.services, this.readOnly = false});
 
   final AppServices services;
+  final bool readOnly;
 
   @override
   State<ConditionsPage> createState() => _ConditionsPageState();
@@ -143,7 +145,11 @@ class _ConditionsPageState extends State<ConditionsPage> {
   }
 
   Future<void> _actions(_ConditionEntry e) async {
-    final action = await showModalBottomSheet<String>(
+    // 只读（Mac，D-12）：不确认、不追加、不标痊愈，有原件位置就直接看。
+    if (widget.readOnly && e.data['locator'] == null) return;
+    final action = widget.readOnly
+        ? 'source'
+        : await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -329,7 +335,9 @@ class _ConditionsPageState extends State<ConditionsPage> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: widget.readOnly
+          ? null
+          : FloatingActionButton(
         onPressed: _addManually,
         tooltip: '添加状况',
         child: const Icon(Icons.add),

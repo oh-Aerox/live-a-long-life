@@ -26,14 +26,19 @@ const medicalDocTypeLabels = {
 
 /// 病例夹 / 体检两个入口，一套实现（D-27）：doc_type 过滤的医疗文件
 /// 列表，可添加（仍写入消息流）、查看、进详情提取与核对。
+/// Mac 端 [readOnly]：只浏览，不添加（D-12）。
 class MedicalFolderPage extends StatefulWidget {
   const MedicalFolderPage(
-      {super.key, required this.services, required this.physicalExam});
+      {super.key,
+      required this.services,
+      required this.physicalExam,
+      this.readOnly = false});
 
   final AppServices services;
 
   /// true = 我的体检（doc_type 为体检报告）；false = 我的病例夹（其余类型）。
   final bool physicalExam;
+  final bool readOnly;
 
   @override
   State<MedicalFolderPage> createState() => _MedicalFolderPageState();
@@ -46,6 +51,9 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
   bool _busy = false;
 
   String get _title => widget.physicalExam ? '我的体检' : '我的病例夹';
+
+  String get _emptyHint =>
+      widget.readOnly ? '在手机上添加后同步过来' : '点右下角添加拍照或 PDF';
 
   @override
   void initState() {
@@ -229,7 +237,9 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
       context,
       MaterialPageRoute(
           builder: (_) => MedicalDocumentPage(
-              services: widget.services, documentId: documentId)),
+              services: widget.services,
+              documentId: documentId,
+              readOnly: widget.readOnly)),
     );
     await _load();
   }
@@ -317,8 +327,8 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
           ? Center(
               child: Text(
                 widget.physicalExam
-                    ? '还没有体检报告\n点右下角添加拍照或 PDF'
-                    : '还没有病历或检查报告\n点右下角添加拍照或 PDF',
+                    ? '还没有体检报告\n$_emptyHint'
+                    : '还没有病历或检查报告\n$_emptyHint',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),
@@ -347,14 +357,18 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
                       context,
                       MaterialPageRoute(
                           builder: (_) => MedicalDocumentPage(
-                              services: widget.services, documentId: d.id)),
+                              services: widget.services,
+                              documentId: d.id,
+                              readOnly: widget.readOnly)),
                     );
                     await _load();
                   },
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: widget.readOnly
+          ? null
+          : FloatingActionButton(
         onPressed: _busy ? null : _add,
         tooltip: '添加',
         child: _busy

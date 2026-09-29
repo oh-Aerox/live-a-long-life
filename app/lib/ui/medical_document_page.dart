@@ -15,12 +15,18 @@ import 'source_viewer_page.dart';
 
 /// 医疗文件详情（V4-M2）：文件信息、提取（先本地识别预览、确认后发送，
 /// D-28）、检验数值与文字内容逐项核对（D-04）、定位回原件（A-19）。
+/// Mac 端 [readOnly]：只看提取结果、核对状态和原件位置，不提取、不核对、
+/// 不修改、不删除（D-12 只有手机写入）。
 class MedicalDocumentPage extends StatefulWidget {
   const MedicalDocumentPage(
-      {super.key, required this.services, required this.documentId});
+      {super.key,
+      required this.services,
+      required this.documentId,
+      this.readOnly = false});
 
   final AppServices services;
   final String documentId;
+  final bool readOnly;
 
   @override
   State<MedicalDocumentPage> createState() => _MedicalDocumentPageState();
@@ -225,7 +231,10 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   }
 
   Future<void> _resultActions(int index, LabResult row) async {
-    final action = await showModalBottomSheet<String>(
+    // 只读：点一项直接看原件位置。
+    final action = widget.readOnly
+        ? 'source'
+        : await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -281,7 +290,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
 
   Future<void> _entryActions(String list, int index) async {
     final entry = _entryList(list)[index];
-    final action = await showModalBottomSheet<String>(
+    final action = widget.readOnly
+        ? 'source'
+        : await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -553,12 +564,13 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       appBar: AppBar(
         title: Text(medicalDocTypeLabels[doc.docType]!),
         actions: [
-          if (pageRefs.length > 1)
+          if (pageRefs.length > 1 && !widget.readOnly)
             IconButton(
               icon: const Icon(Icons.swap_vert),
               tooltip: '调整页序',
               onPressed: _reorderPages,
             ),
+          if (!widget.readOnly)
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: '删除这份文件',
@@ -576,6 +588,17 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               title: const Text('检查日期'),
               subtitle: Text(_dateText(doc.examDate))),
           const Divider(),
+          if (widget.readOnly)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: Text(
+                _record == null
+                    ? '这份文件还没有提取，在手机上提取与核对。'
+                    : '只读：提取与核对在手机上进行。点一条可查看原件位置。',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+          if (!widget.readOnly)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: FilledButton.icon(
@@ -584,7 +607,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               label: Text(_record == null ? '识别并预览' : '重新提取'),
             ),
           ),
-          if (_record == null)
+          if (_record == null && !widget.readOnly)
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text(
@@ -593,13 +616,16 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
-          if (_record != null && _results.isEmpty && !hasEntries)
+          if (_record != null &&
+              _results.isEmpty &&
+              !hasEntries &&
+              !widget.readOnly)
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text('这份文件没有提取到检验数值或文字内容，可以重新提取。',
                   style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
-          if (_record != null && hasUnreviewed)
+          if (_record != null && hasUnreviewed && !widget.readOnly)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
               child: Row(
