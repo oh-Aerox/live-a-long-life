@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
@@ -140,7 +141,10 @@ class _ConsultPageState extends State<ConsultPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SelectableText(m.body),
+                              // 模型回复是 Markdown；用户原话按原样显示。
+                              isUser
+                                  ? SelectableText(m.body)
+                                  : MarkdownText(m.body),
                               if (isUser && m.contextNote != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),

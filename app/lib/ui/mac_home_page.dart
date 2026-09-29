@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'markdown_text.dart';
 import 'package:path/path.dart' as p;
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -337,7 +338,7 @@ class _MacHomePageState extends State<MacHomePage> {
                         '最新：${_latestReport!.periodStart} 至 ${_latestReport!.periodEnd}'),
                     const SizedBox(height: 4),
                     Text(
-                      _latestReport!.contentMd,
+                      MarkdownText.plain(_latestReport!.contentMd),
                       maxLines: 8,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 13),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import 'record_detail_page.dart';
@@ -91,7 +92,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                 Text('${report.periodStart} 至 ${report.periodEnd}',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                SelectableText(report.contentMd),
+                MarkdownText(report.contentMd),
                 const Divider(height: 32),
                 Text('来源（点开查看记录）',
                     style: Theme.of(context).textTheme.titleSmall),
