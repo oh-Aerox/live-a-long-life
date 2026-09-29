@@ -1,6 +1,7 @@
 import 'text_extraction.dart';
 
-/// 发送前脱敏（D-24）：只删姓名和证件号，三层全部本地执行。
+/// 发送前脱敏（D-24）：删姓名、证件号和门诊卡号（2026-09-29 用户补充；
+/// 出生日期用户明确保留），三层全部本地执行。
 /// 占位符替换而不是删除，文本结构不塌；只作用于发送副本，
 /// 原件与未脱敏 OCR 文本仅存本地。
 class RedactionResult {
@@ -18,20 +19,29 @@ class RedactionService {
 
   static const namePlaceholder = '【姓名】';
   static const idPlaceholder = '【证件号】';
+  static const cardPlaceholder = '【卡号】';
 
   /// 第一层：锚点标签。值可能带 OCR 误读或遮星，宽松匹配；
   /// 后面跟到下一个已知字段标签或空白为止。
   static final _nameLabel = RegExp(
       r'(姓\s*名|受\s*检\s*人|体\s*检\s*人)\s*[:：]?\s*'
       r'([^\s:：]{1,8}?)'
-      r'(?=$|\s|性\s*别|年\s*龄|科室|病历|门诊|住院|条码|标本|样本|编号|号码)');
+      r'(?=$|\s|性\s*别|年\s*龄|科室|病历|门\s*[1lI|丨]?\s*诊|就诊|住院|条码|标本|样本|编号|号码)');
   static final _idLabel = RegExp(
       r'(身份证号码?|身\s*份\s*证|证件号码?|社保卡号|医保卡号|社会保障卡号)'
       r'\s*[:：]?\s*([A-Za-z0-9*\-]{4,22})');
 
+  /// 医院就诊卡号（门诊卡号及同义叫法）。OCR 常在"门诊"中间插进杂字符
+  /// （真机样本"门1诊卡号"），标签字之间容忍一个 1/l/I/| 类误读。
+  static const _cardLabelText =
+      r'门\s*[1lI|丨]?\s*诊\s*卡\s*号|就\s*诊\s*卡\s*号|诊\s*疗\s*卡\s*号|门\s*诊\s*号';
+  static final _cardLabel = RegExp(
+      '($_cardLabelText)' r'\s*[:：]?\s*([A-Za-z0-9*\-]{4,22})');
+
   /// 只有标签没有值的行（值在表格右邻格），配合坐标找同行右邻。
-  static final _labelOnly =
-      RegExp(r'^(姓\s*名|受\s*检\s*人|体\s*检\s*人|身份证号码?|证件号码?|社保卡号|医保卡号)\s*[:：]?$');
+  static final _labelOnly = RegExp(
+      r'^(姓\s*名|受\s*检\s*人|体\s*检\s*人|身份证号码?|证件号码?|社保卡号|医保卡号|'
+      '$_cardLabelText' r')\s*[:：]?$');
 
   /// 第二层：18 位身份证候选（含 OCR 易混字符），命中后校验位验证。
   static final _idCandidate = RegExp(r'(?<![0-9OoIl])[0-9OoIl]{17}[0-9OoIlXx](?![0-9OoIl])');
@@ -48,10 +58,15 @@ class RedactionService {
     for (var i = 0; i < lines.length; i++) {
       final m = _labelOnly.firstMatch(lines[i].text.trim());
       if (m == null || !lines[i].hasBox) continue;
-      final isName = m.group(1)!.replaceAll(RegExp(r'\s'), '').contains(RegExp('姓名|受检人|体检人'));
+      final label = m.group(1)!;
+      final isName =
+          label.replaceAll(RegExp(r'\s'), '').contains(RegExp('姓名|受检人|体检人'));
+      final isCard = RegExp('^($_cardLabelText)\$').hasMatch(label);
       final j = _rightNeighbor(lines, i);
       if (j != null && lines[j].text.trim().length <= 22) {
-        valueLineRedactions[j] = isName ? namePlaceholder : idPlaceholder;
+        valueLineRedactions[j] = isName
+            ? namePlaceholder
+            : (isCard ? cardPlaceholder : idPlaceholder);
       }
     }
 
@@ -73,6 +88,10 @@ class RedactionService {
       text = text.replaceAllMapped(_idLabel, (m) {
         count++;
         return '${m.group(1)}：$idPlaceholder';
+      });
+      text = text.replaceAllMapped(_cardLabel, (m) {
+        count++;
+        return '${m.group(1)}：$cardPlaceholder';
       });
 
       // 第二层：无标签散落的 18 位身份证（校验位过了才算）。

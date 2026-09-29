@@ -10,6 +10,8 @@ import '../data/db/app_database.dart';
 import '../data/ids.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
+import '../data/time_value.dart';
+import '../services/medical_duplicate.dart';
 import 'medical_document_page.dart';
 
 const medicalDocTypeLabels = {
@@ -77,7 +79,8 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
   }
 
   /// 添加文件：与对话流导入同一套机制——附件先进消息流（原始层不变，
-  /// D-27），再组成一份医疗文件。重复文件走 D-10 三选项提示。
+  /// D-27），再组成一份医疗文件。重复文件走 D-10 提示：内容完全相同
+  /// （SHA-256）或识别文字相似（重拍、相册重新导出，[MedicalDuplicateService]）。
   Future<void> _add() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
@@ -128,11 +131,34 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
       final kept = <({Attachment attachment, bool duplicateAcknowledged})>[];
       for (final path in paths) {
         final name = p.basename(path);
+        final mime = _mimeOf(path);
+        // 内容级重复：字节不同但文字相同（同一张纸重拍 / 相册重新导出）。
+        // 导入前查，选"取消"就不留下孤立附件；识别结果按 SHA 缓存，提取复用。
+        try {
+          final file = File(path);
+          final sha = await AttachmentRepository.hashFile(file);
+          if (await s.attachments.bySha(sha) == null) {
+            final hit = await s.medicalDuplicates
+                .findSimilar(sha256: sha, file: file, mimeType: mime);
+            if (hit != null) {
+              if (!mounted) return;
+              final action = await _askSimilar(hit, name);
+              if (action == 'view') {
+                if (!mounted) return;
+                await _open(hit.document.id);
+                return;
+              }
+              if (action != 'add') continue;
+            }
+          }
+        } catch (_) {
+          // 本地识别失败不挡导入，只是没有相似提示。
+        }
         final ImportResult result;
         try {
           result = await s.attachments.importFile(
             File(path),
-            mimeType: _mimeOf(path),
+            mimeType: mime,
             originalFilename: name,
           );
         } catch (e) {
@@ -149,6 +175,13 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
         }
         if (!mounted) return;
         final action = await _askDuplicate(result.attachment, name);
+        if (action == 'view') {
+          final existingDoc = await _documentOfAttachment(result.attachment.id);
+          if (existingDoc != null && mounted) {
+            await _open(existingDoc.id);
+            return;
+          }
+        }
         if (action == 'add') {
           kept.add(
               (attachment: result.attachment, duplicateAcknowledged: true));
@@ -185,16 +218,69 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
       );
       await _load();
       if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => MedicalDocumentPage(
-                services: widget.services, documentId: doc.id)),
-      );
-      await _load();
+      await _open(doc.id);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _open(String documentId) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => MedicalDocumentPage(
+              services: widget.services, documentId: documentId)),
+    );
+    await _load();
+  }
+
+  Future<MedicalDocument?> _documentOfAttachment(String attachmentId) async {
+    for (final d in await widget.services.medicalDocuments.all()) {
+      if (MedicalPageRef.decodeList(d.pages)
+          .any((r) => r.attachmentId == attachmentId)) {
+        return d;
+      }
+    }
+    return null;
+  }
+
+  static String _docLabel(MedicalDocument d) {
+    final date = d.examDate == null
+        ? null
+        : TimeValue.decode(d.examDate!).localDate;
+    final uploaded =
+        DateTime.fromMillisecondsSinceEpoch(d.uploadedAt, isUtc: true).toLocal();
+    return [
+      medicalDocTypeLabels[d.docType]!,
+      if (d.institutionText != null) d.institutionText!,
+      date != null
+          ? '检查日期 $date'
+          : '${uploaded.month} 月 ${uploaded.day} 日添加',
+    ].join(' · ');
+  }
+
+  Future<String?> _askSimilar(SimilarDocumentHit hit, String filename) {
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('可能已经上传过'),
+        content: Text('这份文件识别出的文字与已有的「${_docLabel(hit.document)}」'
+            '${(hit.textScore * 100).round()}% 相同，数字（日期、编号、结果）'
+            '${(hit.numberScore * 100).round()}% 对得上，可能是同一张纸重拍或重新导出。'
+            '\n\n确定是另一份报告（比如复查）可以仍然添加。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, 'view'),
+              child: const Text('查看已有')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, 'add'),
+              child: const Text('仍然添加')),
+        ],
+      ),
+    );
   }
 
   Future<String?> _askDuplicate(Attachment existing, String filename) {
@@ -212,6 +298,9 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, 'view'),
+              child: const Text('查看已有')),
           TextButton(
               onPressed: () => Navigator.pop(context, 'add'),
               child: const Text('仍然添加')),

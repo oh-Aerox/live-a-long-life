@@ -298,6 +298,11 @@ class AttachmentRepository {
   }
 
   /// 本机副本的当前绝对路径；不在本机（offloaded / missing）时为 null。
+  /// 按内容哈希找已登记的附件（导入前判断是否完全相同，D-10）。
+  Future<Attachment?> bySha(String sha256) => (_db.select(_db.attachments)
+        ..where((t) => t.sha256.equals(sha256)))
+      .getSingleOrNull();
+
   Future<Attachment?> byId(String attachmentId) => (_db.select(_db.attachments)
         ..where((t) => t.id.equals(attachmentId) & t.deletedAt.isNull()))
       .getSingleOrNull();

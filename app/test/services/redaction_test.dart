@@ -72,4 +72,31 @@ void main() {
     expect(RedactionService.isValidCitizenId('110101199003077757'), isFalse);
     expect(RedactionService.isValidCitizenId('11010119901307775X'), isFalse); // 13 月
   });
+
+  test('门诊卡号（2026-09-29 用户补充）：各种叫法与 OCR 误读都遮，出生日期保留', () {
+    final r = service.redactPage(lines([
+      '就诊时间：2026-09-23 16:18 门1诊卡号：1000123456',
+      '就诊卡号 A0012345',
+      '出生日期：1980-01-01',
+      '姓名：张三门诊号：88776655',
+    ]));
+    expect(r.lines[0].text, contains('【卡号】'));
+    expect(r.lines[0].text, isNot(contains('1000123456')));
+    // 就诊时间不被号码规则误伤。
+    expect(r.lines[0].text, contains('2026-09-23 16:18'));
+    expect(r.lines[1].text, contains('【卡号】'));
+    expect(r.lines[2].text, '出生日期：1980-01-01');
+    // 姓名紧贴卡号标签时两个都遮。
+    expect(r.lines[3].text, isNot(contains('张三')));
+    expect(r.lines[3].text, isNot(contains('88776655')));
+    expect(r.redactedCount, 4);
+  });
+
+  test('门诊卡号表格版式：标签单独成行，遮同行右邻的值', () {
+    final r = service.redactPage(const [
+      OcrLine(text: '门诊卡号', x: 0.1, y: 0.1, w: 0.1, h: 0.03),
+      OcrLine(text: '1000123456', x: 0.25, y: 0.1, w: 0.2, h: 0.03),
+    ]);
+    expect(r.lines[1].text, '【卡号】');
+  });
 }

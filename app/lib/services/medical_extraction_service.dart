@@ -107,7 +107,7 @@ const labExtractSystemPrompt = '''
   结石、囊肿、结节、慢性病、过敏等不会自行消失的算 long_term，
   感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
   检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
-- 文本里的【姓名】【证件号】是脱敏占位符，不是数据，忽略它们；
+- 文本里的【姓名】【证件号】【卡号】是脱敏占位符，不是数据，忽略它们；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ''';
 
@@ -583,6 +583,24 @@ class MedicalExtractionService {
       possibleDuplicateRecordIds: duplicates,
       conditionRecords: conditions,
     );
+  }
+
+  /// 删除一份医疗文件（重复上传的清理入口）：文件、它的提取记录、从它
+  /// 建议出来但还没核对的状况一起标记删除（走变更日志同步，历史版本保留）。
+  /// 用户已确认的状况是事实，保留（R-34）；原始照片/PDF 仍在消息流里（D-27）。
+  Future<void> deleteDocument(String documentId) async {
+    final panel = await _records.labPanelOfDocument(documentId);
+    if (panel != null) await _records.markDeleted(panel.id);
+    for (final rec in await _records.byType(RecordType.condition)) {
+      final rev = await _records.currentRevisionOf(rec.id);
+      final data = jsonDecode(rev.data) as Map;
+      if (data['medical_document_id'] != documentId) continue;
+      final status = FieldMetaMap.decode(rev.fieldMeta)['condition']?.reviewStatus;
+      if (status == null || status == ReviewStatus.unreviewed) {
+        await _records.markDeleted(rec.id);
+      }
+    }
+    await _documents.markDeleted(documentId);
   }
 
   /// 本地提取一份文件的全部页（不调模型，供提取与页预览共用）。

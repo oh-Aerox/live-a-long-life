@@ -17,6 +17,7 @@ import 'data/repositories/peer_repository.dart';
 import 'data/repositories/record_repository.dart';
 import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'services/medical_duplicate.dart';
 import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
 import 'services/consult_service.dart';
@@ -98,6 +99,11 @@ class AppServices {
       keyStore: keyStore,
       extraction: textExtraction,
     );
+    medicalDuplicates = MedicalDuplicateService(
+      attachments: attachments,
+      documents: medicalDocuments,
+      extraction: textExtraction,
+    );
     medicalSpace = MedicalSpaceService(
       db: db,
       attachments: attachments,
@@ -127,6 +133,7 @@ class AppServices {
   late final BackupService backupService;
   late final TextExtractionService textExtraction;
   late final MedicalExtractionService medicalExtraction;
+  late final MedicalDuplicateService medicalDuplicates;
   late final ConsultService consult;
   late final MedicalSpaceService medicalSpace;
 

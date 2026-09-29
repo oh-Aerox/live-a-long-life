@@ -448,6 +448,29 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     ];
   }
 
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除这份医疗文件？'),
+        content: const Text('从病例夹移除，提取出的检验数值、文字和药品一起删除，'
+            '不再参与分析；还没核对的身体状况建议也一起删掉，已确认的状况档案保留。'
+            '\n\n原始照片或 PDF 仍在对话记录里。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await widget.services.medicalExtraction.deleteDocument(widget.documentId);
+    if (mounted) Navigator.pop(context);
+  }
+
   /// 附件级页序调整（一份多页报告可由不同消息的照片组成，页序可调）。
   Future<void> _reorderPages() async {
     final doc = _doc!;
@@ -536,6 +559,11 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               tooltip: '调整页序',
               onPressed: _reorderPages,
             ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: '删除这份文件',
+            onPressed: _delete,
+          ),
         ],
       ),
       body: ListView(
@@ -560,7 +588,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text(
-                '先在本机识别文字并自动遮蔽姓名和证件号，展示给你检查、修改，'
+                '先在本机识别文字并自动遮蔽姓名、证件号和门诊卡号，展示给你检查、修改，'
                 '确认后才发给模型。原图不发送；体检册的导读、宣教等无关页默认不发。',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),

@@ -10,6 +10,7 @@ class FakeExtractor implements TextExtractor {
     this.pageCount = 1,
     this.pageTexts = const {},
     this.ocrResults = const [],
+    this.ocrByFirstByte = const {},
   });
 
   final int pageCount;
@@ -17,6 +18,9 @@ class FakeExtractor implements TextExtractor {
   /// 页号（0 起）→ 文字层文本；缺的页当作没有文字层。
   final Map<int, String?> pageTexts;
   final List<OcrLine> ocrResults;
+
+  /// 按图片文件首字节返回不同的识别结果（多文件场景）；没命中用 [ocrResults]。
+  final Map<int, List<OcrLine>> ocrByFirstByte;
 
   final renderedPages = <int>[];
   final ocredPaths = <String>[];
@@ -39,6 +43,11 @@ class FakeExtractor implements TextExtractor {
   @override
   Future<List<OcrLine>> ocrImage(String path) async {
     ocredPaths.add(path);
+    if (ocrByFirstByte.isNotEmpty) {
+      final bytes = await File(path).readAsBytes();
+      final hit = bytes.isEmpty ? null : ocrByFirstByte[bytes.first];
+      if (hit != null) return hit;
+    }
     return ocrResults;
   }
 }

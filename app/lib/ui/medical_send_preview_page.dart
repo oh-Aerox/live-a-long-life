@@ -122,7 +122,8 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     final spans = <TextSpan>[];
     final pattern = RegExp(
         '${RegExp.escape(RedactionService.namePlaceholder)}|'
-        '${RegExp.escape(RedactionService.idPlaceholder)}');
+        '${RegExp.escape(RedactionService.idPlaceholder)}|'
+        '${RegExp.escape(RedactionService.cardPlaceholder)}');
     var last = 0;
     for (final m in pattern.allMatches(text)) {
       if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
@@ -182,7 +183,7 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
         child: Text(
           '下面就是将要发给模型'
           '${_config == null ? '' : '（${_config!.model}）'}的全部文字，'
-          '原图不发送。已自动遮蔽姓名、证件号 ${draft.redactedCount} 处（绿色）。'
+          '原图不发送。已自动遮蔽姓名、证件号、门诊卡号 ${draft.redactedCount} 处（绿色）。'
           '请检查有没有漏掉的个人信息：点任意一行可以修改或删掉。',
           style: const TextStyle(fontSize: 13),
         ),
