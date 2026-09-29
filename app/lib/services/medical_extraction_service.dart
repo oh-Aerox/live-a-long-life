@@ -923,9 +923,12 @@ class MedicalExtractionService {
           );
 
     // 7. 回填文件级信息（uploaded_at 不动，三个时间各自独立，D-06）。
+    // 文件类型只在还是"其他"（病例夹里新加、未分类）时用模型的判断补上；
+    // 从"我的体检"加的文件类型是用户选的，不覆盖（2026-09-29 联调：体检
+    // 报告被改成检验报告后从体检列表消失，模型的可选类型里也没有体检）。
     final docTypeRaw = docInfo['doc_type'] as String?;
     MedicalDocType? docType;
-    if (docTypeRaw != null) {
+    if (docTypeRaw != null && doc.docType == MedicalDocType.other) {
       try {
         docType = enumFromDb(MedicalDocType.values, docTypeRaw);
       } catch (_) {}

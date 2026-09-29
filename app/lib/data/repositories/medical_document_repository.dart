@@ -132,6 +132,36 @@ class MedicalDocumentRepository {
         );
       });
 
+  /// 修复（2026-09-29 联调）：提取曾用模型判断覆盖文件类型，把"我的体检"里
+  /// 的文件改成了检验报告/其他，文件从体检列表消失。变更日志里保留着每个
+  /// 版本的快照：曾经是体检报告、现在不是的，改回体检报告（走变更日志同步）。
+  /// 幂等。返回修复的份数。
+  Future<int> repairPhysicalExamType() async {
+    var repaired = 0;
+    for (final doc in await all()) {
+      if (doc.docType == MedicalDocType.physicalExam) continue;
+      final logs = await (_db.select(_db.changeLogs)
+            ..where((t) =>
+                t.entityType.equals('medical_documents') &
+                t.entityId.equals(doc.id)))
+          .get();
+      final wasExam = logs.any((l) {
+        try {
+          return (jsonDecode(l.payload) as Map)['doc_type'] ==
+              enumToDb(MedicalDocType.physicalExam);
+        } catch (_) {
+          return false;
+        }
+      });
+      if (!wasExam) continue;
+      await _update(doc.id,
+          (_) => const MedicalDocumentsCompanion(
+              docType: Value(MedicalDocType.physicalExam)));
+      repaired++;
+    }
+    return repaired;
+  }
+
   /// 页筛选覆盖（D-23 默认筛选+用户可改）：[include] true 强制发送、
   /// false 强制排除、null 清掉覆盖回到规则默认。
   Future<MedicalDocument> setPageOverride(

@@ -703,6 +703,43 @@ void main() {
     });
   });
 
+  test('文件类型：体检报告不被模型判断覆盖，未分类的由模型补上；被改掉的可修复', () async {
+    await addConfig();
+    Future<MedicalDocument> add(MedicalDocType type, int byte) async {
+      final src = File('${tmp.path}/t$byte.jpg')..writeAsBytesSync([byte]);
+      final att =
+          (await attachments.importFile(src, mimeType: 'image/jpeg')).attachment;
+      return documents.create(
+        pages: [MedicalPageRef(attachmentId: att.id, messageId: 'm', pageNo: 1)],
+        docType: type,
+      );
+    }
+    final exam = await add(MedicalDocType.physicalExam, 41);
+    final other = await add(MedicalDocType.other, 42);
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '血糖 5.1 mmol/L 3.9-6.1', x: 0.1, y: 0.1, w: 0.5, h: 0.03),
+    ]);
+    final reply = jsonEncode({
+      'doc': {'doc_type': 'lab_report', 'institution_text': '某体检中心'},
+      'results': [],
+    });
+    model.reply(reply);
+    model.reply(reply);
+    await buildService(extractor).extractDocument(exam.id);
+    await buildService(extractor).extractDocument(other.id);
+    expect((await documents.byId(exam.id))!.docType, MedicalDocType.physicalExam);
+    expect((await documents.byId(exam.id))!.institutionText, '某体检中心');
+    expect((await documents.byId(other.id))!.docType, MedicalDocType.labReport);
+
+    // 修复前的旧行为留下的数据：体检报告被改成了检验报告。
+    await documents.updateInfo(exam.id, docType: MedicalDocType.labReport);
+    expect(await documents.repairPhysicalExamType(), 1);
+    expect((await documents.byId(exam.id))!.docType, MedicalDocType.physicalExam);
+    expect(await documents.repairPhysicalExamType(), 0); // 幂等
+    // 从没当过体检报告的不动。
+    expect((await documents.byId(other.id))!.docType, MedicalDocType.labReport);
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

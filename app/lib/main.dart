@@ -74,6 +74,8 @@ Future<void> main() async {
   // 再推送（V3-M3；失败静默，状态在"连接 Mac"页可见）。
   unawaited(() async {
     await services.db.backfillChangeLogIfNeeded(services.ctx.deviceId);
+    final exams = await services.medicalDocuments.repairPhysicalExamType();
+    if (exams > 0) AppLog.I.i('medical', '体检报告类型改回：$exams 份');
     final repaired = await services.records.repairMissingSources();
     if (repaired > 0) AppLog.I.i('records', '补回来源链接：$repaired 个版本');
     final removed = await services.records.dedupeExactDuplicates();
