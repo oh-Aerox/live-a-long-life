@@ -6,7 +6,10 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/time_value.dart';
+import '../services/medical_space_service.dart' show MedicalFile;
+import 'medical_folder_page.dart' show medicalDocTypeLabels;
 import 'record_ui.dart';
+import 'source_viewer_page.dart';
 
 /// 记录详情（product-spec §4）：来源消息可查、字段可修正、历史保留。
 /// 修正后字段状态变为"用户已修改"，整理不再覆盖它（D-05、A-25）。
@@ -33,6 +36,10 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   List<RecordRevision> _history = [];
   List<(RecordSource, Message?)> _sources = [];
 
+  /// 附件来源（医疗原件）的本机状态：原件在不在本机、已清理时能否取回
+  /// （A-17：不能伪称原件仍在本机）。
+  Map<String, _AttachmentSource> _attachments = {};
+
   @override
   void initState() {
     super.initState();
@@ -47,10 +54,31 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final history = await s.records.revisionsOf(record.id);
     final sourceRows = await s.records.sourcesOf(rev.id);
     final sources = <(RecordSource, Message?)>[];
+    final attachments = <String, _AttachmentSource>{};
+    Map<String, MedicalFile>? medicalFiles;
     for (final src in sourceRows) {
       Message? msg;
       if (src.sourceKind == RecordSourceKind.message) {
         msg = await s.messages.byId(src.sourceId);
+      } else if (src.sourceKind == RecordSourceKind.attachment) {
+        final att = await s.attachments.byId(src.sourceId);
+        if (att != null) {
+          medicalFiles ??= {
+            for (final f in await s.medicalSpace.list()) f.attachment.id: f
+          };
+          final f = medicalFiles[att.id];
+          attachments[att.id] = _AttachmentSource(
+            attachment: att,
+            state: await s.attachments.copyStateOf(att.id),
+            archivedOnMac: f?.archivedOnMac ?? false,
+            label: medicalDocTypeLabels.entries
+                    .where((e) => e.key.name == f?.docLabel)
+                    .map((e) => e.value)
+                    .firstOrNull ??
+                att.originalFilename ??
+                '附件',
+          );
+        }
       }
       sources.add((src, msg));
     }
@@ -60,6 +88,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
         _rev = rev;
         _history = history;
         _sources = sources;
+        _attachments = attachments;
       });
     }
   }
@@ -252,6 +281,10 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
             child: Text('来源', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           for (final (src, msg) in _sources)
+            if (_attachments[src.sourceId] case final a?
+                when src.sourceKind == RecordSourceKind.attachment)
+              _attachmentTile(a)
+            else
             ListTile(
               dense: true,
               leading: const Icon(Icons.chat_bubble_outline, size: 18),
@@ -292,6 +325,58 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     );
   }
 
+  /// 医疗原件来源：在本机可打开（带记录里的原件定位）；已清理时说明
+  /// 记录保留、给出取回入口，Mac 端副本只读不取回（D-22、A-17）。
+  Widget _attachmentTile(_AttachmentSource a) {
+    final present = a.state == CopyState.present;
+    final subtitle = present
+        ? '在本机 · 点开查看原件'
+        : a.state == CopyState.offloaded
+            ? '手机上已清理，记录保留 · '
+                '${a.archivedOnMac ? 'Mac 已归档，可取回（需 Mac 在线）' : '没有确认的其他副本，可重新上传同一文件补回'}'
+            : '本机没有这份文件，记录保留';
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.description_outlined, size: 18),
+      title: Text('原件：${a.label}'),
+      subtitle: Text(subtitle),
+      trailing: !present &&
+              a.state == CopyState.offloaded &&
+              a.archivedOnMac &&
+              !widget.readOnly
+          ? TextButton(onPressed: () => _retrieve(a), child: const Text('取回'))
+          : null,
+      onTap: present ? () => _openAttachment(a) : null,
+    );
+  }
+
+  Future<void> _openAttachment(_AttachmentSource a) async {
+    // 状况记录带原件定位（框出诊断那一行）；其余打开第一页。
+    final data = _rev == null ? null : jsonDecode(_rev!.data);
+    final loc = data is Map ? data['locator'] : null;
+    final locator = loc is Map && loc['attachment_id'] == a.attachment.id
+        ? loc.cast<String, Object?>()
+        : {'attachment_id': a.attachment.id, 'page_no': 1, 'attachment_page': 1};
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SourceViewerPage(
+            services: widget.services, locator: locator, title: a.label),
+      ),
+    );
+  }
+
+  Future<void> _retrieve(_AttachmentSource a) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await widget.services.medicalSpace.retrieve(a.attachment.id);
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok
+          ? '已从 Mac 取回，原件可以查看了'
+          : 'Mac 不可达或没有这份文件；记录不受影响，也可以重新上传同一文件补回'),
+    ));
+    await _load();
+  }
+
   String _metaText(FieldMeta? meta) {
     if (meta == null) return '';
     final origin = switch (meta.origin) {
@@ -322,4 +407,18 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       _ => pb.kind,
     };
   }
+}
+
+class _AttachmentSource {
+  const _AttachmentSource({
+    required this.attachment,
+    required this.state,
+    required this.archivedOnMac,
+    required this.label,
+  });
+
+  final Attachment attachment;
+  final CopyState state;
+  final bool archivedOnMac;
+  final String label;
 }
