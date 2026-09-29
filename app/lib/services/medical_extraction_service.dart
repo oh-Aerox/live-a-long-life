@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
@@ -110,6 +111,83 @@ const labExtractSystemPrompt = '''
 - 文本里的【姓名】【证件号】【卡号】是脱敏占位符，不是数据，忽略它们；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ''';
+
+/// 模型识图兜底提示词（V4-M3，D-23/D-24）：本机文字识别不准时，用户显式
+/// 选择把（通常已裁剪的）页面图片发给多模态模型。输出结构与
+/// [labExtractSystemPrompt] 相同但没有行号——定位回原件用页码 + 裁剪区域。
+/// 改动本提示词时同步更新 docs/prompts.md。
+const labExtractImageSystemPrompt = '''
+你是医疗文件（检验单、检查报告、病历、处方）的结构化整理器。输入是用户拍摄或
+导入的一页医疗文件图片，可能已被用户裁剪成局部（裁掉了姓名、证件号等）。
+只输出一个 JSON 对象，不要输出其他文字，结构如下（各字段含义同检验报告提取）：
+{
+  "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
+          "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
+  "results": [{"item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "findings": [{"section_raw", "text_raw"}],
+  "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
+  "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
+}
+
+规则：
+- 只抄写图片上看得清的内容，看不清、被裁掉或被遮挡的不要猜，数值字段留 null；
+- 数值、单位、参考范围、日期、剂量按图上原样，不要按常识改；
+- 手写或潦草的字拿不准时照你能辨认的写，并宁可少收一项也不要编造；
+- 图片只是局部时，只整理图上有的部分，不要推测图外的内容；
+- 不要在任何字段里写出姓名、身份证号、门诊卡号、电话、住址等个人信息；
+- results、findings、medications、conditions 的收录范围与分类规则同检验报告提取：
+  文字内容按栏目分条放 findings，开具的药品放 medications，
+  conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
+- 没有的部分给空数组。
+''';
+
+/// 识图调用：比 [OrganizeModelCall] 多一张图片（base64 PNG）。
+typedef MedicalImageCall = Future<ModelResponse> Function({
+  required ModelConfig config,
+  required String apiKey,
+  String? system,
+  required String userText,
+  required int maxTokens,
+  required String imagePngBase64,
+});
+
+/// 识图兜底要发送的一页：裁剪后的 PNG（只在内存里，D-24 不落库）。
+class ImageSend {
+  const ImageSend({
+    required this.attachmentId,
+    required this.pageNo,
+    required this.attachmentPage,
+    required this.png,
+    required this.width,
+    required this.height,
+    this.cropBox,
+  });
+
+  final String attachmentId;
+
+  /// 文件内全局页号、附件内页号（locator 用）。
+  final int pageNo;
+  final int attachmentPage;
+  final Uint8List png;
+  final int width;
+  final int height;
+
+  /// 裁剪区域（相对原页的归一化坐标 x/y/w/h）；null = 整页没裁剪。
+  final Map<String, double>? cropBox;
+}
+
+/// 识图兜底可选的一页。
+class ImagePageChoice {
+  const ImagePageChoice({
+    required this.pageNo,
+    required this.attachmentId,
+    required this.attachmentPage,
+  });
+
+  final int pageNo;
+  final String attachmentId;
+  final int attachmentPage;
+}
 
 /// 提取结果：记录 + 每页的筛选判定（UI 展示"已排除"标记用）+ 遮蔽项数
 /// + 近似重复候选（同检查日期同项目的已有记录，D-10）。
@@ -257,6 +335,7 @@ class MedicalExtractionService {
     this.pageFilter = const PageFilter(),
     this.redaction = const RedactionService(),
     OrganizeModelCall? modelCall,
+    MedicalImageCall? imageCall,
     this.ids = const IdGenerator(),
   })  : _attachments = attachments,
         _documents = documents,
@@ -265,7 +344,8 @@ class MedicalExtractionService {
         _modelConfigs = modelConfigs,
         _keyStore = keyStore,
         _extraction = extraction,
-        _modelCall = modelCall ?? _defaultCall;
+        _modelCall = modelCall ?? _defaultCall,
+        _imageCall = imageCall ?? _defaultImageCall;
 
   final AttachmentRepository _attachments;
   final MedicalDocumentRepository _documents;
@@ -277,6 +357,7 @@ class MedicalExtractionService {
   final PageFilter pageFilter;
   final RedactionService redaction;
   final OrganizeModelCall _modelCall;
+  final MedicalImageCall _imageCall;
   final IdGenerator ids;
 
   static Future<ModelResponse> _defaultCall({
@@ -293,6 +374,161 @@ class MedicalExtractionService {
           system: system,
           userText: userText,
           maxTokens: maxTokens);
+
+  static Future<ModelResponse> _defaultImageCall({
+    required ModelConfig config,
+    required String apiKey,
+    String? system,
+    required String userText,
+    required int maxTokens,
+    required String imagePngBase64,
+  }) =>
+      ModelClient(timeout: const Duration(seconds: 180)).complete(
+          config: config,
+          apiKey: apiKey,
+          system: system,
+          userText: userText,
+          maxTokens: maxTokens,
+          imagePngBase64: imagePngBase64);
+
+  /// 默认模型是否能识图：看测试连接探测写入的 capabilities（schema §4.3、
+  /// D-16）。没测过或只支持文本都算不能——界面据此提示换模型，不报失败。
+  Future<bool> defaultModelSupportsImage() async {
+    final config = await _modelConfigs.defaultConfig();
+    if (config == null) return false;
+    try {
+      return (jsonDecode(config.capabilities) as List).contains('image');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 识图兜底可选的页（多页 PDF 逐页列出）。本机不在的原件不列。
+  Future<List<ImagePageChoice>> imagePages(String documentId) async {
+    final doc = await _documents.byId(documentId);
+    if (doc == null) return const [];
+    return [
+      for (final p in await _loadDocPages(doc))
+        ImagePageChoice(
+            pageNo: p.pageNo,
+            attachmentId: p.attachmentId,
+            attachmentPage: p.attachmentPage),
+    ];
+  }
+
+  /// 一页的原图字节，交给裁剪页（PDF 页现场渲染，不留文件）。
+  Future<Uint8List> pageImage(ImagePageChoice page) async {
+    final att = await _attachments.byId(page.attachmentId);
+    final path = await _attachments.localPathOf(page.attachmentId);
+    if (att == null || path == null) {
+      throw StateError('附件本地文件不可用，先取回原件再识图（D-22）');
+    }
+    return _extraction.pageImage(
+        file: File(path),
+        mimeType: att.mimeType,
+        attachmentPage: page.attachmentPage);
+  }
+
+  /// 模型识图兜底（V4-M3，D-24）：用户显式发起，发送的是裁剪页上确认过的
+  /// 图片（或确认风险后的整页），只用于这一次调用、不落库。结果与文字路径
+  /// 同样建成 lab_panel（全部 unreviewed），定位为页码 + 裁剪区域。
+  Future<MedicalExtractOutcome> extractFromImage(
+      String documentId, ImageSend send) async {
+    final doc = await _documents.byId(documentId);
+    if (doc == null) throw StateError('医疗文件不存在：$documentId');
+    final config = await _modelConfigs.defaultConfig();
+    if (config == null) {
+      throw StateError('还没有配置模型：先在"模型配置"里添加');
+    }
+    if (!await defaultModelSupportsImage()) {
+      throw StateError('当前默认模型不支持图片：在"模型配置"里换一个支持图片的模型，'
+          '或重新测试连接');
+    }
+    final box = send.cropBox;
+    final area = box == null
+        ? null
+        : ((box['w'] ?? 1) * (box['h'] ?? 1) * 100).round();
+    final sentSummary = '模型识图：第 ${send.pageNo} 页'
+        '${box == null ? '整页（未裁剪）' : '裁剪后的局部（约占整页 $area%）'}，'
+        '图片 ${send.width}×${send.height}，只用于这次发送，不保存';
+    const userText = '请整理这张医疗文件图片。';
+    final requestAt = ids.nowMs();
+    final apiKey = config.keychainRef.isEmpty
+        ? ''
+        : (await _keyStore.read(config.keychainRef) ?? '');
+    final requestText = '$userText\n[附图 ${send.width}×${send.height} PNG，'
+        '${box == null ? '整页' : '裁剪区域 x=${box['x']!.toStringAsFixed(2)} '
+            'y=${box['y']!.toStringAsFixed(2)} w=${box['w']!.toStringAsFixed(2)} '
+            'h=${box['h']!.toStringAsFixed(2)}'}；图片本身不存进调用记录]';
+    ModelResponse response;
+    try {
+      response = await _imageCall(
+        config: config,
+        apiKey: apiKey,
+        system: labExtractImageSystemPrompt,
+        userText: userText,
+        maxTokens: 8192,
+        imagePngBase64: base64Encode(send.png),
+      );
+    } catch (e) {
+      await _organize.recordModelCall(
+        modelConfigId: config.id,
+        dataBoundary: config.dataBoundary,
+        sentMessageIdsJson: '[]',
+        sentAttachmentIdsJson: jsonEncode([send.attachmentId]),
+        requestAt: requestAt,
+        responseAt: ids.nowMs(),
+        status: ModelCallStatus.failed,
+        caller: ModelCaller.phoneMedicalExtract,
+        sentSummary: sentSummary,
+        requestText: requestText,
+      );
+      rethrow;
+    }
+    final call = await _organize.recordModelCall(
+      modelConfigId: config.id,
+      dataBoundary: config.dataBoundary,
+      sentMessageIdsJson: '[]',
+      sentAttachmentIdsJson: jsonEncode([send.attachmentId]),
+      requestAt: requestAt,
+      responseAt: ids.nowMs(),
+      status: ModelCallStatus.succeeded,
+      tokensIn: response.tokensIn,
+      tokensOut: response.tokensOut,
+      responseText: response.text,
+      caller: ModelCaller.phoneMedicalExtract,
+      sentSummary: sentSummary,
+      requestText: requestText,
+    );
+    final parsed = _parse(response.text);
+    if (parsed == null) {
+      AppLog.I.w('extract', '识图结果解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析，本次识图未生成记录');
+    }
+    final saved = await _saveParsed(
+      doc,
+      parsed,
+      lineIndex: const {},
+      fallback: {
+        'attachment_id': send.attachmentId,
+        'page_no': send.pageNo,
+        'attachment_page': send.attachmentPage,
+        'box': ?box,
+      },
+      callId: call.id,
+      attachmentIds: {send.attachmentId},
+    );
+    AppLog.I.i('extract',
+        '识图提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
+        '药品 ${saved.medications} 种，${box == null ? '整页' : '裁剪 $area%'}');
+    return MedicalExtractOutcome(
+      record: saved.record,
+      pageDecisions: const [],
+      redactedCount: 0,
+      possibleDuplicateRecordIds: saved.duplicates,
+      conditionRecords: saved.conditions,
+    );
+  }
 
   /// 对一份医疗文件做结构化提取（不经预览直接发送；测试与批量场景用）。
   /// 界面走 [prepareSend] → 用户预览修改 → [sendDraft] 两步（D-28）。
@@ -412,9 +648,6 @@ class MedicalExtractionService {
       AppLog.I.w('extract', '结构化提取解析失败：${_snippet(response.text)}');
       throw StateError('模型返回无法解析，本次提取未生成记录');
     }
-    final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
-    final rawResults = (parsed['results'] as List?) ?? const [];
-
     // 5. source_lines → locator（见 [_locatorsOf]）。
     final lineIndex = <String, (DraftPage, OcrLine)>{};
     for (final p in included) {
@@ -424,12 +657,48 @@ class MedicalExtractionService {
         lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
       }
     }
+    final saved = await _saveParsed(doc, parsed,
+        lineIndex: lineIndex, callId: call.id, attachmentIds: attachmentIds);
+    AppLog.I.i('extract',
+        '结构化提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
+        '药品 ${saved.medications} 种，'
+        '遮蔽 $redactedTotal 处，'
+        '发送 ${included.length}/${draft.pages.length} 页'
+        '${saved.conditions.isEmpty ? '' : '，新增 ${saved.conditions.length} 条状况建议'}'
+        '${saved.duplicates.isEmpty ? '' : '，疑似与 ${saved.duplicates.length} 条已有记录重复'}');
+    return MedicalExtractOutcome(
+      record: saved.record,
+      pageDecisions: [
+        for (final p in draft.pages)
+          PageDecision(pageNo: p.pageNo, included: p.included, reason: p.reason),
+      ],
+      redactedCount: redactedTotal,
+      possibleDuplicateRecordIds: saved.duplicates,
+      conditionRecords: saved.conditions,
+    );
+  }
+
+  /// 模型返回 → 记录（文字路径与识图路径共用）：检验数值、文字内容、药品
+  /// 建成 lab_panel（全部 unreviewed，D-04；重新提取追加版本），回填文件级
+  /// 信息，查近似重复，建状况建议。source_lines 对不上 [lineIndex] 时用
+  /// [fallback] 定位（识图路径没有行号：页码 + 裁剪区域）。
+  Future<_Saved> _saveParsed(
+    MedicalDocument doc,
+    Map<String, Object?> parsed, {
+    required Map<String, (DraftPage, OcrLine)> lineIndex,
+    Map<String, Object?>? fallback,
+    required String callId,
+    required Set<String> attachmentIds,
+  }) async {
+    final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
+    final rawResults = (parsed['results'] as List?) ?? const [];
+
     final results = <Map<String, Object?>>[];
     for (final raw in rawResults) {
       if (raw is! Map) continue;
       final r = raw.cast<String, Object?>();
       if (r['item_name_raw'] is! String || r['value_raw'] is! String) continue;
-      final locators = _locatorsOf(r['source_lines'], lineIndex);
+      final locators = _locatorsOf(r['source_lines'], lineIndex, fallback);
       results.add({
         'item_name_raw': r['item_name_raw'],
         'value_raw': r['value_raw'],
@@ -457,7 +726,7 @@ class MedicalExtractionService {
             ? section.trim()
             : null,
         'text_raw': text.trim(),
-        'locator': _locatorsOf(raw['source_lines'], lineIndex),
+        'locator': _locatorsOf(raw['source_lines'], lineIndex, fallback),
         'ocr_fixes': _ocrFixes(raw['ocr_fixes']),
       });
     }
@@ -474,7 +743,7 @@ class MedicalExtractionService {
           k: raw[k] is String && (raw[k] as String).trim().isNotEmpty
               ? (raw[k] as String).trim()
               : null,
-        'locator': _locatorsOf(raw['source_lines'], lineIndex),
+        'locator': _locatorsOf(raw['source_lines'], lineIndex, fallback),
         'ocr_fixes': _ocrFixes(raw['ocr_fixes']),
       });
     }
@@ -519,7 +788,7 @@ class MedicalExtractionService {
             occurred: occurred,
             dataJson: dataJson,
             fieldMeta: FieldMetaMap(meta),
-            producedBy: ProducedBy.medicalExtract(call.id),
+            producedBy: ProducedBy.medicalExtract(callId),
             sources: sources,
           )
         : await _records.addRevision(
@@ -528,7 +797,7 @@ class MedicalExtractionService {
             occurred: occurred,
             dataJson: dataJson,
             fieldMeta: FieldMetaMap(meta),
-            producedBy: ProducedBy.medicalExtract(call.id),
+            producedBy: ProducedBy.medicalExtract(callId),
             sources: sources,
           );
 
@@ -563,27 +832,19 @@ class MedicalExtractionService {
     final conditions = await _createConditionSuggestions(
       parsed['conditions'] as List? ?? const [],
       lineIndex: lineIndex,
+      fallback: fallback,
       examDate: examDate,
       documentId: doc.id,
-      callId: call.id,
+      callId: callId,
       attachmentIds: attachmentIds,
     );
-    AppLog.I.i('extract',
-        '结构化提取完成：${results.length} 项，文字 ${findings.length} 段，'
-        '药品 ${medications.length} 种，'
-        '遮蔽 $redactedTotal 处，'
-        '发送 ${included.length}/${draft.pages.length} 页'
-        '${conditions.isEmpty ? '' : '，新增 ${conditions.length} 条状况建议'}'
-        '${duplicates.isEmpty ? '' : '，疑似与 ${duplicates.length} 条已有记录重复'}');
-    return MedicalExtractOutcome(
+    return _Saved(
       record: record,
-      pageDecisions: [
-        for (final p in draft.pages)
-          PageDecision(pageNo: p.pageNo, included: p.included, reason: p.reason),
-      ],
-      redactedCount: redactedTotal,
-      possibleDuplicateRecordIds: duplicates,
-      conditionRecords: conditions,
+      results: results.length,
+      findings: findings.length,
+      medications: medications.length,
+      duplicates: duplicates,
+      conditions: conditions,
     );
   }
 
@@ -665,6 +926,7 @@ class MedicalExtractionService {
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
     required Map<String, (DraftPage, OcrLine)> lineIndex,
+    Map<String, Object?>? fallback,
     required String? examDate,
     required String documentId,
     required String callId,
@@ -691,7 +953,7 @@ class MedicalExtractionService {
       final key = RecordRepository.labItemKey(name);
       if (!existingKeys.add(key)) continue; // 同名已有，不重复建档
 
-      final locators = _locatorsOf(c['source_lines'], lineIndex);
+      final locators = _locatorsOf(c['source_lines'], lineIndex, fallback);
       final locator = locators.isEmpty ? null : locators.first;
       final record = await _records.create(
         recordType: RecordType.condition,
@@ -733,7 +995,8 @@ class MedicalExtractionService {
   /// source_lines → locator（附件 ID + 文件页号 + 附件内页号 + 坐标；
   /// 文字层无坐标时只有页号和原文行）。编造或未发送的行号丢弃。
   static List<Map<String, Object?>> _locatorsOf(
-      Object? sourceLines, Map<String, (DraftPage, OcrLine)> lineIndex) {
+      Object? sourceLines, Map<String, (DraftPage, OcrLine)> lineIndex,
+      [Map<String, Object?>? fallback]) {
     final locators = <Map<String, Object?>>[];
     for (final key in (sourceLines as List? ?? const [])) {
       final hit = lineIndex[key];
@@ -748,6 +1011,7 @@ class MedicalExtractionService {
         'line_text': line.text,
       });
     }
+    if (locators.isEmpty && fallback != null) locators.add(fallback);
     return locators;
   }
 
@@ -838,4 +1102,22 @@ class _DocPage {
   /// 附件内页号（1 起）：多页 PDF 渲染定位用。
   final int attachmentPage;
   final ExtractedPage page;
+}
+
+class _Saved {
+  const _Saved({
+    required this.record,
+    required this.results,
+    required this.findings,
+    required this.medications,
+    required this.duplicates,
+    required this.conditions,
+  });
+
+  final RecordRow record;
+  final int results;
+  final int findings;
+  final int medications;
+  final List<String> duplicates;
+  final List<RecordRow> conditions;
 }

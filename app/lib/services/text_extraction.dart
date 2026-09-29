@@ -122,6 +122,24 @@ class TextExtractionService {
   final TextExtractor _extractor;
   final Directory _cacheDir;
 
+  /// 一页的图片字节（模型识图兜底用，V4-M3）：图片附件原样读出，PDF 渲染该页
+  /// 到临时文件再读出并删除——渲染结果只在内存里交给裁剪页，不落库（D-24）。
+  /// [attachmentPage] 从 1 起。
+  Future<Uint8List> pageImage(
+      {required File file,
+      required String mimeType,
+      required int attachmentPage}) async {
+    if (mimeType != 'application/pdf') return file.readAsBytes();
+    final out = File(p.join(Directory.systemTemp.path,
+        'llal_page_${DateTime.now().microsecondsSinceEpoch}.png'));
+    try {
+      await _extractor.renderPdfPage(file.path, attachmentPage - 1, out.path);
+      return await out.readAsBytes();
+    } finally {
+      if (await out.exists()) await out.delete();
+    }
+  }
+
   /// 文字层短于这个字数按"没有文字层"处理（扫描件常带少量水印文字）。
   static const minTextLayerChars = 20;
 

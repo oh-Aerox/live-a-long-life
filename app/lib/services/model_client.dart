@@ -59,21 +59,30 @@ class ModelClient {
   final Duration timeout;
   static const anthropicVersion = '2023-06-01';
 
-  /// 发送一轮纯文字对话，返回模型回复。M2 的整理管线在此之上组装。
+  /// 发送一轮对话，返回模型回复。M2 的整理管线在此之上组装。
+  /// [imagePngBase64] 只由医疗文件"用模型识图"显式传入（D-24：图片永不
+  /// 隐式发给模型）；其余调用都是纯文字。
   Future<ModelResponse> complete({
     required ModelConfig config,
     required String apiKey,
     String? system,
     required String userText,
     int maxTokens = 1024,
+    String? imagePngBase64,
   }) {
     switch (config.protocol) {
       case ModelProtocol.openaiCompatible:
         return _openaiChat(config, apiKey,
-            system: system, userText: userText, maxTokens: maxTokens);
+            system: system,
+            userText: userText,
+            maxTokens: maxTokens,
+            imagePngBase64: imagePngBase64);
       case ModelProtocol.anthropic:
         return _anthropicMessage(config, apiKey,
-            system: system, userText: userText, maxTokens: maxTokens);
+            system: system,
+            userText: userText,
+            maxTokens: maxTokens,
+            imagePngBase64: imagePngBase64);
     }
   }
 
@@ -180,13 +189,25 @@ class ModelClient {
     String? system,
     required String userText,
     required int maxTokens,
+    String? imagePngBase64,
   }) async {
     final body = {
       'model': config.model,
       'max_tokens': maxTokens,
       'messages': [
         if (system != null) {'role': 'system', 'content': system},
-        {'role': 'user', 'content': userText},
+        {
+          'role': 'user',
+          'content': imagePngBase64 == null
+              ? userText
+              : [
+                  {'type': 'text', 'text': userText},
+                  {
+                    'type': 'image_url',
+                    'image_url': {'url': 'data:image/png;base64,$imagePngBase64'},
+                  },
+                ],
+        },
       ],
     };
     final json = await _post(
@@ -215,13 +236,29 @@ class ModelClient {
     String? system,
     required String userText,
     required int maxTokens,
+    String? imagePngBase64,
   }) async {
     final body = {
       'model': config.model,
       'max_tokens': maxTokens,
       'system': ?system,
       'messages': [
-        {'role': 'user', 'content': userText},
+        {
+          'role': 'user',
+          'content': imagePngBase64 == null
+              ? userText
+              : [
+                  {
+                    'type': 'image',
+                    'source': {
+                      'type': 'base64',
+                      'media_type': 'image/png',
+                      'data': imagePngBase64,
+                    },
+                  },
+                  {'type': 'text', 'text': userText},
+                ],
+        },
       ],
     };
     final json = await _post(
