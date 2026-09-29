@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../../data/db/app_database.dart';
 import '../../data/repositories/peer_repository.dart';
+import '../../data/repositories/record_repository.dart';
 import '../key_store.dart';
 import 'secure_channel.dart';
 
@@ -48,10 +49,12 @@ class SyncServer {
     required Directory filesDir,
     required PeerRepository peers,
     required KeyStore keyStore,
+    RecordRepository? records,
   })  : _db = db,
         _filesDir = filesDir,
         _peers = peers,
-        _keyStore = keyStore;
+        _keyStore = keyStore,
+        _records = records;
 
   final String deviceId;
   final String displayName;
@@ -59,6 +62,9 @@ class SyncServer {
   final Directory _filesDir;
   final PeerRepository _peers;
   final KeyStore _keyStore;
+
+  /// 收到记录后维护检验项目索引（派生、不同步，各端自建，D-27）。
+  final RecordRepository? _records;
 
   HttpServer? _server;
   SecureChannel? _pendingPairing;
@@ -233,6 +239,13 @@ class SyncServer {
       if (table == 'attachments' && dependsOnBlob != null) {
         await _recordMacCopy(row, dependsOnBlob);
       }
+      // 记录与版本分两条变更到达，哪条后到都会补齐；lab_panel 以外只是空操作。
+      final recordId = switch (table) {
+        'records' => row['id'] as String?,
+        'record_revisions' => row['record_id'] as String?,
+        _ => null,
+      };
+      if (recordId != null) await _records?.reindexLabPanel(recordId);
       await _advancePull(peerId, generation, seq);
     });
     onReplicaChanged?.call();

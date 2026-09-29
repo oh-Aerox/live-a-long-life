@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -42,6 +43,7 @@ void main() {
       filesDir: Directory(p.join(tempDir.path, 'mac_files')),
       peers: PeerRepository(macEnv.db),
       keyStore: KeyStore(),
+      records: RecordRepository(macEnv.db, macEnv.ctx),
     );
     final info = await server.startPairing();
     final client = SyncClient(
@@ -203,5 +205,54 @@ void main() {
     expect(result.error, contains('代次已变化'));
     // Mac 上没有第二条消息。
     expect(await macEnv.db.select(macEnv.db.messages).get(), hasLength(1));
+  });
+
+  test('检验结果同步到 Mac 后建索引，新版本到达后索引跟上（D-27，2026-09-29 联调）',
+      () async {
+    final phoneRecords = RecordRepository(phoneEnv.db, phoneEnv.ctx);
+    final occurred = TimeValue(
+        localDate: '2026-01-27',
+        precision: TimePrecision.dateOnly,
+        source: TimeValueSource.userStated);
+    String panel(String value) => jsonEncode({
+          'medical_document_id': 'doc-1',
+          'results': [
+            {'item_name_raw': '牛肉', 'value_raw': value, 'value_num': num.parse(value)},
+            {'item_name_raw': '鸡肉', 'value_raw': '5', 'value_num': 5},
+          ],
+        });
+    final rec = await phoneRecords.create(
+      recordType: RecordType.labPanel,
+      occurred: occurred,
+      dataJson: panel('0'),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.userEdit(),
+    );
+    expect((await sync.syncNow()).error, isNull);
+
+    final macIndex = await macEnv.db.select(macEnv.db.labResults).get();
+    expect(macIndex.map((r) => r.itemNameRaw), unorderedEquals(['牛肉', '鸡肉']));
+    expect(macIndex.first.medicalDocumentId, 'doc-1');
+
+    // 手机上修改（新版本）→ Mac 索引跟着换成新值。
+    await phoneRecords.addRevision(
+      recordId: rec.id,
+      baseVersion: rec.version,
+      occurred: occurred,
+      dataJson: panel('9'),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.userEdit(),
+    );
+    expect((await sync.syncNow()).error, isNull);
+    final beef = await (macEnv.db.select(macEnv.db.labResults)
+          ..where((t) => t.itemNameRaw.equals('牛肉')))
+        .getSingle();
+    expect(beef.valueRaw, '9');
+    expect(await macEnv.db.select(macEnv.db.labResults).get(), hasLength(2));
+
+    // 手机删除 → Mac 索引清空。
+    await phoneRecords.markDeleted(rec.id);
+    expect((await sync.syncNow()).error, isNull);
+    expect(await macEnv.db.select(macEnv.db.labResults).get(), isEmpty);
   });
 }

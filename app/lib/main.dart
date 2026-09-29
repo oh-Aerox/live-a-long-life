@@ -34,6 +34,14 @@ Future<void> main() async {
       settings: services.settings,
       tz: 'Asia/Shanghai',
     );
+    // 检验项目索引是派生数据、不同步（D-27）：启动时按已同步的记录整表重建，
+    // 补上此前接收时没建的行（2026-09-29 联调：Mac 上检验结果为空）。
+    try {
+      final rows = await services.records.rebuildLabResultIndex();
+      AppLog.I.i('app', '检验项目索引重建：$rows 行');
+    } catch (e, st) {
+      AppLog.I.e('app', '检验项目索引重建失败', e, st);
+    }
     runApp(MacApp(services: services));
     return;
   }

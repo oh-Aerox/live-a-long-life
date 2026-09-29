@@ -195,6 +195,7 @@ class _MacHomePageState extends State<MacHomePage> {
       filesDir: widget.services.filesDir,
       peers: _peerRepo,
       keyStore: widget.services.keyStore,
+      records: widget.services.records,
     )
       ..onReplicaChanged = () {
         if (mounted) _load();

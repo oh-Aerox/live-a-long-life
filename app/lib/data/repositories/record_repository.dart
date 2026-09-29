@@ -284,7 +284,38 @@ class RecordRepository {
     }
   }
 
-  /// 整表重建索引（应用升级 / Mac 收到同步记录后按需调用）。返回行数。
+  /// 按一条记录的当前状态重建它的索引行（Mac 收到同步来的记录或版本时调用：
+  /// 同步回灌不经 create/addRevision，索引不会自动跟上，D-27）。
+  /// 不是 lab_panel、已删除、或当前版本还没到（记录与版本分两条变更到达）
+  /// 时只清掉旧行。不入变更日志（派生数据不同步）。调用方负责事务。
+  Future<void> reindexLabPanel(String recordId) async {
+    final rec = await (_db.select(_db.records)
+          ..where((t) => t.id.equals(recordId)))
+        .getSingleOrNull();
+    await (_db.delete(_db.labResults)
+          ..where((t) => t.recordId.equals(recordId)))
+        .go();
+    if (rec == null ||
+        rec.recordType != RecordType.labPanel ||
+        rec.deletedAt != null ||
+        rec.currentRevisionId == null) {
+      return;
+    }
+    final rev = await (_db.select(_db.recordRevisions)
+          ..where((t) => t.id.equals(rec.currentRevisionId!)))
+        .getSingleOrNull();
+    if (rev == null) return;
+    await _reindexLabResults(
+      rec.id,
+      rev.id,
+      TimeValue.decode(rev.occurred),
+      rev.data,
+      FieldMetaMap.decode(rev.fieldMeta),
+      ids.nowMs(),
+    );
+  }
+
+  /// 整表重建索引（应用升级 / Mac 启动时兜底）。返回行数。
   Future<int> rebuildLabResultIndex() async {
     return _db.transaction(() async {
       await _db.delete(_db.labResults).go();
