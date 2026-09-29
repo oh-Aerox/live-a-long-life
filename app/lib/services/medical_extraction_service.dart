@@ -300,6 +300,29 @@ class SendDraft {
     }
   }
 
+  /// 要发送的页上全部行的键，按页序、行序排列（确认页多选连选用）。
+  List<String> lineOrder() => [
+        for (final p in includedPages)
+          for (var i = 0; i < p.lines.length; i++) lineKey(p.pageNo, i)
+      ];
+
+  /// [order] 中 [a] 到 [b] 之间（含两端，先后不论）的键；任一不在返回 [b]。
+  static List<String> range(List<String> order, String a, String b) {
+    final i = order.indexOf(a), j = order.indexOf(b);
+    if (i < 0 || j < 0) return [b];
+    return order.sublist(i < j ? i : j, (i < j ? j : i) + 1);
+  }
+
+  /// 批量删掉这些行（不发送）。
+  void deleteLines(Iterable<String> keys) {
+    for (final k in keys) {
+      edits[k] = '';
+    }
+  }
+
+  /// 批量恢复这些行为本机识别的原文（撤销删除和改写）。
+  void restoreLines(Iterable<String> keys) => keys.forEach(edits.remove);
+
   /// 当前修改换成持久化形式（带原文，供下次核对）。
   Map<String, LineEdit> stableEdits() => {
         for (final p in pages)

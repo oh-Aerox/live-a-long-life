@@ -29,6 +29,59 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
   /// 打开时恢复了上次保存的几处修改（为 null 不提示）。
   int? _restored;
 
+  /// 多选模式（体检报告要删的行多）：null = 不在多选；[_anchor] 是最近点选
+  /// 的行，长按另一行把两者之间整段选上。
+  Set<String>? _selected;
+  String? _anchor;
+
+  void _startSelect(String key) => setState(() {
+        _selected = {key};
+        _anchor = key;
+      });
+
+  void _toggle(String key) => setState(() {
+        final sel = _selected!;
+        if (!sel.remove(key)) sel.add(key);
+        _anchor = key;
+      });
+
+  void _selectRange(String key) {
+    final draft = _draft!;
+    final anchor = _anchor;
+    setState(() {
+      _selected!.addAll(anchor == null
+          ? [key]
+          : SendDraft.range(draft.lineOrder(), anchor, key));
+      _anchor = key;
+    });
+  }
+
+  void _togglePageSelection(DraftPage page) {
+    final keys = [
+      for (var i = 0; i < page.lines.length; i++)
+        SendDraft.lineKey(page.pageNo, i)
+    ];
+    setState(() {
+      final sel = _selected!;
+      if (keys.every(sel.contains)) {
+        sel.removeAll(keys);
+      } else {
+        sel.addAll(keys);
+      }
+    });
+  }
+
+  Future<void> _applySelection({required bool delete}) async {
+    final draft = _draft!;
+    final keys = _selected!;
+    setState(() {
+      delete ? draft.deleteLines(keys) : draft.restoreLines(keys);
+      _selected = null;
+      _anchor = null;
+    });
+    await widget.services.medicalExtraction.saveLineEdits(draft);
+  }
+
   /// 分批进度（体检报告按页分批发送）。
   (int, int)? _progress;
 
@@ -221,10 +274,16 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
           '下面就是将要发给模型'
           '${_config == null ? '' : '（${_config!.model}）'}的全部文字，'
           '原图不发送。已自动遮蔽姓名、证件号、门诊卡号 ${draft.redactedCount} 处（绿色）。'
-          '请检查有没有漏掉的个人信息：点任意一行可以修改或删掉。',
+          '请检查有没有漏掉的个人信息：点任意一行可以修改或删掉，长按进入多选、批量删除。',
           style: const TextStyle(fontSize: 13),
         ),
       ),
+      if (_selected != null)
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Text('点一行勾选；再长按另一行，两行之间的所有行一起选上。',
+              style: TextStyle(fontSize: 12, color: Colors.blue)),
+        ),
       if (_restored != null)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
@@ -232,6 +291,7 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
               style: const TextStyle(fontSize: 12, color: Colors.orange)),
         ),
     ];
+    final selecting = _selected != null;
     for (final page in draft.pages) {
       items.add(SwitchListTile(
         value: page.included,
@@ -242,19 +302,58 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
         subtitle: Text(page.reason, style: const TextStyle(fontSize: 11)),
       ));
       if (!page.included) continue;
+      if (selecting) {
+        items.add(Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => _togglePageSelection(page),
+            child: Text([
+              for (var i = 0; i < page.lines.length; i++)
+                SendDraft.lineKey(page.pageNo, i)
+            ].every(_selected!.contains)
+                ? '取消本页'
+                : '全选本页'),
+          ),
+        ));
+      }
       for (var i = 0; i < page.lines.length; i++) {
         final text = draft.lineText(page, i);
+        final key = SendDraft.lineKey(page.pageNo, i);
+        final picked = selecting && _selected!.contains(key);
         items.add(InkWell(
-          onTap: _sending ? null : () => _editLine(page, i),
-          child: Padding(
+          onTap: _sending
+              ? null
+              : selecting
+                  ? () => _toggle(key)
+                  : () => _editLine(page, i),
+          // 不在多选：长按进入多选；在多选：长按把上一次点选到这里整段选上。
+          onLongPress: _sending
+              ? null
+              : selecting
+                  ? () => _selectRange(key)
+                  : () => _startSelect(key),
+          child: Container(
+            color: picked
+                ? Theme.of(context).colorScheme.primaryContainer
+                : null,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
                   width: 28,
-                  child: Text('${i + 1}',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  child: selecting
+                      ? Icon(
+                          picked
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          size: 16,
+                          color: picked
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.grey)
+                      : Text('${i + 1}',
+                          style:
+                              const TextStyle(fontSize: 11, color: Colors.grey)),
                 ),
                 Expanded(
                   child: _lineText(text,
@@ -273,18 +372,56 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('发送前确认'), actions: [
-        if (draft.edits.isNotEmpty)
-          TextButton(
-            onPressed: _sending ? null : _resetAll,
-            child: const Text('全部还原'),
-          ),
-      ]),
+      appBar: AppBar(
+          title: Text(selecting ? '已选 ${_selected!.length} 行' : '发送前确认'),
+          actions: [
+            if (!selecting && draft.edits.isNotEmpty)
+              TextButton(
+                onPressed: _sending ? null : _resetAll,
+                child: const Text('全部还原'),
+              ),
+            if (!selecting)
+              TextButton(
+                onPressed: _sending
+                    ? null
+                    : () => setState(() {
+                          _selected = {};
+                          _anchor = null;
+                        }),
+                child: const Text('多选'),
+              ),
+          ]),
       body: ListView(children: items),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
+          child: selecting
+              ? Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _selected = null;
+                        _anchor = null;
+                      }),
+                      child: const Text('取消'),
+                    ),
+                    const Spacer(),
+                    OutlinedButton(
+                      onPressed: _selected!.isEmpty
+                          ? null
+                          : () => _applySelection(delete: false),
+                      child: const Text('恢复选中的行'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: _selected!.isEmpty
+                          ? null
+                          : () => _applySelection(delete: true),
+                      child: Text('删掉选中的 ${_selected!.length} 行'),
+                    ),
+                  ],
+                )
+              : FilledButton.icon(
             onPressed: _sending || draft.includedPages.isEmpty || _config == null
                 ? null
                 : _send,

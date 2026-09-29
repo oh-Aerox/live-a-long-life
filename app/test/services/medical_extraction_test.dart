@@ -780,6 +780,34 @@ void main() {
     expect((await service.prepareSend(doc.id)).restoredEdits, 0);
   });
 
+  test('确认页多选：按页序连选、批量删除与恢复（体检报告要删的行多）', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '第一行', x: 0.1, y: 0.1, w: 0.5, h: 0.03),
+      OcrLine(text: '第二行', x: 0.1, y: 0.2, w: 0.5, h: 0.03),
+      OcrLine(text: '第三行', x: 0.1, y: 0.3, w: 0.5, h: 0.03),
+      OcrLine(text: '血糖 5.1 mmol/L 3.9-6.1', x: 0.1, y: 0.4, w: 0.5, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    final draft = await service.prepareSend(doc.id);
+    final order = draft.lineOrder();
+    expect(order, ['P1L1', 'P1L2', 'P1L3', 'P1L4']);
+    // 反方向长按也一样：从第 3 行连到第 1 行。
+    expect(SendDraft.range(order, 'P1L3', 'P1L1'), ['P1L1', 'P1L2', 'P1L3']);
+    expect(SendDraft.range(order, 'P1L2', 'P9L9'), ['P9L9']);
+
+    draft.deleteLines(SendDraft.range(order, 'P1L1', 'P1L3'));
+    await service.saveLineEdits(draft);
+    expect(draft.sentLineCount, 1);
+    expect(draft.payload.trim(), 'P1L4: 血糖 5.1 mmol/L 3.9-6.1');
+    expect((await service.prepareSend(doc.id)).restoredEdits, 3);
+
+    draft.restoreLines(['P1L2']);
+    expect(draft.payload, contains('第二行'));
+    expect(draft.payload, isNot(contains('第一行')));
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(
