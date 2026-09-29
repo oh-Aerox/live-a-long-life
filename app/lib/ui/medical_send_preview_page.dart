@@ -26,6 +26,9 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
   String? _error;
   bool _sending = false;
 
+  /// 打开时恢复了上次保存的几处修改（为 null 不提示）。
+  int? _restored;
+
   /// 分批进度（体检报告按页分批发送）。
   (int, int)? _progress;
 
@@ -35,13 +38,13 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     _prepare();
   }
 
-  /// 本地准备草稿；切换页后重新准备，但保留用户已做的行修改。
+  /// 本地准备草稿；行修改随文件保存，切换页后重新准备时从保存处恢复。
   Future<void> _prepare() async {
     try {
-      final old = _draft;
+      final first = _draft == null;
       final draft = await widget.services.medicalExtraction
           .prepareSend(widget.documentId);
-      if (old != null) draft.edits.addAll(old.edits);
+      if (first && draft.restoredEdits > 0) _restored = draft.restoredEdits;
       final config = await widget.services.modelConfigs.defaultConfig();
       if (mounted) {
         setState(() {
@@ -98,6 +101,34 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
         draft.edits[key] = result;
       }
     });
+    // 每改一行立即保存：离开确认页、提交失败后再来都不用重删。
+    await widget.services.medicalExtraction.saveLineEdits(draft);
+  }
+
+  Future<void> _resetAll() async {
+    final draft = _draft!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('全部还原？'),
+        content: Text('撤销对 ${draft.edits.length} 行的修改和删除，恢复成本机识别的原文'
+            '（自动遮蔽的姓名、证件号、卡号仍然遮蔽）。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('全部还原')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      draft.edits.clear();
+      _restored = null;
+    });
+    await widget.services.medicalExtraction.saveLineEdits(draft);
   }
 
   Future<void> _send() async {
@@ -194,6 +225,12 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
           style: const TextStyle(fontSize: 13),
         ),
       ),
+      if (_restored != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Text('已恢复上次的 $_restored 处修改（带下划线的行），不需要可点右上角"全部还原"。',
+              style: const TextStyle(fontSize: 12, color: Colors.orange)),
+        ),
     ];
     for (final page in draft.pages) {
       items.add(SwitchListTile(
@@ -236,7 +273,13 @@ class _MedicalSendPreviewPageState extends State<MedicalSendPreviewPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('发送前确认')),
+      appBar: AppBar(title: const Text('发送前确认'), actions: [
+        if (draft.edits.isNotEmpty)
+          TextButton(
+            onPressed: _sending ? null : _resetAll,
+            child: const Text('全部还原'),
+          ),
+      ]),
       body: ListView(children: items),
       bottomNavigationBar: SafeArea(
         child: Padding(

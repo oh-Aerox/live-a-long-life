@@ -521,6 +521,12 @@ class MedicalDocuments extends Table with CommonColumns {
   /// true 强制发送、false 强制排除；没写的页用规则默认。设备本地展示与
   /// 发送范围，参与同步（手机是唯一编辑者）。
   TextColumn get pageOverrides => text().nullable()();
+
+  /// 发送前确认页的行修改（D-28，2026-09-29 联调补）：JSON，键
+  /// `<附件 ID>:<附件内页号>:<行下标>`，值 `{"orig": 原文, "text": 改后}`，
+  /// 空串 = 这行不发送。只作用于发送副本；原文对不上（识别结果重算过）
+  /// 时不套用。键不用文件内页号，调整页序后仍对得上。
+  TextColumn get lineEdits => text().nullable()();
 }
 
 /// schema.md §5.3：检验项目索引（v0.4，D-27）。派生数据：随 lab_panel

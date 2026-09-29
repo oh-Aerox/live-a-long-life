@@ -269,7 +269,8 @@ class DraftPage {
 
 /// 发送草稿（D-28）：发给模型之前的完整内容，预览页所见即所发。
 /// 用户在预览页可改写或删除任意行（[edits]，键 P{页}L{行}，空串 = 这行
-/// 不发送）；修改只作用于这次发送，不改原件和本地识别缓存。
+/// 不发送）；修改只作用于发送副本，不改原件和本地识别缓存。修改随文件
+/// 保存（[stableEdits]），下次打开确认页时恢复。
 class SendDraft {
   SendDraft({required this.documentId, required this.pages});
 
@@ -277,8 +278,35 @@ class SendDraft {
   final List<DraftPage> pages;
   final Map<String, String> edits = {};
 
+  /// 打开时从上次保存恢复了几处修改（确认页提示用）。
+  int restoredEdits = 0;
+
   static String lineKey(int pageNo, int lineIndex) =>
       'P${pageNo}L${lineIndex + 1}';
+
+  /// 持久化用的键：附件 + 附件内页号 + 行下标，调整页序后仍对得上。
+  static String stableKey(DraftPage page, int lineIndex) =>
+      '${page.attachmentId}:${page.attachmentPage}:$lineIndex';
+
+  /// 把保存过的修改套到本次草稿上：原文还一致的行才套用。
+  void restore(Map<String, LineEdit> saved) {
+    for (final p in pages) {
+      for (var i = 0; i < p.lines.length; i++) {
+        final e = saved[stableKey(p, i)];
+        if (e == null || e.orig != p.lines[i].text) continue;
+        edits[lineKey(p.pageNo, i)] = e.text;
+        restoredEdits++;
+      }
+    }
+  }
+
+  /// 当前修改换成持久化形式（带原文，供下次核对）。
+  Map<String, LineEdit> stableEdits() => {
+        for (final p in pages)
+          for (var i = 0; i < p.lines.length; i++)
+            if (edits[lineKey(p.pageNo, i)] case final text?)
+              stableKey(p, i): LineEdit(orig: p.lines[i].text, text: text),
+      };
 
   List<DraftPage> get includedPages => [
         for (final p in pages)
@@ -616,8 +644,13 @@ class MedicalExtractionService {
         redactedCount: r.redactedCount,
       ));
     }
-    return SendDraft(documentId: doc.id, pages: pages);
+    return SendDraft(documentId: doc.id, pages: pages)
+      ..restore(MedicalDocumentRepository.decodeLineEdits(doc.lineEdits));
   }
+
+  /// 保存确认页的行修改（每改一行都存，离开确认页或提交失败后不丢）。
+  Future<void> saveLineEdits(SendDraft draft) =>
+      _documents.setLineEdits(draft.documentId, draft.stableEdits());
 
   /// 按草稿发送并建记录（D-28 第二步）：发出去的正是 [SendDraft.payload]，
   /// 与预览页所见一致；用户改过的行按改后文本发送并写入 locator 原文。

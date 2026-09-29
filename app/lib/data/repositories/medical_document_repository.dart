@@ -182,6 +182,39 @@ class MedicalDocumentRepository {
             ));
   }
 
+  /// 保存确认页的全部行修改（整体替换；空表 = 全部还原）。
+  Future<MedicalDocument> setLineEdits(
+          String id, Map<String, LineEdit> edits) =>
+      _update(
+          id,
+          (d) => MedicalDocumentsCompanion(
+                lineEdits: Value(edits.isEmpty
+                    ? null
+                    : jsonEncode({
+                        for (final e in edits.entries)
+                          e.key: {'orig': e.value.orig, 'text': e.value.text},
+                      })),
+              ));
+
+  static Map<String, LineEdit> decodeLineEdits(String? json) {
+    if (json == null || json.isEmpty) return {};
+    try {
+      final raw = jsonDecode(json);
+      if (raw is! Map) return {};
+      return {
+        for (final e in raw.entries)
+          if (e.value is Map &&
+              (e.value as Map)['orig'] is String &&
+              (e.value as Map)['text'] is String)
+            e.key as String: LineEdit(
+                orig: (e.value as Map)['orig'] as String,
+                text: (e.value as Map)['text'] as String),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   static Map<int, bool> decodePageOverrides(String? json) {
     if (json == null || json.isEmpty) return {};
     final raw = jsonDecode(json);
@@ -233,4 +266,13 @@ class MedicalDocumentRepository {
           .getSingle();
     });
   }
+}
+
+/// 确认页的一行修改：[orig] 是修改时这行的原文（套用前核对），[text] 是
+/// 改后的文字，空串表示这行不发送。
+class LineEdit {
+  const LineEdit({required this.orig, required this.text});
+
+  final String orig;
+  final String text;
 }

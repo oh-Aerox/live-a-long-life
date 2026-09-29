@@ -39,7 +39,8 @@ void main() {
     expect(await userVersion(db), db.schemaVersion);
     expect(await columnsOf(db, 'model_calls'),
         containsAll(['redacted_count', 'sent_summary', 'request_text']));
-    expect(await columnsOf(db, 'medical_documents'), contains('page_overrides'));
+    expect(await columnsOf(db, 'medical_documents'),
+        containsAll(['page_overrides', 'line_edits']));
     expect(await columnsOf(db, 'lab_results'), isNotEmpty);
     expect(await columnsOf(db, 'consult_messages'), isNotEmpty);
   }
@@ -61,6 +62,15 @@ void main() {
       await db.customStatement('DROP TABLE consult_messages');
       await db.customStatement('ALTER TABLE model_calls DROP COLUMN sent_summary');
     });
+    await expectUpgradesToCurrent();
+  });
+
+  test('v14 → 当前：医疗文件加行修改列', () async {
+    final db = AppDatabase(NativeDatabase(file));
+    await db.customSelect('SELECT 1').get();
+    await db.customStatement('ALTER TABLE medical_documents DROP COLUMN line_edits');
+    await db.customStatement('PRAGMA user_version = 14');
+    await db.close();
     await expectUpgradesToCurrent();
   });
 }

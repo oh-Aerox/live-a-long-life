@@ -740,6 +740,46 @@ void main() {
     expect((await documents.byId(other.id))!.docType, MedicalDocType.labReport);
   });
 
+  test('确认页的行修改随文件保存，下次打开恢复；原文变了不套用；全部还原清空', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '家属 李四 联系方式见背面', x: 0.1, y: 0.1, w: 0.5, h: 0.03),
+      OcrLine(text: '备注：空腹采血', x: 0.1, y: 0.2, w: 0.5, h: 0.03),
+      OcrLine(text: '血糖 5.1 mmol/L 3.9-6.1', x: 0.1, y: 0.3, w: 0.5, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+
+    final first = await service.prepareSend(doc.id);
+    expect(first.restoredEdits, 0);
+    first.edits[SendDraft.lineKey(1, 0)] = '';
+    first.edits[SendDraft.lineKey(1, 1)] = '';
+    await service.saveLineEdits(first);
+
+    final again = await service.prepareSend(doc.id);
+    expect(again.restoredEdits, 2);
+    expect(again.payload, isNot(contains('李四')));
+    expect(again.payload, contains('血糖'));
+
+    // 原文对不上（比如识别结果重算后行变了）：那一行的修改不套用。
+    final saved = MedicalDocumentRepository.decodeLineEdits(
+        (await documents.byId(doc.id))!.lineEdits);
+    final key0 = saved.keys.firstWhere((k) => k.endsWith(':0'));
+    await documents.setLineEdits(doc.id, {
+      ...saved,
+      key0: const LineEdit(orig: '另一行原文', text: ''),
+    });
+    final mismatched = await service.prepareSend(doc.id);
+    expect(mismatched.restoredEdits, 1);
+    expect(mismatched.payload, contains('李四'));
+
+    // 全部还原。
+    mismatched.edits.clear();
+    await service.saveLineEdits(mismatched);
+    expect((await documents.byId(doc.id))!.lineEdits, isNull);
+    expect((await service.prepareSend(doc.id)).restoredEdits, 0);
+  });
+
   test('没有默认模型：不调用、不建记录', () async {
     final doc = await importDoc();
     final extractor = FakeExtractor(

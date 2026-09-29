@@ -18423,6 +18423,17 @@ class $MedicalDocumentsTable extends MedicalDocuments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lineEditsMeta = const VerificationMeta(
+    'lineEdits',
+  );
+  @override
+  late final GeneratedColumn<String> lineEdits = GeneratedColumn<String>(
+    'line_edits',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -18440,6 +18451,7 @@ class $MedicalDocumentsTable extends MedicalDocuments
     uploadedAt,
     reviewStatus,
     pageOverrides,
+    lineEdits,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -18549,6 +18561,12 @@ class $MedicalDocumentsTable extends MedicalDocuments
         ),
       );
     }
+    if (data.containsKey('line_edits')) {
+      context.handle(
+        _lineEditsMeta,
+        lineEdits.isAcceptableOrUnknown(data['line_edits']!, _lineEditsMeta),
+      );
+    }
     return context;
   }
 
@@ -18622,6 +18640,10 @@ class $MedicalDocumentsTable extends MedicalDocuments
         DriftSqlType.string,
         data['${effectivePrefix}page_overrides'],
       ),
+      lineEdits: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_edits'],
+      ),
     );
   }
 
@@ -18658,6 +18680,12 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
   /// true 强制发送、false 强制排除；没写的页用规则默认。设备本地展示与
   /// 发送范围，参与同步（手机是唯一编辑者）。
   final String? pageOverrides;
+
+  /// 发送前确认页的行修改（D-28，2026-09-29 联调补）：JSON，键
+  /// `<附件 ID>:<附件内页号>:<行下标>`，值 `{"orig": 原文, "text": 改后}`，
+  /// 空串 = 这行不发送。只作用于发送副本；原文对不上（识别结果重算过）
+  /// 时不套用。键不用文件内页号，调整页序后仍对得上。
+  final String? lineEdits;
   const MedicalDocument({
     required this.id,
     required this.userId,
@@ -18674,6 +18702,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     required this.uploadedAt,
     required this.reviewStatus,
     this.pageOverrides,
+    this.lineEdits,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -18713,6 +18742,9 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     if (!nullToAbsent || pageOverrides != null) {
       map['page_overrides'] = Variable<String>(pageOverrides);
     }
+    if (!nullToAbsent || lineEdits != null) {
+      map['line_edits'] = Variable<String>(lineEdits);
+    }
     return map;
   }
 
@@ -18745,6 +18777,9 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       pageOverrides: pageOverrides == null && nullToAbsent
           ? const Value.absent()
           : Value(pageOverrides),
+      lineEdits: lineEdits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineEdits),
     );
   }
 
@@ -18769,6 +18804,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       uploadedAt: serializer.fromJson<int>(json['uploadedAt']),
       reviewStatus: serializer.fromJson<ReviewStatus>(json['reviewStatus']),
       pageOverrides: serializer.fromJson<String?>(json['pageOverrides']),
+      lineEdits: serializer.fromJson<String?>(json['lineEdits']),
     );
   }
   @override
@@ -18790,6 +18826,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       'uploadedAt': serializer.toJson<int>(uploadedAt),
       'reviewStatus': serializer.toJson<ReviewStatus>(reviewStatus),
       'pageOverrides': serializer.toJson<String?>(pageOverrides),
+      'lineEdits': serializer.toJson<String?>(lineEdits),
     };
   }
 
@@ -18809,6 +18846,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     int? uploadedAt,
     ReviewStatus? reviewStatus,
     Value<String?> pageOverrides = const Value.absent(),
+    Value<String?> lineEdits = const Value.absent(),
   }) => MedicalDocument(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -18829,6 +18867,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     pageOverrides: pageOverrides.present
         ? pageOverrides.value
         : this.pageOverrides,
+    lineEdits: lineEdits.present ? lineEdits.value : this.lineEdits,
   );
   MedicalDocument copyWithCompanion(MedicalDocumentsCompanion data) {
     return MedicalDocument(
@@ -18859,6 +18898,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       pageOverrides: data.pageOverrides.present
           ? data.pageOverrides.value
           : this.pageOverrides,
+      lineEdits: data.lineEdits.present ? data.lineEdits.value : this.lineEdits,
     );
   }
 
@@ -18879,7 +18919,8 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
           ..write('reportDate: $reportDate, ')
           ..write('uploadedAt: $uploadedAt, ')
           ..write('reviewStatus: $reviewStatus, ')
-          ..write('pageOverrides: $pageOverrides')
+          ..write('pageOverrides: $pageOverrides, ')
+          ..write('lineEdits: $lineEdits')
           ..write(')'))
         .toString();
   }
@@ -18901,6 +18942,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     uploadedAt,
     reviewStatus,
     pageOverrides,
+    lineEdits,
   );
   @override
   bool operator ==(Object other) =>
@@ -18920,7 +18962,8 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
           other.reportDate == this.reportDate &&
           other.uploadedAt == this.uploadedAt &&
           other.reviewStatus == this.reviewStatus &&
-          other.pageOverrides == this.pageOverrides);
+          other.pageOverrides == this.pageOverrides &&
+          other.lineEdits == this.lineEdits);
 }
 
 class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
@@ -18939,6 +18982,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
   final Value<int> uploadedAt;
   final Value<ReviewStatus> reviewStatus;
   final Value<String?> pageOverrides;
+  final Value<String?> lineEdits;
   final Value<int> rowid;
   const MedicalDocumentsCompanion({
     this.id = const Value.absent(),
@@ -18956,6 +19000,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     this.uploadedAt = const Value.absent(),
     this.reviewStatus = const Value.absent(),
     this.pageOverrides = const Value.absent(),
+    this.lineEdits = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MedicalDocumentsCompanion.insert({
@@ -18974,6 +19019,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     required int uploadedAt,
     this.reviewStatus = const Value.absent(),
     this.pageOverrides = const Value.absent(),
+    this.lineEdits = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -18998,6 +19044,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     Expression<int>? uploadedAt,
     Expression<String>? reviewStatus,
     Expression<String>? pageOverrides,
+    Expression<String>? lineEdits,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -19016,6 +19063,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
       if (uploadedAt != null) 'uploaded_at': uploadedAt,
       if (reviewStatus != null) 'review_status': reviewStatus,
       if (pageOverrides != null) 'page_overrides': pageOverrides,
+      if (lineEdits != null) 'line_edits': lineEdits,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -19036,6 +19084,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     Value<int>? uploadedAt,
     Value<ReviewStatus>? reviewStatus,
     Value<String?>? pageOverrides,
+    Value<String?>? lineEdits,
     Value<int>? rowid,
   }) {
     return MedicalDocumentsCompanion(
@@ -19054,6 +19103,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
       uploadedAt: uploadedAt ?? this.uploadedAt,
       reviewStatus: reviewStatus ?? this.reviewStatus,
       pageOverrides: pageOverrides ?? this.pageOverrides,
+      lineEdits: lineEdits ?? this.lineEdits,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -19110,6 +19160,9 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     if (pageOverrides.present) {
       map['page_overrides'] = Variable<String>(pageOverrides.value);
     }
+    if (lineEdits.present) {
+      map['line_edits'] = Variable<String>(lineEdits.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -19134,6 +19187,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
           ..write('uploadedAt: $uploadedAt, ')
           ..write('reviewStatus: $reviewStatus, ')
           ..write('pageOverrides: $pageOverrides, ')
+          ..write('lineEdits: $lineEdits, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -29253,6 +29307,7 @@ typedef $$MedicalDocumentsTableCreateCompanionBuilder =
       required int uploadedAt,
       Value<ReviewStatus> reviewStatus,
       Value<String?> pageOverrides,
+      Value<String?> lineEdits,
       Value<int> rowid,
     });
 typedef $$MedicalDocumentsTableUpdateCompanionBuilder =
@@ -29272,6 +29327,7 @@ typedef $$MedicalDocumentsTableUpdateCompanionBuilder =
       Value<int> uploadedAt,
       Value<ReviewStatus> reviewStatus,
       Value<String?> pageOverrides,
+      Value<String?> lineEdits,
       Value<int> rowid,
     });
 
@@ -29360,6 +29416,11 @@ class $$MedicalDocumentsTableFilterComposer
     column: $table.pageOverrides,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get lineEdits => $composableBuilder(
+    column: $table.lineEdits,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$MedicalDocumentsTableOrderingComposer
@@ -29445,6 +29506,11 @@ class $$MedicalDocumentsTableOrderingComposer
     column: $table.pageOverrides,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get lineEdits => $composableBuilder(
+    column: $table.lineEdits,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MedicalDocumentsTableAnnotationComposer
@@ -29513,6 +29579,9 @@ class $$MedicalDocumentsTableAnnotationComposer
     column: $table.pageOverrides,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get lineEdits =>
+      $composableBuilder(column: $table.lineEdits, builder: (column) => column);
 }
 
 class $$MedicalDocumentsTableTableManager
@@ -29567,6 +29636,7 @@ class $$MedicalDocumentsTableTableManager
                 Value<int> uploadedAt = const Value.absent(),
                 Value<ReviewStatus> reviewStatus = const Value.absent(),
                 Value<String?> pageOverrides = const Value.absent(),
+                Value<String?> lineEdits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MedicalDocumentsCompanion(
                 id: id,
@@ -29584,6 +29654,7 @@ class $$MedicalDocumentsTableTableManager
                 uploadedAt: uploadedAt,
                 reviewStatus: reviewStatus,
                 pageOverrides: pageOverrides,
+                lineEdits: lineEdits,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -29603,6 +29674,7 @@ class $$MedicalDocumentsTableTableManager
                 required int uploadedAt,
                 Value<ReviewStatus> reviewStatus = const Value.absent(),
                 Value<String?> pageOverrides = const Value.absent(),
+                Value<String?> lineEdits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MedicalDocumentsCompanion.insert(
                 id: id,
@@ -29620,6 +29692,7 @@ class $$MedicalDocumentsTableTableManager
                 uploadedAt: uploadedAt,
                 reviewStatus: reviewStatus,
                 pageOverrides: pageOverrides,
+                lineEdits: lineEdits,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -506,6 +506,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 - results、findings、medications 每项都可带 `ocr_fixes`：模型对 OCR 识别错误做的修正（"原文→修正后"字符串列表），核对页展示；修正前的识别原文在 locator 的 `line_text`。`*_raw` 字段存修正后的文字。
 - 核对状态在 `field_meta` 的 `findings.{i}` / `medications.{i}`，确认或修改后才作为事实（D-04）；D-28 之前的记录没有这两个字段，按空处理。
 - 一份医疗文件对应一条 `lab_panel` 记录（`medical_document_id` 关联）：重新提取在这条记录上追加新版本，不另建记录。文字内容不进 `lab_results` 索引。
+- 发送前确认页的行修改存在 `medical_documents.line_edits`（v15 起，JSON：键 `<附件 ID>:<附件内页号>:<行下标>`，值 `{orig, text}`，空 text 表示不发送）；只作用于发送副本，原文对不上时不套用。随医疗文件同步、进备份。
 - 模型识图兜底（V4-M3）得到的项没有行号，`locator` 为页码 + 用户的裁剪区域（`box` 即裁剪框；整页时没有 `box`），没有 `line_text`。
 
 ### 5.2a `condition` 身体状况记录（v0.4，D-25）

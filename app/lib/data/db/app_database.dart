@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -112,6 +112,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 14) {
             // 调用记录保存实际发送内容（D-16 透明度）。
             await _addColumnIfMissing(m, modelCalls, modelCalls.requestText);
+          }
+          if (from < 15) {
+            // 发送前确认页的行修改持久化（D-28）。
+            await _addColumnIfMissing(
+                m, medicalDocuments, medicalDocuments.lineEdits);
           }
         },
         beforeOpen: (details) async {
