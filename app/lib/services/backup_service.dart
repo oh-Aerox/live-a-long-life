@@ -108,8 +108,17 @@ class BackupService {
   }) async {
     final backupId = ids.newId();
     final now = ids.nowMs();
-    final generation = await _generation();
-    final cutoffSeq = await _maxSeq(generation);
+    // 截止点：Mac 上的数据是手机同步来的，快照对应的是手机的数据代次和
+    // 接收游标（D-14，与周报同口径）。2026-09-29 联调发现此前取的是 Mac 本机
+    // 代次与本机变更日志（只有 Mac 自己产生的几十条），与快照内容对不上。
+    // 游标在快照之前读：期间新到的变更也在快照里，截止点是下限，恢复后从这里
+    // 续传，重复变更按幂等忽略（D-13）。没有接收游标（未配对）时用本机的。
+    final pull = await (_db.select(_db.syncStates)
+          ..where((t) => t.direction.equalsValue(SyncDirection.pull))
+          ..limit(1))
+        .getSingleOrNull();
+    final generation = pull?.generation ?? await _generation();
+    final cutoffSeq = pull?.ackedContiguousSeq ?? await _maxSeq(generation);
 
     final tmpDir =
         Directory(p.join(targetRoot.path, 'backup_building_$backupId'));

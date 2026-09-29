@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'dart:convert';
 import 'dart:io';
 
@@ -143,5 +144,24 @@ void main() {
     expect(drill.missingFiles, [sha]);
     // 业务记录（attachments 行）仍在备份里。
     expect(drill.tableRows['attachments'], 1);
+  });
+
+  test('Mac 端备份截止点取手机的数据代次与接收游标（2026-09-29 联调）', () async {
+    await seed();
+    await env.db.into(env.db.syncStates).insert(SyncStatesCompanion.insert(
+          peerDeviceId: 'phone-1',
+          direction: SyncDirection.pull,
+          generation: 'phone-generation',
+          ackedContiguousSeq: const Value(597),
+        ));
+    final target = Directory(p.join(tempDir.path, 'backups'));
+    await target.create(recursive: true);
+
+    final run = await backup.backup(targetRoot: target, passphrase: 'p');
+    expect(run.dataGeneration, 'phone-generation');
+    expect(run.cutoffSeq, 597);
+    final manifest = jsonDecode(run.manifest) as Map;
+    expect(manifest['generation'], 'phone-generation');
+    expect(manifest['cutoff_seq'], 597);
   });
 }
