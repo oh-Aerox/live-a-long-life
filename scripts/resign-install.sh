@@ -13,6 +13,17 @@ DEVICE="${1:-00000000-0000000000000000}"
 echo "==> 重新构建并签名（team XXXXXXXXXX）"
 flutter build ios --release
 
+# native-assets 原生库（sqlite3、objective_c）由 hooks 产出，构建缓存残留时
+# 会漏打包或停留在 adhoc 签名：前者装上后启动空白，后者 devicectl 拒装。
+# 出现时先 flutter clean 再重跑（不要只删 build/ios，hooks 缓存在 .dart_tool）。
+for fw in sqlite3 objective_c; do
+  path="build/ios/iphoneos/Runner.app/Frameworks/$fw.framework"
+  if [ ! -d "$path" ] || ! codesign -dv "$path" 2>&1 | grep -q "TeamIdentifier=XXXXXXXXXX"; then
+    echo "!! $fw.framework 缺失或未用团队证书签名，先在 app/ 下 flutter clean 后重跑本脚本" >&2
+    exit 1
+  fi
+done
+
 echo "==> 覆盖安装到设备 $DEVICE"
 # 不用 flutter install：它会先卸载旧版，应用数据会被清掉（违反 A-07）。
 # devicectl 原地升级安装，数据保留。
