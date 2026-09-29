@@ -99,4 +99,37 @@ void main() {
     ]);
     expect(r.lines[1].text, '【卡号】');
   });
+
+  test('封皮单独出现的姓名：从个人信息页标签收集后全文件替换', () {
+    final cover = lines(['XX 医院健康体检报告', '张  三', '尊敬的李四先生：', '体检日期 2026-09-20']);
+    final info = lines(['姓名：张三 性别：男 年龄：45']);
+    final names = service.harvestNames([cover, info]);
+    expect(names, containsAll(['张三', '李四']));
+    // 性别、日期、医院名这类值不当姓名收。
+    expect(names, isNot(contains('男')));
+
+    final r = service.redactPage(cover, knownNames: names.toList());
+    expect(r.lines[1].text, '【姓名】'); // 字间空格也认
+    expect(r.lines[2].text, '尊敬的【姓名】先生：');
+    expect(r.lines[0].text, 'XX 医院健康体检报告');
+    expect(r.lines[3].text, contains('2026-09-20'));
+    expect(r.redactedCount, 2);
+  });
+
+  test('敬称收集不误收"各位先生"之类的泛称句子', () {
+    final names = service.harvestNames([
+      lines(['温馨提示：请各位先生女士空腹抽血', '王五 女士']),
+    ]);
+    expect(names, {'王五'});
+  });
+
+  test('表格版式的姓名值也被收集', () {
+    final names = service.harvestNames([
+      [
+        const OcrLine(text: '姓名', x: 0.05, y: 0.10, w: 0.08, h: 0.03),
+        const OcrLine(text: '赵六', x: 0.15, y: 0.10, w: 0.08, h: 0.03),
+      ],
+    ]);
+    expect(names, {'赵六'});
+  });
 }

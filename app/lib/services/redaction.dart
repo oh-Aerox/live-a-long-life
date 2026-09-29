@@ -43,8 +43,50 @@ class RedactionService {
       r'^(姓\s*名|受\s*检\s*人|体\s*检\s*人|身份证号码?|证件号码?|社保卡号|医保卡号|'
       '$_cardLabelText' r')\s*[:：]?$');
 
+  /// 敬称版式（封皮常见"尊敬的张三先生"、单独一行"张三 女士"），
+  /// 只用来收集姓名，不单独遮蔽：收集到的姓名再走第三层全文替换。
+  static final _honorific = RegExp(
+      r'^(?:尊\s*敬\s*的\s*)?([\u4e00-\u9fa5·]{2,6}?)\s*(?:先\s*生|女\s*士)\s*[:：,，]?$');
+  static final _salutation = RegExp(
+      r'尊\s*敬\s*的\s*([\u4e00-\u9fa5·]{2,6}?)\s*(?:先\s*生|女\s*士)');
+
+  /// 收集到的姓名要像人名：2～6 个汉字（含少数民族名的间隔点）。
+  static final _plausibleName = RegExp(r'^[\u4e00-\u9fa5·]{2,6}$');
+
   /// 第二层：18 位身份证候选（含 OCR 易混字符），命中后校验位验证。
   static final _idCandidate = RegExp(r'(?<![0-9OoIl])[0-9OoIl]{17}[0-9OoIlXx](?![0-9OoIl])');
+
+  /// 从一份文件的全部页里收集姓名：标签旁的值（同行或表格右邻）与敬称版式。
+  /// 同一份文件里姓名常只在个人信息页带标签，封皮、页眉单独出现；
+  /// 收集后作为已知姓名对每页全文替换（D-24 第三层）。
+  Set<String> harvestNames(Iterable<List<OcrLine>> pages) {
+    final names = <String>{};
+    void add(String? raw) {
+      final v = raw?.replaceAll(RegExp(r'\s'), '');
+      if (v != null && _plausibleName.hasMatch(v)) names.add(v);
+    }
+
+    for (final lines in pages) {
+      for (var i = 0; i < lines.length; i++) {
+        final text = lines[i].text.trim();
+        for (final m in _nameLabel.allMatches(text)) {
+          add(m.group(2));
+        }
+        add(_honorific.firstMatch(text)?.group(1));
+        for (final m in _salutation.allMatches(text)) {
+          add(m.group(1));
+        }
+        final label = _labelOnly.firstMatch(text)?.group(1);
+        if (label != null &&
+            lines[i].hasBox &&
+            label.replaceAll(RegExp(r'\s'), '').contains(RegExp('姓名|受检人|体检人'))) {
+          final j = _rightNeighbor(lines, i);
+          if (j != null) add(lines[j].text);
+        }
+      }
+    }
+    return names;
+  }
 
   /// 对一页做脱敏。[knownNames] 是用户本人姓名等已知姓名（第三层，
   /// 来自资料，应用是单用户的）。
@@ -52,6 +94,13 @@ class RedactionService {
       {List<String> knownNames = const []}) {
     var count = 0;
     final out = <OcrLine>[];
+    final namePatterns = [
+      for (final name in {
+        for (final n in knownNames) n.replaceAll(RegExp(r'\s'), '')
+      })
+        if (name.length >= 2)
+          RegExp(name.split('').map(RegExp.escape).join(r'\s*')),
+    ];
 
     // 先按坐标找"标签行 → 同行右邻值"的配对（表格版式）。
     final valueLineRedactions = <int, String>{}; // 行下标 → 占位符
@@ -103,12 +152,12 @@ class RedactionService {
       });
 
       // 第三层：已知姓名全文替换（≥2 字才替，防单字误伤）。
-      for (final name in knownNames) {
-        if (name.trim().length < 2) continue;
-        if (text.contains(name)) {
-          count += name.allMatches(text).length;
-          text = text.replaceAll(name, namePlaceholder);
-        }
+      // 字间容忍空白：封皮大字常加字距，OCR 读成"张  三"。
+      for (final pattern in namePatterns) {
+        text = text.replaceAllMapped(pattern, (_) {
+          count++;
+          return namePlaceholder;
+        });
       }
 
       out.add(_withText(lines[i], text));

@@ -393,6 +393,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 
 | `field_key` | 说明 |
 |---|---|
+| `full_name` | 本人姓名，只用于医疗文件发送前遮蔽（D-24 第三层），不发给模型 |
 | `birth_year_month` | 出生年月 |
 | `sex_at_birth` | 生理性别，影响检查参考范围 |
 | `gender_identity` | 性别认同，可选 |

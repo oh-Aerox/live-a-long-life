@@ -101,6 +101,7 @@ class AppServices {
       modelConfigs: modelConfigs,
       keyStore: keyStore,
       extraction: textExtraction,
+      profile: profile,
     );
     medicalDuplicates = MedicalDuplicateService(
       attachments: attachments,

@@ -9,6 +9,7 @@ import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
+import '../data/repositories/profile_repository.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/time_value.dart';
 import 'app_log.dart';
@@ -418,6 +419,7 @@ class MedicalExtractionService {
     required ModelConfigRepository modelConfigs,
     required KeyStore keyStore,
     required TextExtractionService extraction,
+    ProfileRepository? profile,
     this.pageFilter = const PageFilter(),
     this.redaction = const RedactionService(),
     OrganizeModelCall? modelCall,
@@ -431,6 +433,7 @@ class MedicalExtractionService {
         _modelConfigs = modelConfigs,
         _keyStore = keyStore,
         _extraction = extraction,
+        _profile = profile,
         _modelCall = modelCall ?? _defaultCall,
         _imageCall = imageCall ?? _defaultImageCall;
 
@@ -441,6 +444,7 @@ class MedicalExtractionService {
   final ModelConfigRepository _modelConfigs;
   final KeyStore _keyStore;
   final TextExtractionService _extraction;
+  final ProfileRepository? _profile;
   final PageFilter pageFilter;
   final RedactionService redaction;
   final OrganizeModelCall _modelCall;
@@ -631,7 +635,8 @@ class MedicalExtractionService {
   /// 发送前准备（D-28 第一步，全程本地、不调模型）：本地识别 → 页筛选
   /// （规则默认 + 用户覆盖）→ 脱敏。返回的草稿即将要发送的全部内容，
   /// 预览页逐行展示，用户可改可删，确认后交给 [sendDraft]。
-  /// [knownNames] 是脱敏用的已知姓名（D-24 第三层）。
+  /// [knownNames] 是额外的已知姓名；资料里的本人姓名和本文件标签旁
+  /// 识别出的姓名会自动并入（D-24 第三层）。
   Future<SendDraft> prepareSend(
     String documentId, {
     List<String> knownNames = const [],
@@ -646,13 +651,20 @@ class MedicalExtractionService {
     // 2. 页筛选（D-23）：规则默认 + 用户覆盖（预览页每页可点选，不静默丢）。
     // 3. 脱敏（D-24）：只作用于发送副本，坐标保留供 locator 回映射。
     //    排除页也脱敏，用户在预览里改成发送时所见即所发。
+    //    姓名先全文件收集再逐页替换：封皮、页眉上单独出现的姓名没有标签，
+    //    要靠个人信息页标签旁的值和资料里的本人姓名认出来。
+    final names = <String>{
+      ...knownNames,
+      ...await _profileNames(),
+      ...redaction.harvestNames([for (final p in docPages) p.page.lines]),
+    }.toList();
     final overrides =
         MedicalDocumentRepository.decodePageOverrides(doc.pageOverrides);
     final pages = <DraftPage>[];
     for (final p in docPages) {
       final byRule = pageFilter.decide(p.page);
       final override = overrides[p.pageNo];
-      final r = redaction.redactPage(p.page.lines, knownNames: knownNames);
+      final r = redaction.redactPage(p.page.lines, knownNames: names);
       pages.add(DraftPage(
         pageNo: p.pageNo,
         attachmentId: p.attachmentId,
@@ -669,6 +681,14 @@ class MedicalExtractionService {
     }
     return SendDraft(documentId: doc.id, pages: pages)
       ..restore(MedicalDocumentRepository.decodeLineEdits(doc.lineEdits));
+  }
+
+  /// 资料里填写的本人姓名（只用于发送前遮蔽）。
+  Future<List<String>> _profileNames() async {
+    final row = await _profile?.current(ProfileRepository.fullNameKey);
+    if (row == null || row.$1.state != ProfileFieldState.provided) return const [];
+    final v = '${row.$2 ?? ''}'.trim();
+    return v.isEmpty ? const [] : [v];
   }
 
   /// 保存确认页的行修改（每改一行都存，离开确认页或提交失败后不丢）。

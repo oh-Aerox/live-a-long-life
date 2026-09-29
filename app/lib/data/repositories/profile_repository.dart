@@ -15,8 +15,12 @@ class ProfileRepository {
   final AppContext _ctx;
   final IdGenerator ids;
 
+  /// 本人姓名：只用于医疗文件发送前遮蔽（D-24 第三层），不发给模型。
+  static const fullNameKey = 'full_name';
+
   /// 第一版包含的资料项（schema.md §4.1）。
   static const fieldKeys = [
+    fullNameKey,
     'birth_year_month',
     'sex_at_birth',
     'gender_identity',

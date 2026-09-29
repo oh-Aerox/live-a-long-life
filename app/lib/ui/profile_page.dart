@@ -12,6 +12,7 @@ class ProfilePage extends StatefulWidget {
   final AppServices services;
 
   static const labels = <String, String>{
+    'full_name': '姓名（只用于发送前遮蔽）',
     'birth_year_month': '出生年月',
     'sex_at_birth': '生理性别',
     'gender_identity': '性别认同（可选）',
