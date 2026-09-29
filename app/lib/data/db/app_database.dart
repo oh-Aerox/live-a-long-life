@@ -93,7 +93,7 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 10) {
             // v0.4 调用记录加脱敏遮蔽项数（D-24）。
-            await m.addColumn(modelCalls, modelCalls.redactedCount);
+            await _addColumnIfMissing(m, modelCalls, modelCalls.redactedCount);
           }
           if (from < 11) {
             // v0.4 检验项目索引（schema §5.3，派生表，升级后自动重建）。
@@ -101,16 +101,29 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 12) {
             // v0.4 页筛选的用户覆盖（D-23）。
-            await m.addColumn(medicalDocuments, medicalDocuments.pageOverrides);
+            await _addColumnIfMissing(
+                m, medicalDocuments, medicalDocuments.pageOverrides);
           }
           if (from < 13) {
             // v0.4 主动咨询（D-26）+ 调用记录的发送内容范围描述。
             await m.createTable(consultMessages);
-            await m.addColumn(modelCalls, modelCalls.sentSummary);
+            await _addColumnIfMissing(m, modelCalls, modelCalls.sentSummary);
           }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// 迁移必须可重跑：createTable 按当前表定义建表（v9 建 medical_documents
+  /// 时已含 v12 才加的列），且 drift 迁移不在事务里，中途失败会留下已执行的
+  /// 步骤而 user_version 不变。加列前先查列是否已在（2026-09-29 Mac 从 v8
+  /// 升级卡死在 duplicate column）。
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    final cols =
+        await customSelect('PRAGMA table_info(${table.actualTableName})').get();
+    if (cols.any((r) => r.read<String>('name') == column.name)) return;
+    await m.addColumn(table, column);
+  }
 }
