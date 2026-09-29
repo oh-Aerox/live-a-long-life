@@ -102,6 +102,8 @@ class RecordRepository {
 
   /// 追加新版本。`baseVersion` 是调用方读取时的记录版本：
   /// 与当前版本不符时抛 [StaleTargetException]，什么都不写（D-05 第 2 条）。
+  /// 没给 [sources] 时继承当前版本的来源：核对、修改、接受建议不改变
+  /// 记录的出处（来源挂在版本上，不继承就断了溯源，A-17）。
   Future<RecordRow> addRevision({
     required String recordId,
     required int baseVersion,
@@ -118,6 +120,11 @@ class RecordRepository {
           .getSingle();
       if (rec.version != baseVersion) {
         throw StaleTargetException(recordId, baseVersion, rec.version);
+      }
+      if (sources.isEmpty && rec.currentRevisionId != null) {
+        sources = [
+          for (final s in await sourcesOf(rec.currentRevisionId!)) _linkOf(s)
+        ];
       }
       final now = ids.nowMs();
       final revisionId = ids.newId();
@@ -442,6 +449,57 @@ class RecordRepository {
             ..where((t) => t.recordId.equals(recordId))
             ..orderBy([(t) => OrderingTerm.asc(t.recordVersion)]))
           .get();
+
+  static SourceLink _linkOf(RecordSource s) => SourceLink(
+        sourceKind: s.sourceKind,
+        sourceId: s.sourceId,
+        fieldPath: s.fieldPath,
+        messageRevisionNo: s.messageRevisionNo,
+        span: s.span,
+      );
+
+  /// 修复来源断链（2026-09-29 联调）：此前核对/修改生成的版本不带来源，
+  /// 从这些版本起溯源断掉。每个没有来源的版本沿用前一个有来源的版本，
+  /// 写变更日志同步到 Mac。幂等：修过的版本已有来源，再跑不重复写。
+  /// 返回补了来源的版本数。
+  Future<int> repairMissingSources() async {
+    var repaired = 0;
+    final recs = await _db.select(_db.records).get();
+    for (final rec in recs) {
+      var inherited = <SourceLink>[];
+      for (final rev in await revisionsOf(rec.id)) {
+        final own = await sourcesOf(rev.id);
+        if (own.isNotEmpty) {
+          inherited = [for (final s in own) _linkOf(s)];
+          continue;
+        }
+        if (inherited.isEmpty) continue;
+        await _db.transaction(() async {
+          final now = ids.nowMs();
+          for (final s in inherited) {
+            final id = ids.newId();
+            await _db.into(_db.recordSources).insert(
+                RecordSourcesCompanion.insert(
+                  id: id,
+                  userId: _ctx.userId,
+                  createdAt: now,
+                  createdOnDevice: _ctx.deviceId,
+                  recordRevisionId: rev.id,
+                  fieldPath: Value(s.fieldPath),
+                  sourceKind: s.sourceKind,
+                  sourceId: s.sourceId,
+                  messageRevisionNo: Value(s.messageRevisionNo),
+                  span: Value(s.span),
+                ));
+            await _db.logChange(
+                deviceId: _ctx.deviceId, table: 'record_sources', entityId: id);
+          }
+        });
+        repaired++;
+      }
+    }
+    return repaired;
+  }
 
   Future<List<RecordSource>> sourcesOf(String revisionId) =>
       (_db.select(_db.recordSources)

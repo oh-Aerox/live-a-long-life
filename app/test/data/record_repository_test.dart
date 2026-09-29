@@ -214,4 +214,63 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  group('来源链接跟随版本（A-17，2026-09-29 联调）', () {
+    final occurred = TimeValue(
+        localDate: '2026-09-23',
+        precision: TimePrecision.dateOnly,
+        source: TimeValueSource.userStated);
+    const src = SourceLink(
+        sourceKind: RecordSourceKind.attachment, sourceId: 'att-1');
+
+    Future<RecordRow> seed() => records.create(
+          recordType: RecordType.condition,
+          occurred: occurred,
+          dataJson: '{"name":"咽喉炎"}',
+          fieldMeta: const FieldMetaMap({}),
+          producedBy: ProducedBy.medicalExtract('call-1'),
+          sources: const [src],
+        );
+
+    test('核对/修改追加的版本不传来源时继承上一版本的来源', () async {
+      final rec = await seed();
+      final updated = await records.addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: occurred,
+        dataJson: '{"name":"咽喉炎","status":"resolved"}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.userEdit(),
+      );
+      final sources = await records.sourcesOf(updated.currentRevisionId!);
+      expect(sources.single.sourceKind, RecordSourceKind.attachment);
+      expect(sources.single.sourceId, 'att-1');
+    });
+
+    test('修复旧数据：没有来源的版本沿用前一个有来源的版本，可重跑且同步', () async {
+      final rec = await seed();
+      final v2 = await records.addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: occurred,
+        dataJson: '{"name":"咽喉炎","v":2}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.userEdit(),
+      );
+      // 模拟修复前留下的断链：删掉 v2 的来源行。
+      await (env.db.delete(env.db.recordSources)
+            ..where((t) => t.recordRevisionId.equals(v2.currentRevisionId!)))
+          .go();
+      final logsBefore = (await env.db.select(env.db.changeLogs).get()).length;
+
+      expect(await records.repairMissingSources(), 1);
+      final sources = await records.sourcesOf(v2.currentRevisionId!);
+      expect(sources.single.sourceId, 'att-1');
+      final logs = await env.db.select(env.db.changeLogs).get();
+      expect(logs.length, logsBefore + 1);
+      expect(logs.last.entityType, 'record_sources');
+
+      expect(await records.repairMissingSources(), 0); // 幂等
+    });
+  });
 }

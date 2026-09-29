@@ -137,8 +137,9 @@ void main() {
     final changes = await allChanges();
     expect(changes.where((c) => c.entityType == 'record_revisions'),
         hasLength(2));
+    // 用户修改的第 2 版继承第 1 版的来源（A-17，2026-09-29）：两版各一条。
     expect(changes.where((c) => c.entityType == 'record_sources'),
-        hasLength(1));
+        hasLength(2));
     final recordChanges =
         changes.where((c) => c.entityType == 'records').toList();
     expect(recordChanges, hasLength(2));

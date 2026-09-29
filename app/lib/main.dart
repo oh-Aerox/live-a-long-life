@@ -74,6 +74,8 @@ Future<void> main() async {
   // 再推送（V3-M3；失败静默，状态在"连接 Mac"页可见）。
   unawaited(() async {
     await services.db.backfillChangeLogIfNeeded(services.ctx.deviceId);
+    final repaired = await services.records.repairMissingSources();
+    if (repaired > 0) AppLog.I.i('records', '补回来源链接：$repaired 个版本');
     final removed = await services.records.dedupeExactDuplicates();
     if (removed > 0) AppLog.I.i('records', '清理重复记录 $removed 条');
     await services.syncService.syncNow();
