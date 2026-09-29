@@ -13,6 +13,7 @@ import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/sync/secure_channel.dart';
 import 'package:live_a_long_life/services/sync/sync_client.dart';
+import 'package:live_a_long_life/services/sync/lan_discovery.dart';
 import 'package:live_a_long_life/services/sync/sync_server.dart';
 import 'package:live_a_long_life/services/sync/sync_service.dart';
 import 'package:path/path.dart' as p;
@@ -254,5 +255,55 @@ void main() {
     await phoneRecords.markDeleted(rec.id);
     expect((await sync.syncNow()).error, isNull);
     expect(await macEnv.db.select(macEnv.db.labResults).get(), isEmpty);
+  });
+
+  test('Mac 换了地址：按设备 ID 在局域网找回新地址，同步照常并更新记录（V4-M5）',
+      () async {
+    final phonePeers = PeerRepository(phoneEnv.db);
+    final mac = (await phonePeers.all()).single;
+    final goodAddr = mac.lastSeenAddr!;
+    // 模拟 Mac 换 IP：记录里的旧地址已连不上。
+    await phonePeers.updateLastSeen(mac.peerDeviceId, '127.0.0.1:1');
+    await phoneMessages.send(
+      clientMsgId: 'c-mdns',
+      role: MessageRole.user,
+      kind: MessageKind.text,
+      text: '换了网络之后的一条',
+      sentTz: 'Asia/Shanghai',
+    );
+
+    // 没有发现能力：和以前一样连不上。
+    final withoutDiscovery = await sync.syncNow();
+    expect(withoutDiscovery.error, isNotNull);
+
+    final asked = <String>[];
+    final withDiscovery = SyncService(
+      deviceId: 'test-device',
+      db: phoneEnv.db,
+      peers: phonePeers,
+      keyStore: KeyStore(),
+      filesDir: Directory(p.join(tempDir.path, 'phone_files')),
+      discover: (id) async {
+        asked.add(id);
+        // 第一个候选连不上（比如已拔线的直连地址），应接着试下一个。
+        return ['127.0.0.1:2', goodAddr];
+      },
+    );
+    final result = await withDiscovery.syncNow();
+    expect(result.error, isNull);
+    expect(asked, [mac.peerDeviceId]); // 按 Mac 的设备 ID 找
+    expect((await phonePeers.all()).single.lastSeenAddr, goodAddr);
+    expect(await macEnv.db.select(macEnv.db.messages).get(), hasLength(1));
+
+    // 地址已更新：下次直接连上，不再查找。
+    await withDiscovery.syncNow();
+    expect(asked, hasLength(1));
+  });
+
+  test('候选地址排序：局域网地址优先，169.254 链路本地地址放最后', () {
+    expect(
+        LanDiscovery.preferOrder(
+            ['169.254.140.85:47857', '10.0.0.26:47857', '10.0.0.26:47857']),
+        ['10.0.0.26:47857', '169.254.140.85:47857']);
   });
 }

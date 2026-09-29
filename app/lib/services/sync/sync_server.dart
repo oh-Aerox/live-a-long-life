@@ -103,7 +103,7 @@ class SyncServer {
     return PairingInfo(
       macDeviceId: deviceId,
       displayName: displayName,
-      hosts: await _lanAddresses(),
+      hosts: await lanAddresses(),
       port: _server!.port,
       key: key,
     );
@@ -118,7 +118,9 @@ class SyncServer {
     _channels.clear();
   }
 
-  static Future<List<String>> _lanAddresses() async {
+  /// 本机局域网 IPv4 地址（不含回环与 169.254 链路本地）：配对二维码与
+  /// 局域网广播都带上它。
+  static Future<List<String>> lanAddresses() async {
     final result = <String>[];
     for (final ni in await NetworkInterface.list(
         type: InternetAddressType.IPv4, includeLinkLocal: false)) {

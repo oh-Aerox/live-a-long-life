@@ -35,10 +35,15 @@ class SyncService {
     required PeerRepository peers,
     required KeyStore keyStore,
     required Directory filesDir,
+    this.discover,
   })  : _db = db,
         _peers = peers,
         _keyStore = keyStore,
         _filesDir = filesDir;
+
+  /// 局域网发现（V4-M5）：按 Mac 设备 ID 返回候选 `host:port`（优先的在前），
+  /// 找不到为空列表。为 null 时不做发现（测试、未启用）。
+  final Future<List<String>> Function(String peerDeviceId)? discover;
 
   final String deviceId;
   final AppDatabase _db;
@@ -72,14 +77,50 @@ class SyncService {
     }
   }
 
+  /// 先按记录的地址试连；连不上时用局域网发现找 Mac 的新地址，
+  /// 能连通就更新记录（Mac 换 IP 不必重新配对，V4-M5）。都不通时仍返回
+  /// 记录的地址，让后续请求照常报出连接错误。
+  Future<String?> _reachableAddr(Peer peer, SecureChannel channel) async {
+    final stored = peer.lastSeenAddr;
+    final valid = stored != null && stored.contains(':');
+    if (valid && await _ping(channel, stored)) return stored;
+    final find = discover;
+    if (find == null) return valid ? stored : null;
+    AppLog.I.i('sync', '${peer.displayName} 按记录的地址 $stored 连不上，在局域网查找');
+    for (final found in await find(peer.peerDeviceId)) {
+      if (found == stored) continue;
+      if (!await _ping(channel, found)) {
+        AppLog.I.i('sync', '候选地址 $found 连不上');
+        continue;
+      }
+      await _peers.updateLastSeen(peer.peerDeviceId, found);
+      AppLog.I.i('sync', '在局域网找到 ${peer.displayName} 的新地址：$stored → $found');
+      return found;
+    }
+    return valid ? stored : null;
+  }
+
+  Future<bool> _ping(SecureChannel channel, String addr) async {
+    try {
+      await _postSealed(channel, addr.split(':').first,
+          int.parse(addr.split(':').last), '/ping', {});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<SyncResult> _pushTo(Peer peer) async {
     final generation = await _db.currentGeneration();
     final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
-    final addr = peer.lastSeenAddr;
-    if (keyB64 == null || addr == null || !addr.contains(':')) {
+    if (keyB64 == null) {
       return await _fail(peer, generation, '缺少地址或密钥，请重新配对');
     }
     final channel = SecureChannel(base64Decode(keyB64));
+    final addr = await _reachableAddr(peer, channel);
+    if (addr == null) {
+      return await _fail(peer, generation, '缺少地址或密钥，请重新配对');
+    }
     final host = addr.split(':').first;
     final port = int.parse(addr.split(':').last);
 
@@ -226,11 +267,13 @@ class SyncService {
     final peers = await _peers.all();
     for (final peer in peers) {
       final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
-      final addr = peer.lastSeenAddr;
-      if (keyB64 == null || addr == null || !addr.contains(':')) continue;
+      if (keyB64 == null) continue;
+      final channel = SecureChannel(base64Decode(keyB64));
+      final addr = await _reachableAddr(peer, channel);
+      if (addr == null) continue;
       try {
         final reply = await _postSealed(
-          SecureChannel(base64Decode(keyB64)),
+          channel,
           addr.split(':').first,
           int.parse(addr.split(':').last),
           '/analysis',
@@ -250,11 +293,13 @@ class SyncService {
   Future<String?> retrieveBlob(String sha) async {
     for (final peer in await _peers.all()) {
       final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
-      final addr = peer.lastSeenAddr;
-      if (keyB64 == null || addr == null || !addr.contains(':')) continue;
+      if (keyB64 == null) continue;
+      final channel = SecureChannel(base64Decode(keyB64));
+      final addr = await _reachableAddr(peer, channel);
+      if (addr == null) continue;
       try {
         final reply = await _postSealed(
-          SecureChannel(base64Decode(keyB64)),
+          channel,
           addr.split(':').first,
           int.parse(addr.split(':').last),
           '/blob_fetch',

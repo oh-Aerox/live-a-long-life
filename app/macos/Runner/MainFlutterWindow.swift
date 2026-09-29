@@ -12,6 +12,7 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     MedicalTextChannel.register(with: flutterViewController.engine.binaryMessenger)
+    BonjourChannel.register(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }
@@ -118,6 +119,158 @@ class MedicalTextChannel: NSObject {
       default:
         result(FlutterMethodNotImplemented)
       }
+    }
+  }
+}
+
+/// 局域网发现（V4-M5 mDNS）：Mac 广播同步服务，手机按 Mac 的设备 ID 找回
+/// 当前地址（Mac 换 IP 后不用重新配对）。服务名 `llal-<设备 ID>`，类型
+/// `_llal-sync._tcp`。只负责找地址；连上后仍走配对时建立的加密认证，
+/// 冒名的广播连不上。与另一端（ios/macos）的实现保持一致。
+class BonjourChannel: NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
+  static let serviceType = "_llal-sync._tcp."
+  static let shared = BonjourChannel()
+
+  private var published: NetService?
+  private var browser: NetServiceBrowser?
+  private var resolving: [NetService] = []
+  private var pending: FlutterResult?
+  private var wanted: String?
+  private var timer: Timer?
+  private var collected: [String] = []
+  private var settleTimer: Timer?
+
+  static func register(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "life.long/bonjour", binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in shared.handle(call, result) }
+  }
+
+  private func handle(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    switch call.method {
+    case "publish":
+      guard let name = args["name"] as? String, let port = args["port"] as? Int else {
+        result(FlutterError(code: "bad_args", message: "需要 name 和 port", details: nil))
+        return
+      }
+      published?.stop()
+      let service = NetService(
+        domain: "local.", type: BonjourChannel.serviceType, name: name, port: Int32(port))
+      service.delegate = self
+      if let hosts = args["hosts"] as? String, !hosts.isEmpty {
+        service.setTXTRecord(NetService.data(fromTXTRecord: ["ips": Data(hosts.utf8)]))
+      }
+      service.publish()
+      published = service
+      result(true)
+    case "unpublish":
+      published?.stop()
+      published = nil
+      result(true)
+    case "resolve":
+      guard let name = args["name"] as? String else {
+        result(FlutterError(code: "bad_args", message: "需要 name", details: nil))
+        return
+      }
+      let timeoutMs = args["timeoutMs"] as? Int ?? 5000
+      finish(nil)  // 上一次没完成的查找直接结束
+      pending = result
+      wanted = name
+      let b = NetServiceBrowser()
+      b.delegate = self
+      browser = b
+      b.searchForServices(ofType: BonjourChannel.serviceType, inDomain: "local.")
+      timer = Timer.scheduledTimer(
+        withTimeInterval: Double(timeoutMs) / 1000, repeats: false
+      ) { [weak self] _ in self?.finish(nil) }
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  func netServiceBrowser(
+    _ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool
+  ) {
+    guard service.name == wanted else { return }
+    service.delegate = self
+    resolving.append(service)
+    service.resolve(withTimeout: 5)
+  }
+
+  func netServiceDidPublish(_ sender: NetService) {
+    NSLog("[bonjour] 已广播 %@", sender.name)
+  }
+
+  func netService(_ sender: NetService, didNotPublish errorDict: [String: NSNumber]) {
+    NSLog("[bonjour] 广播失败 %@", errorDict.description)
+  }
+
+  func netServiceBrowser(
+    _ browser: NetServiceBrowser, didNotSearch errorDict: [String: NSNumber]
+  ) {
+    NSLog("[bonjour] 查找失败 %@", errorDict.description)
+    finish(nil)
+  }
+
+  /// 返回全部 IPv4 地址（逗号分隔的 host:port）：Mac 在每块网卡上各广播一份
+  /// （Wi-Fi 的局域网地址、数据线直连的 169.254 链路本地地址），各份的解析
+  /// 结果先后到达。收到第一份后再等 1 秒收齐，由 Dart 端排序、逐个试连。
+  func netServiceDidResolveAddress(_ sender: NetService) {
+    // Mac 在 TXT 里写了自己的局域网地址：哪条链路先解析到都能拿到。
+    if let txt = sender.txtRecordData(),
+      let ips = NetService.dictionary(fromTXTRecord: txt)["ips"],
+      let list = String(data: ips, encoding: .utf8)
+    {
+      for ip in list.split(separator: ",") where !ip.isEmpty {
+        let addr = "\(ip):\(sender.port)"
+        if !collected.contains(addr) { collected.append(addr) }
+      }
+    }
+    for ip in (sender.addresses ?? []).compactMap({ BonjourChannel.ipv4($0) }) {
+      let addr = "\(ip):\(sender.port)"
+      if !collected.contains(addr) { collected.append(addr) }
+    }
+    guard !collected.isEmpty, settleTimer == nil else { return }
+    settleTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: false) {
+      [weak self] _ in
+      guard let self = self else { return }
+      self.finish(self.collected.joined(separator: ","))
+    }
+  }
+
+  /// 只取 IPv4：同步服务绑在 anyIPv4 上，IPv6 链路本地地址连不上。
+  private static func ipv4(_ data: Data) -> String? {
+    return data.withUnsafeBytes { raw -> String? in
+      guard let base = raw.baseAddress, raw.count >= MemoryLayout<sockaddr_in>.size
+      else { return nil }
+      guard base.assumingMemoryBound(to: sockaddr.self).pointee.sa_family
+        == sa_family_t(AF_INET)
+      else { return nil }
+      var addr = base.assumingMemoryBound(to: sockaddr_in.self).pointee.sin_addr
+      var buf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+      guard inet_ntop(AF_INET, &addr, &buf, socklen_t(INET_ADDRSTRLEN)) != nil
+      else { return nil }
+      return String(cString: buf)
+    }
+  }
+
+  private func finish(_ value: String?) {
+    timer?.invalidate()
+    timer = nil
+    settleTimer?.invalidate()
+    settleTimer = nil
+    // 总超时到了但已收到部分地址：把收到的交出去，不当成没找到。
+    let result = value ?? (collected.isEmpty ? nil : collected.joined(separator: ","))
+    collected.removeAll()
+    browser?.stop()
+    browser = nil
+    resolving.forEach { $0.stop() }
+    resolving.removeAll()
+    wanted = nil
+    if let p = pending {
+      pending = nil
+      p(result)
     }
   }
 }

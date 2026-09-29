@@ -17,6 +17,7 @@ import 'data/repositories/peer_repository.dart';
 import 'data/repositories/record_repository.dart';
 import 'data/repositories/review_prompt_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'services/sync/lan_discovery.dart';
 import 'services/medical_duplicate.dart';
 import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
@@ -64,6 +65,8 @@ class AppServices {
       peers: peerRepo,
       keyStore: keyStore,
       filesDir: filesDir,
+      // 手机按 Mac 设备 ID 在局域网找回新地址（V4-M5 mDNS）。
+      discover: Platform.isIOS ? const LanDiscovery().resolve : null,
     );
     analysisService = AnalysisService(
       db: db,

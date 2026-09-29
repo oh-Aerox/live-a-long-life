@@ -6,6 +6,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
 import '../services/backup_service.dart';
+import '../services/sync/lan_discovery.dart';
 import '../services/sync/sync_server.dart';
 import 'conditions_page.dart';
 import 'consult_page.dart';
@@ -207,6 +208,12 @@ class _MacHomePageState extends State<MacHomePage> {
         _load();
       };
     await _server!.start();
+    // 局域网广播，手机在 Mac 换 IP 后能自己找回来（V4-M5 mDNS）。
+    final port = _server!.port;
+    if (port != null) {
+      await const LanDiscovery().publish(widget.services.ctx.deviceId, port,
+          await SyncServer.lanAddresses());
+    }
     if (mounted) setState(() {});
   }
 

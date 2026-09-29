@@ -13,7 +13,11 @@
 	<key>NSHealthShareUsageDescription</key>
 	<string>用于读取睡眠、步数、体能训练和活动能量，补全你的健康记录。只读取，不写入，数据只保存在本机。</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>用于连接你在局域网内自建的模型服务（如 Mac 上的 Ollama）整理消息。</string>
+	<string>用于和你的 Mac 同步数据、Mac 换地址后自动找到它，以及连接你在局域网内自建的模型服务（如 Mac 上的 Ollama）。</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_llal-sync._tcp</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<!-- 只放开本地网络的明文 HTTP（Ollama 等自建服务）；公网仍要求 HTTPS。 -->
