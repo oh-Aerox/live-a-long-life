@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -44,6 +45,52 @@ class RestoreService {
   final File dbFile;
   final Directory filesDir;
   final IdGenerator ids;
+
+  /// 把导出的压缩包解到 [into]，返回里面含 manifest.json 的那一层目录。
+  ///
+  /// 安卓从别的设备拿到导出时用压缩包（2026-09-30 小米 12 联调）：别的应用
+  /// 解压出来的文件本应用无权读取（分区存储），系统文件选择器选中的压缩包
+  /// 才读得到；Mac 压缩的包不带 UTF-8 文件名标记，文件管理解压后中文目录名
+  /// 是乱码。这里自己解压、按 manifest.json 找根目录，目录名乱不乱都不影响。
+  static Future<Directory> unpackZip(File zip, Directory into) async {
+    await into.create(recursive: true);
+    final root = p.canonicalize(into.path);
+    final input = InputFileStream(zip.path);
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      String? manifestDir;
+      for (final entry in archive) {
+        if (!entry.isFile) continue;
+        final parts = p.posix.split(entry.name.replaceAll('\\', '/'));
+        // Mac 压缩附带的 __MACOSX/ 资源分叉文件跳过。
+        if (parts.contains('__MACOSX')) continue;
+        final out = p.canonicalize(p.joinAll([root, ...parts]));
+        if (!p.isWithin(root, out)) {
+          throw StateError('压缩包里有越界路径：${entry.name}');
+        }
+        await Directory(p.dirname(out)).create(recursive: true);
+        final stream = OutputFileStream(out);
+        try {
+          entry.writeContent(stream);
+        } finally {
+          await stream.close();
+        }
+        if (parts.last == 'manifest.json') {
+          final dir = p.dirname(out);
+          // 多个 manifest 时取层级最浅的。
+          if (manifestDir == null || dir.length < manifestDir.length) {
+            manifestDir = dir;
+          }
+        }
+      }
+      if (manifestDir == null) {
+        throw StateError('压缩包里没有导出数据：找不到 manifest.json');
+      }
+      return Directory(manifestDir);
+    } finally {
+      await input.close();
+    }
+  }
 
   /// 检查导出文件夹是否可用，返回 manifest 内容。
   Future<Map<String, Object?>> readManifest(Directory source) async {

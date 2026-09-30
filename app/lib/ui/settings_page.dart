@@ -333,9 +333,56 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  /// 选要恢复的导出。安卓从别的设备拿来的导出要选压缩包：别的应用解压出的
+  /// 文件本应用无权读取（分区存储），只有系统选择器选中的文件读得到
+  /// （2026-09-30 小米 12 联调）。本机自己导出的文件夹两端都能直接选。
+  Future<Directory?> _pickRestoreSource() async {
+    var zip = false;
+    if (Platform.isAndroid) {
+      final choice = await showActionSheet<bool>(context,
+          title: '从导出恢复',
+          actions: const [
+            SheetAction(
+                value: true,
+                label: '选择压缩包（.zip）',
+                subtitle: '从别的设备传来的导出，先压缩成 zip 再传到这台手机',
+                icon: Icons.folder_zip_outlined),
+            SheetAction(
+                value: false,
+                label: '选择导出文件夹',
+                subtitle: '这台手机自己导出的（下载 → 长命百岁 → exports）',
+                icon: Icons.folder_outlined),
+          ]);
+      if (choice == null) return null;
+      zip = choice;
+    }
+    if (!zip) {
+      final path =
+          await FilePicker.getDirectoryPath(dialogTitle: '选择导出文件夹');
+      return path == null ? null : Directory(path);
+    }
+    final picked = await FilePicker.pickFiles(
+        dialogTitle: '选择导出压缩包',
+        type: FileType.custom,
+        allowedExtensions: ['zip']);
+    final zipPath = picked.firstOrNull?.path;
+    if (zipPath == null) return null;
+    final tmp = await Directory.systemTemp.createTemp('restore_zip');
+    return RestoreService.unpackZip(File(zipPath), tmp);
+  }
+
   Future<void> _restore() async {
-    final path = await FilePicker.getDirectoryPath(dialogTitle: '选择导出文件夹');
-    if (path == null || !mounted) return;
+    final Directory? source;
+    try {
+      source = await _pickRestoreSource();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('打不开这个导出：$e')));
+      }
+      return;
+    }
+    if (source == null || !mounted) return;
 
     final hasData = await widget.services.hasExistingData();
     if (!mounted) return;
@@ -367,10 +414,21 @@ class _SettingsPageState extends State<SettingsPage> {
         dbFile: widget.services.dbFile,
         filesDir: widget.services.filesDir,
       );
+      // 关数据库前先确认导出读得出来：读不出时应用照常可用，不必重开。
+      try {
+        await service.readManifest(source);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('无法读取这个导出：$e'
+                  '${Platform.isAndroid ? '。从别的设备传来的导出请压缩成 zip 后选"选择压缩包"' : ''}')));
+        }
+        return;
+      }
       // 替换会移走当前资料库文件，先关掉数据库连接。
       await widget.services.db.close();
       final result = await service.restore(
-        Directory(path),
+        source,
         hasExistingData: hasData,
         replaceExisting: true,
         newDeviceId: widget.services.ctx.deviceId,

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
+import 'package:archive/archive_io.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/app_context.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
@@ -9,6 +11,7 @@ import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
 import 'package:live_a_long_life/data/repositories/message_repository.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
 import 'package:live_a_long_life/data/repositories/health_repository.dart';
+import 'package:live_a_long_life/data/repositories/medical_document_repository.dart';
 import 'package:live_a_long_life/data/repositories/profile_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/repositories/settings_repository.dart';
@@ -244,6 +247,93 @@ void main() {
       }
     });
 
+    /// 病例夹里的一份文件 + 一条咨询记录（v0.4 的表）。
+    Future<String> seedV4() async {
+      final att = (await sourceDb.select(sourceDb.attachments).get()).single;
+      final link = (await sourceDb.select(sourceDb.messageAttachments).get())
+          .single;
+      final doc = await MedicalDocumentRepository(sourceDb, ctx).create(
+        pages: [
+          MedicalPageRef(
+              attachmentId: att.id, messageId: link.messageId, pageNo: 1),
+        ],
+        docType: MedicalDocType.labReport,
+      );
+      await sourceDb.into(sourceDb.consultMessages).insert(
+          ConsultMessagesCompanion.insert(
+              id: 'q1',
+              sessionId: 's1',
+              role: 'user',
+              body: '尿酸高怎么办',
+              contextNote: const Value('基本资料'),
+              createdAt: 1));
+      return doc.id;
+    }
+
+    test('v0.4 数据随导出恢复：病例夹文件、咨询记录都在（格式 v3，2026-09-30）',
+        () async {
+      await seedData();
+      final docId = await seedV4();
+
+      final out = Directory(p.join(tempDir.path, 'export'));
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
+      final targetRoot = Directory(p.join(tempDir.path, 'target'));
+      await doRestore(out, targetRoot);
+
+      final restored = AppDatabase(
+          NativeDatabase(File(p.join(targetRoot.path, 'db', 'app.sqlite'))));
+      try {
+        final docs = await MedicalDocumentRepository(
+                restored, AppContext(userId: 'u1', deviceId: 'phone-2'))
+            .all();
+        expect(docs.single.id, docId);
+        expect(docs.single.docType, MedicalDocType.labReport);
+        final consult = await restored.select(restored.consultMessages).get();
+        expect(consult.single.body, '尿酸高怎么办');
+      } finally {
+        await restored.close();
+      }
+    });
+
+    test('从 Mac 压缩的 zip 恢复：嵌套目录、__MACOSX 不影响（安卓，2026-09-30）',
+        () async {
+      await seedData();
+      final out = Directory(p.join(tempDir.path, '导出-20260930-0842'));
+      await ExportService(sourceDb, filesDir: sourceFiles).export(out);
+
+      // 仿 Finder"压缩"：外层是导出文件夹，另带 __MACOSX 资源分叉。
+      final archive = Archive();
+      await for (final f in out.list(recursive: true)) {
+        if (f is! File) continue;
+        final rel = p.relative(f.path, from: tempDir.path);
+        archive.add(ArchiveFile.bytes(rel, await f.readAsBytes()));
+      }
+      archive.add(ArchiveFile.bytes(
+          '__MACOSX/导出-20260930-0842/._manifest.json', [0, 1, 2]));
+      final zip = File(p.join(tempDir.path, 'export.zip'));
+      await zip.writeAsBytes(ZipEncoder().encode(archive));
+
+      final unpacked = await RestoreService.unpackZip(
+          zip, Directory(p.join(tempDir.path, 'unpacked')));
+      expect(File(p.join(unpacked.path, 'manifest.json')).existsSync(), isTrue);
+
+      final result =
+          await doRestore(unpacked, Directory(p.join(tempDir.path, 'target')));
+      expect(result.messageCount, 3);
+      expect(result.restoredFiles, 1);
+      expect(result.partial, isFalse);
+    });
+
+    test('压缩包里没有导出数据：明确报错', () async {
+      final archive = Archive()..add(ArchiveFile.bytes('随便.txt', [1, 2, 3]));
+      final zip = File(p.join(tempDir.path, 'other.zip'));
+      await zip.writeAsBytes(ZipEncoder().encode(archive));
+      expect(
+          () => RestoreService.unpackZip(
+              zip, Directory(p.join(tempDir.path, 'unpacked'))),
+          throwsA(isA<StateError>()));
+    });
+
     test('已有数据未确认替换：拒绝恢复', () async {
       await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
@@ -293,5 +383,14 @@ void main() {
         await ExportService.exportedCopies(
             Directory(p.join(root.path, 'none')), {'aaa'}),
         isEmpty);
+  });
+
+  test('每张表都登记了是否随导出走（防新增表漏导出，2026-09-30 病例夹恢复后为空）',
+      () {
+    final all = {for (final t in sourceDb.allTables) t.actualTableName};
+    final declared = {...v2ExportTables, ...exportExcludedTables.keys};
+    expect(all.difference(declared), isEmpty,
+        reason: '新表要加进 v2ExportTables，或在 exportExcludedTables 写明不导出的原因');
+    expect(declared.difference(all), isEmpty, reason: '登记了不存在的表名');
   });
 }

@@ -8,12 +8,15 @@ import '../data/repositories/attachment_repository.dart';
 
 /// 导出格式版本。改动 data.json 结构时加 1，恢复时校验。
 /// v2（2026-09-27）：增加 `v2_tables`——记录、版本、来源、整理批次与逐项、
-/// 修正建议、回顾记账、健康样本与按天聚合。不含 `model_configs`（schema
-/// §4.3 不进备份）、`model_calls`（本机调试记录）、`health_anchors`
-/// （锚点在新环境重建）。
-const exportFormatVersion = 2;
+/// 修正建议、回顾记账、健康样本与按天聚合。
+/// v3（2026-09-30）：`v2_tables` 补上 v0.3/v0.4 的表——医疗文件（病例夹与
+/// 体检列表）、周报等分析结果、咨询记录。此前的导出恢复后病例夹为空。
+/// 旧版应用遇到 v3 会拒绝恢复，而不是悄悄丢掉不认识的表。
+const exportFormatVersion = 3;
 
-/// v2 起随导出走的表（名字 = SQLite 表名，行按数据库原值转储）。
+/// 随导出走的表（名字 = SQLite 表名，行按数据库原值转储）。键名沿用
+/// `v2_tables`，v2 导出里缺的表恢复时按空表处理。
+/// 新增表必须在这里或 [exportExcludedTables] 里登记（有单测把关）。
 const v2ExportTables = [
   'records',
   'record_revisions',
@@ -24,7 +27,32 @@ const v2ExportTables = [
   'review_prompts',
   'health_samples',
   'health_daily',
+  'medical_documents',
+  'analysis_artifacts',
+  'consult_messages',
 ];
+
+/// 不随导出走的表及原因。
+const exportExcludedTables = {
+  // 单独导出（data.json 顶层键）
+  'messages': '顶层 messages',
+  'message_revisions': '顶层 message_revisions',
+  'attachments': '顶层 attachments',
+  'message_attachments': '顶层 message_attachments',
+  'profile_fields': '顶层 profile_fields',
+  'settings': '顶层 settings',
+  // 属于这台设备，恢复时重建
+  'attachment_copies': '按导出里实际带出的文件重建',
+  'lab_results': '检验项目索引，派生数据，启动时按记录重建（D-27）',
+  'health_anchors': '锚点在新环境重建',
+  'change_logs': '同步变更日志属于本机代次，恢复后回填',
+  'sync_states': '同步游标属于本机与对端',
+  'peers': '配对关系属于本机，恢复后重新配对',
+  'backup_runs': 'Mac 备份记录',
+  // 不进备份（schema §4.3）
+  'model_configs': '模型配置与 key 不导出',
+  'model_calls': '本机调试记录',
+};
 
 class ExportResult {
   ExportResult({

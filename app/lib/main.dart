@@ -26,6 +26,16 @@ Future<void> main() async {
   };
   final services = await AppServices.init();
 
+  // 检验项目索引是派生数据、不同步也不导出（D-27）：启动时按记录整表重建。
+  // Mac 补上接收时没建的行（2026-09-29 联调：Mac 上检验结果为空）；手机补上
+  // 从导出恢复后的索引（2026-09-30：恢复后指标趋势为空）。
+  try {
+    final rows = await services.records.rebuildLabResultIndex();
+    AppLog.I.i('app', '检验项目索引重建：$rows 行');
+  } catch (e, st) {
+    AppLog.I.e('app', '检验项目索引重建失败', e, st);
+  }
+
   // Mac 端（V3-M0）：只读副本 + 同步接收，不初始化手机专属插件
   // （通知、HealthKit、整理触发都属于手机，D-12）。
   if (Platform.isMacOS) {
@@ -35,14 +45,6 @@ Future<void> main() async {
       settings: services.settings,
       tz: 'Asia/Shanghai',
     );
-    // 检验项目索引是派生数据、不同步（D-27）：启动时按已同步的记录整表重建，
-    // 补上此前接收时没建的行（2026-09-29 联调：Mac 上检验结果为空）。
-    try {
-      final rows = await services.records.rebuildLabResultIndex();
-      AppLog.I.i('app', '检验项目索引重建：$rows 行');
-    } catch (e, st) {
-      AppLog.I.e('app', '检验项目索引重建失败', e, st);
-    }
     runApp(MacApp(services: services));
     return;
   }
