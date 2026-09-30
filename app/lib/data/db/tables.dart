@@ -95,7 +95,15 @@ enum MedicalDocType {
 
 enum RecordSourceKind { message, attachment, healthSample, healthDaily }
 
-enum ModelPreset { openai, anthropic, deepseek, openaiCompatible, ollama }
+enum ModelPreset {
+  openai,
+  anthropic,
+  deepseek,
+  openaiCompatible,
+  ollama,
+  kimi,
+  glm,
+}
 
 enum ModelProtocol { openaiCompatible, anthropic }
 

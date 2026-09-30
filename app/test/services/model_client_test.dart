@@ -73,6 +73,28 @@ void main() {
 
     String base() => 'http://127.0.0.1:${server.port}/v1';
 
+    test('Kimi、智谱 GLM 预设：请求带上调低思考的参数，其他预设不带', () async {
+      Future<Map<String, Object?>> send(ModelPreset preset) async {
+        final c = _config(
+            protocol: ModelProtocol.openaiCompatible, baseUrl: base());
+        await ModelClient().complete(
+            config: c.copyWith(preset: preset),
+            apiKey: 'good-key',
+            userText: 'hi');
+        return seen.last.body;
+      }
+
+      expect((await send(ModelPreset.kimi))['reasoning_effort'], 'low');
+      expect((await send(ModelPreset.glm))['thinking'], {'type': 'disabled'});
+      final plain = await send(ModelPreset.openaiCompatible);
+      expect(plain.containsKey('reasoning_effort'), isFalse);
+      expect(plain.containsKey('thinking'), isFalse);
+      expect(ModelPresetDefaults.byPreset[ModelPreset.kimi]!.baseUrl,
+          'https://api.moonshot.cn/v1');
+      expect(ModelPresetDefaults.byPreset[ModelPreset.glm]!.baseUrl,
+          'https://open.bigmodel.cn/api/paas/v4');
+    });
+
     test('请求打到 {base}/chat/completions，Bearer 认证，返回文本和用量', () async {
       final resp = await ModelClient().complete(
         config: _config(

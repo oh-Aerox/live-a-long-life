@@ -43,7 +43,7 @@ class TestConnectionResult {
 
 /// 模型 HTTP 客户端（D-16）。两种协议：
 /// - `openai_compatible`：`POST {base}/chat/completions`，Bearer 认证。
-///   覆盖 OpenAI / DeepSeek / Ollama / 自定义兼容服务；
+///   覆盖 OpenAI / DeepSeek / Kimi / 智谱 GLM / Ollama / 自定义兼容服务；
 /// - `anthropic`：`POST {base}/v1/messages`，x-api-key + anthropic-version。
 ///
 /// 不引第三方 LLM SDK（plan-v0.2 §2），只用 dart:io。
@@ -129,6 +129,7 @@ class ModelClient {
           _join(config.baseUrl, '/chat/completions'),
           headers: {'Authorization': 'Bearer $apiKey'},
           body: {
+            ..._extraBody(config),
             'model': config.model,
             'max_tokens': 16,
             'messages': [
@@ -176,6 +177,9 @@ class ModelClient {
     }
   }
 
+  static Map<String, Object?> _extraBody(ModelConfig config) =>
+      ModelPresetDefaults.byPreset[config.preset]?.extraBody ?? const {};
+
   Uri _join(String baseUrl, String path) {
     final base = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
@@ -192,6 +196,7 @@ class ModelClient {
     String? imagePngBase64,
   }) async {
     final body = {
+      ..._extraBody(config),
       'model': config.model,
       'max_tokens': maxTokens,
       'messages': [
@@ -367,6 +372,7 @@ class ModelPresetDefaults {
     required this.baseUrl,
     required this.modelHint,
     required this.needsKey,
+    this.extraBody = const {},
   });
 
   final String label;
@@ -374,6 +380,9 @@ class ModelPresetDefaults {
   final String baseUrl;
   final String modelHint;
   final bool needsKey;
+
+  /// 这家服务请求体里额外带的参数（OpenAI 兼容协议）。
+  final Map<String, Object?> extraBody;
 
   static const byPreset = {
     ModelPreset.openai: ModelPresetDefaults(
@@ -396,6 +405,27 @@ class ModelPresetDefaults {
       baseUrl: 'https://api.deepseek.com/v1',
       modelHint: '例如 deepseek-chat',
       needsKey: true,
+    ),
+    // Kimi 与智谱 GLM 都是 OpenAI 兼容协议。两家的新模型默认深度思考：
+    // kimi-k3 默认 max 档，体检报告一批就可能超过 180 秒提取超时，思考也
+    // 占 max_tokens；整理与提取是按原文抄写归类，用不上深度思考，调低/关掉。
+    ModelPreset.kimi: ModelPresetDefaults(
+      label: 'Kimi（月之暗面）',
+      protocol: ModelProtocol.openaiCompatible,
+      baseUrl: 'https://api.moonshot.cn/v1',
+      modelHint: '例如 kimi-k3',
+      needsKey: true,
+      extraBody: {'reasoning_effort': 'low'},
+    ),
+    ModelPreset.glm: ModelPresetDefaults(
+      label: '智谱 GLM',
+      protocol: ModelProtocol.openaiCompatible,
+      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+      modelHint: '例如 glm-5.3',
+      needsKey: true,
+      extraBody: {
+        'thinking': {'type': 'disabled'},
+      },
     ),
     ModelPreset.ollama: ModelPresetDefaults(
       label: 'Ollama（本地 / 局域网）',

@@ -47,7 +47,7 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 
 - **Local first**: data lives in an on-device SQLite database. There is no app server.
 - **Sync stays on your network**: the phone and Mac authenticate each other and encrypt everything.
-- **Your choice of model**: OpenAI, Anthropic, DeepSeek, Ollama (on-device or on your LAN) and any OpenAI-compatible service. Just enter a base URL and key. Each model is labeled with its data boundary (device, LAN, cloud), and the app never falls back to the cloud when a local model is unavailable. API keys are stored only in the system Keychain.
+- **Your choice of model**: OpenAI, Anthropic, DeepSeek, Kimi, Zhipu GLM, Ollama (on-device or on your LAN) and any OpenAI-compatible service. Just enter a base URL and key. Each model is labeled with its data boundary (device, LAN, cloud), and the app never falls back to the cloud when a local model is unavailable. API keys are stored only in the system Keychain.
 - **See what was sent**: every model call records what was sent, what came back and how many items were masked, viewable under "Model call history".
 - **Unreviewed isn't fact**: anything a model inferred stays out of analysis until you confirm it.
 

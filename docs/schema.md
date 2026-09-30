@@ -427,7 +427,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 
 | 字段 | 说明 |
 |---|---|
-| `preset` | `openai` / `anthropic` / `deepseek` / `openai_compatible` 其他兼容服务 / `ollama` |
+| `preset` | `openai` / `anthropic` / `deepseek` / `kimi` 月之暗面 / `glm` 智谱 / `openai_compatible` 其他兼容服务 / `ollama` |
 | `protocol` | `openai_compatible` / `anthropic` |
 | `base_url` | 服务地址 |
 | `model` | 模型名 |
