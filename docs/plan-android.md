@@ -66,7 +66,7 @@
 |---|---|---|
 | [x] | AN-M0 工程配置与首次构建 | 2026-09-29 代码完成：minSdk 26、desugaring、FlutterFragmentActivity；manifest 声明网络/组播、通知/开机/精确提醒、相机、Health Connect 只读权限与权限说明入口、通知接收器；release 混淆规则（pdfbox 可选的 JPEG2000 依赖、反射加载的类）。`scripts/android-install.sh`（release arm64 + `adb install -r`）。debug/release APK 构建通过（release 81MB），iOS、macOS 构建不受影响，全套 203 个单测通过。**2026-09-30 真机：** 覆盖安装成功、首次启动进入引导（时区自动识别 Asia/Shanghai），无崩溃。坑：HyperOS 除了开发者选项里的"USB 安装"，每次安装还弹确认框（有倒计时），不点就报 INSTALL_FAILED_USER_RESTRICTED |
 | [x] | AN-M1 Dart 侧平台差异 | 2026-09-29：局域网发现在安卓启用；配对上报"安卓手机"；导出放公共"下载/长命百岁/exports"（建不了时退回外部应用目录），导出完成与清理提示按平台写位置（`ExportLocation`）；HealthKit 试验页只在 iOS 显示；Mac 设置页"苹果健康"改"健康数据" |
-| [ ] | AN-M2 提醒 | 2026-09-29 代码完成：有"闹钟和提醒"权限时 exactAllowWhileIdle，没有时退回 inexact；设置页"后台与提醒"（仅安卓）列通知、闹钟和提醒、省电策略状态，打开小米自启动管理/应用详情，回到页面刷新并重排提醒。待真机 P-01 |
+| [ ] | AN-M2 提醒 | 2026-09-29 代码完成：有"闹钟和提醒"权限时 exactAllowWhileIdle，没有时退回 inexact；设置页"后台与提醒"（仅安卓）列通知、闹钟和提醒、省电策略状态，打开小米自启动管理/应用详情，回到页面刷新并重排提醒。**2026-09-30 真机：** 精确提醒退回与引导开启后重排、锁屏收到并点开进入对话页均通过；重启后仍有效待验证（用户决定先跳过） |
 | [ ] | AN-M3 局域网发现 | 2026-09-29 代码完成：Kotlin NsdManager，读 TXT `ips` + 解析地址（仅 IPv4），返回格式与 iOS 一致。待真机 P-30 |
 | [ ] | AN-M4 医疗文字提取 | 2026-09-29 代码完成：PdfRenderer（铺白底、长边 2200px）、pdfbox-android 文字层、ML Kit bundled 中文识别（照片按 EXIF 转正、长边 4000 以内解码，坐标归一化左上原点）。待真机样本 |
 | [ ] | AN-M5 Health Connect | 2026-09-29 代码完成：安卓类型表（SLEEP_SESSION 按在床、各阶段、训练、步数、活动能量），另申请距离与总能量供训练摘要；Health Connect 不可用时按未授权处理。待真机 P-10～P-14 |

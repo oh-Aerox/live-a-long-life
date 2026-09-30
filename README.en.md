@@ -42,6 +42,7 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 - **Medical records and health profile**: read-only views of the records and checkups folders, long-term conditions, lab trends and visit timeline, alongside the archived originals.
 - **Encrypted backups**: built from a file manifest and only marked usable after verification, with restore drills. The backup password lives only in the Mac's Keychain.
 - **QR pairing**: scan a code shown on the Mac to set up a mutually authenticated, encrypted connection. After that, changes sync incrementally over the local network and resume where they left off. If the Mac's IP address changes, the phone finds it again on the local network (Bonjour) without re-pairing.
+- **Stays in the menu bar**: after you close the main window, the app lives on in the macOS menu bar and keeps receiving phone syncs. Its menu shows the latest sync, plus Open and Quit.
 
 ## Privacy and data
 

@@ -6,6 +6,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/repositories/peer_repository.dart';
 import '../services/backup_service.dart';
+import '../services/menu_bar.dart';
 import '../services/sync/lan_discovery.dart';
 import '../services/sync/sync_server.dart';
 import 'conditions_page.dart';
@@ -168,6 +169,7 @@ class _MacHomePageState extends State<MacHomePage> {
         await widget.services.analysisService.latest(AnalysisKind.weeklyReview);
     final latestBackup = await widget.services.backupService.latest();
     final pendingRebuilds = await _server?.pendingRebuilds() ?? const [];
+    await const MacMenuBar().setStatus(await _menuBarStatus(pendingRebuilds));
     if (mounted) {
       setState(() {
         _messageCount = messages.where((m) => m.deletedAt == null).length;
@@ -279,6 +281,24 @@ class _MacHomePageState extends State<MacHomePage> {
       if (mounted) setState(() => _backingUp = false);
       await _load();
     }
+  }
+
+  /// 菜单栏第一行（P-34）：待重建优先，否则是最近一次收到同步的手机与时间。
+  Future<String> _menuBarStatus(List<PendingRebuild> pending) async {
+    if (pending.isNotEmpty) {
+      return '「${pending.first.displayName}」需要重建副本，打开窗口处理';
+    }
+    final db = widget.services.db;
+    final pulls = await (db.select(db.syncStates)
+          ..where((t) => t.direction.equalsValue(SyncDirection.pull)))
+        .get();
+    final received = pulls.where((s) => s.lastSuccessAt != null).toList()
+      ..sort((a, b) => b.lastSuccessAt!.compareTo(a.lastSuccessAt!));
+    if (received.isEmpty) return '同步：还没有收到过';
+    final latest = received.first;
+    final peer = await _peerRepo.active(latest.peerDeviceId);
+    final t = DateTime.fromMillisecondsSinceEpoch(latest.lastSuccessAt!);
+    return '最近同步：${peer?.displayName ?? '手机'} ${_formatTime(t)}';
   }
 
   static String _formatTime(DateTime t) =>

@@ -13,8 +13,81 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
     MedicalTextChannel.register(with: flutterViewController.engine.binaryMessenger)
     BonjourChannel.register(with: flutterViewController.engine.binaryMessenger)
+    MenuBarChannel.shared.install(
+      window: self, messenger: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
+  }
+}
+
+/// 常驻菜单栏（P-34）：关窗只隐藏，Dart 侧的同步服务照常运行；菜单栏图标
+/// 显示同步状态，可以重新打开窗口或退出。窗口隐藏时收起 Dock 图标。
+/// Dart 侧见 lib/services/menu_bar.dart。
+class MenuBarChannel: NSObject, NSWindowDelegate {
+  static let shared = MenuBarChannel()
+
+  private weak var window: NSWindow?
+  private var statusItem: NSStatusItem?
+  private let statusLine = NSMenuItem(title: "同步：等待手机", action: nil, keyEquivalent: "")
+  private var activity: NSObjectProtocol?
+
+  func install(window: NSWindow, messenger: FlutterBinaryMessenger) {
+    self.window = window
+    window.delegate = self
+
+    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    let image = NSImage(
+      systemSymbolName: "heart.text.square", accessibilityDescription: "长命百岁")
+    image?.isTemplate = true  // 跟随菜单栏深浅色
+    item.button?.image = image
+    item.button?.toolTip = "长命百岁：接收手机同步"
+
+    let menu = NSMenu()
+    statusLine.isEnabled = false
+    menu.addItem(statusLine)
+    menu.addItem(.separator())
+    let open = NSMenuItem(title: "打开长命百岁", action: #selector(openFromMenu), keyEquivalent: "")
+    open.target = self
+    menu.addItem(open)
+    menu.addItem(.separator())
+    let quit = NSMenuItem(
+      title: "退出（停止接收同步）", action: #selector(NSApplication.terminate(_:)),
+      keyEquivalent: "q")
+    menu.addItem(quit)
+    item.menu = menu
+    statusItem = item
+
+    // 窗口隐藏后系统可能让应用进入 App Nap，推迟处理手机发来的请求。
+    // 声明一项用户发起的活动来避免；不阻止 Mac 空闲睡眠（睡眠时本来就收不到）。
+    activity = ProcessInfo.processInfo.beginActivity(
+      options: .userInitiatedAllowingIdleSystemSleep, reason: "接收手机同步")
+
+    let channel = FlutterMethodChannel(name: "life.long/menu_bar", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "setStatus":
+        let args = call.arguments as? [String: Any] ?? [:]
+        self?.statusLine.title = args["text"] as? String ?? ""
+        result(true)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  func showWindow() {
+    NSApp.setActivationPolicy(.regular)
+    window?.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  @objc private func openFromMenu() { showWindow() }
+
+  // 红色关闭按钮与 ⌘W：只隐藏窗口，收起 Dock 图标，留菜单栏图标。
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    sender.orderOut(nil)
+    NSApp.setActivationPolicy(.accessory)
+    return false
   }
 }
 
