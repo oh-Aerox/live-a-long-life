@@ -6,6 +6,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 
+import '../data/data_profile.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
 
@@ -69,7 +70,8 @@ class BackupService {
   /// 改名前的备份留在 ~/Documents/长寿记备份 不动：backup_runs 记的是
   /// 绝对路径，恢复演练按原路径找，搬走反而演练不了。
   static Directory macBackupRoot() => Directory(
-      p.join(Platform.environment['HOME'] ?? '.', 'Documents', '长命百岁备份'));
+      p.join(Platform.environment['HOME'] ?? '.', 'Documents',
+          DataProfile.suffixed('长命百岁备份')));
 
   BackupService({
     required AppDatabase db,

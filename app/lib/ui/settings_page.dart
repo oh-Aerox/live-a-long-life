@@ -4,15 +4,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
+import '../services/export_location.dart';
 import '../services/export_service.dart';
 import '../services/notification_service.dart';
 import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
+import 'android_background_page.dart';
 import 'healthkit_spike_page.dart';
 import 'log_page.dart';
 import 'medical_space_page.dart';
@@ -138,6 +139,19 @@ class _SettingsPageState extends State<SettingsPage> {
               await _load();
             },
           ),
+          if (Platform.isAndroid)
+            ListTile(
+              title: const Text('后台与提醒'),
+              subtitle: const Text('通知、闹钟和提醒、省电策略、自启动'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => AndroidBackgroundPage(
+                        services: widget.services,
+                        notifications: widget.notifications)),
+              ),
+            ),
           ListTile(
             title: const Text('模型'),
             subtitle: const Text('配置整理消息用的模型，查看调用记录'),
@@ -260,15 +274,16 @@ class _SettingsPageState extends State<SettingsPage> {
               MaterialPageRoute(builder: (_) => const LogPage()),
             ),
           ),
-          ListTile(
-            title: const Text('HealthKit 试验（T1）'),
-            subtitle: const Text('技术验证用，之后的版本会移除'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HealthKitSpikePage()),
+          if (Platform.isIOS)
+            ListTile(
+              title: const Text('HealthKit 试验（T1）'),
+              subtitle: const Text('技术验证用，之后的版本会移除'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HealthKitSpikePage()),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -279,14 +294,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _export() async {
     setState(() => _busy = true);
     try {
-      final docs = await getApplicationDocumentsDirectory();
+      final location = await ExportLocation.resolve();
       final now = DateTime.now();
       final name = '导出-${now.year}'
           '${now.month.toString().padLeft(2, '0')}'
           '${now.day.toString().padLeft(2, '0')}-'
           '${now.hour.toString().padLeft(2, '0')}'
           '${now.minute.toString().padLeft(2, '0')}';
-      final target = Directory(p.join(docs.path, 'exports', name));
+      final target = Directory(p.join(location.dir.path, name));
       final result = await ExportService(widget.services.db, filesDir: widget.services.filesDir).export(target);
       if (!mounted) return;
       final missingNote = result.missingFiles.isEmpty
@@ -299,7 +314,7 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('导出完成'),
           content: Text('已导出 ${result.messageCount} 条消息、'
               '${result.fileCount} 个文件，校验通过。\n\n'
-              '位置：文件 App → 我的 iPhone → 长命百岁 → exports → $name\n\n'
+              '位置：${location.describe(name)}\n\n'
               '导出的内容未加密，请保存在安全的位置。$missingNote'),
           actions: [
             DialogAction(

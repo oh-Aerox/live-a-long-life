@@ -15,6 +15,7 @@
 | [plan-v0.2.md](plan-v0.2.md) | v0.2 实施计划与任务进度 | 同上；M6/T1/T2 真机欠账见 plan-v0.1 第 7 节 |
 | [plan-v0.3.md](plan-v0.3.md) | v0.3（Mac 端与同步）实施计划 | 2026-09-27 提前开工，与 v0.2 验收并行；用户反馈优先 |
 | [plan-v0.4.md](plan-v0.4.md) | v0.4（病历与检查单）实施计划与任务进度 | 同上；验收证据见 evidence/ 与 platform-matrix |
+| [plan-android.md](plan-android.md) | 安卓端适配计划与任务进度 | 同上；验证机小米 12，首轮范围见 platform-matrix 第 2 节 |
 | [prompts.md](prompts.md) | 发给模型的全部提示词与输入范围 | 改提示词必须同步本文档 |
 | [evidence/](evidence/) | 真机与双端联调的验证记录 | 只追加，不改旧记录 |
 

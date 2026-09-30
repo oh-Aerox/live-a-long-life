@@ -17,7 +17,7 @@ import 'model_config_page.dart';
 
 /// Mac 端设置（2026-09-29 联调）：按 Mac 实际有的功能取舍，不照搬手机——
 /// 模型（周报与咨询用）、手机连接与配对、备份位置与密码、运行日志、关于。
-/// 回顾提醒、苹果健康、个人资料、医疗文件空间、导出都是手机的事（D-12）。
+/// 回顾提醒、健康数据、个人资料、医疗文件空间、导出都是手机的事（D-12）。
 class MacSettingsPage extends StatefulWidget {
   const MacSettingsPage({
     super.key,
@@ -268,7 +268,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Text(
-              '回顾提醒、苹果健康、个人资料、医疗文件空间和导出都在手机上设置。',
+              '回顾提醒、健康数据、个人资料、医疗文件空间和导出都在手机上设置。',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),

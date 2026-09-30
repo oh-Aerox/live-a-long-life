@@ -6,6 +6,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'app_services.dart';
 import 'data/change_log.dart';
+import 'data/data_profile.dart';
 import 'services/app_log.dart';
 import 'services/health_service.dart';
 import 'services/notification_service.dart';
@@ -135,6 +136,14 @@ class MacApp extends StatelessWidget {
             seedColor: Colors.teal, brightness: Brightness.dark),
       ),
       home: MacHomePage(services: services),
+      // 开发用数据档案（plan-android AN-M6）：角标提醒这不是日常在用的副本。
+      builder: DataProfile.isDefault
+          ? null
+          : (context, child) => Banner(
+                message: DataProfile.name,
+                location: BannerLocation.topEnd,
+                child: child!,
+              ),
     );
   }
 }

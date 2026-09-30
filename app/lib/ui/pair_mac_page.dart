@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -91,7 +92,7 @@ class _PairMacPageState extends State<PairMacPage> {
     try {
       final client = SyncClient(
         deviceId: widget.services.ctx.deviceId,
-        displayName: 'iPhone',
+        displayName: Platform.isAndroid ? '安卓手机' : 'iPhone',
         peers: PeerRepository(widget.services.db),
         keyStore: widget.services.keyStore,
       );

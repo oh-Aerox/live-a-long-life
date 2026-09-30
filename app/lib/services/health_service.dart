@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:health/health.dart';
 
@@ -63,6 +64,7 @@ abstract class HealthPort {
   Future<int?> totalSteps(DateTime start, DateTime end);
 }
 
+/// health 插件：iOS 读 HealthKit，安卓读 Health Connect（plan-android AN-M5）。
 class HealthKitPort implements HealthPort {
   HealthKitPort({required this.tz});
 
@@ -72,7 +74,7 @@ class HealthKitPort implements HealthPort {
   final _health = Health();
   bool _configured = false;
 
-  static const _types = [
+  static const _iosTypes = [
     HealthDataType.SLEEP_IN_BED,
     HealthDataType.SLEEP_ASLEEP,
     HealthDataType.SLEEP_AWAKE,
@@ -84,6 +86,30 @@ class HealthKitPort implements HealthPort {
     HealthDataType.ACTIVE_ENERGY_BURNED,
   ];
 
+  /// Health Connect 没有"在床"类型，睡眠会话（SleepSessionRecord）是整段
+  /// 从入睡到起床，按在床处理；阶段各自对应（D-11：在床不计入睡眠时长）。
+  static const _androidTypes = [
+    HealthDataType.SLEEP_SESSION,
+    HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_AWAKE,
+    HealthDataType.SLEEP_DEEP,
+    HealthDataType.SLEEP_REM,
+    HealthDataType.SLEEP_LIGHT,
+    HealthDataType.WORKOUT,
+    HealthDataType.STEPS,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+  ];
+
+  /// 安卓读体能训练时插件会顺带读会话内的距离与总能量，没授权这两项时
+  /// 训练摘要缺字段；只申请权限，不单独读取。
+  static const _androidAuthOnly = [
+    HealthDataType.DISTANCE_DELTA,
+    HealthDataType.TOTAL_CALORIES_BURNED,
+  ];
+
+  static List<HealthDataType> get _types =>
+      Platform.isAndroid ? _androidTypes : _iosTypes;
+
   Future<void> _ensureConfigured() async {
     if (_configured) return;
     await _health.configure();
@@ -93,6 +119,14 @@ class HealthKitPort implements HealthPort {
   @override
   Future<bool> requestAuthorization() async {
     await _ensureConfigured();
+    if (Platform.isAndroid) {
+      // 系统没有 Health Connect（或需要更新）时不弹权限页，按未授权处理。
+      final status = await _health.getHealthConnectSdkStatus();
+      if (status != HealthConnectSdkStatus.sdkAvailable) return false;
+      final types = [..._androidTypes, ..._androidAuthOnly];
+      return _health.requestAuthorization(types,
+          permissions: [for (final _ in types) HealthDataAccess.READ]);
+    }
     return _health.requestAuthorization(_types);
   }
 
@@ -149,7 +183,9 @@ class HealthKitPort implements HealthPort {
       );
     }
     final stage = switch (dp.type) {
-      HealthDataType.SLEEP_IN_BED => SleepStage.inBed,
+      HealthDataType.SLEEP_IN_BED ||
+      HealthDataType.SLEEP_SESSION =>
+        SleepStage.inBed,
       HealthDataType.SLEEP_ASLEEP => SleepStage.asleepUnspecified,
       HealthDataType.SLEEP_AWAKE => SleepStage.awake,
       HealthDataType.SLEEP_DEEP => SleepStage.deep,

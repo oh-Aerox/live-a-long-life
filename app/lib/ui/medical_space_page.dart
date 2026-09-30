@@ -1,11 +1,9 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
+import '../services/export_location.dart';
 import '../services/export_service.dart';
 import '../services/medical_space_service.dart';
 import 'adaptive.dart';
@@ -72,10 +70,11 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
     final noRemote = chosen.where((f) => !f.archivedOnMac).length;
     // 导出的副本清理不动（它们是给用户带走的），但要说清楚，免得以为空间全释放了。
     var exported = 0;
+    var exportWhere = '';
     try {
-      final docs = await getApplicationDocumentsDirectory();
-      exported = (await ExportService.exportedCopies(
-              Directory(p.join(docs.path, 'exports')),
+      final location = await ExportLocation.resolve();
+      exportWhere = location.describe();
+      exported = (await ExportService.exportedCopies(location.dir,
               {for (final f in chosen) f.attachment.sha256}))
           .length;
     } catch (_) {}
@@ -88,7 +87,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
           '将清理手机上的 ${chosen.length} 份医疗文件，释放约 ${_size(_selectedBytes)}。'
           '历史医疗记录保留，Mac 上的已归档原件不受影响。'
           '${noRemote > 0 ? '\n\n注意：其中 $noRemote 份没有确认过的其他副本，清理后可能无法再查看原件（数据保留，未核对的仍是未核对）。' : ''}'
-          '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（文件 App → 我的 iPhone → 长命百岁 → exports），清理不会删除它们，需要时可自行删除。' : ''}',
+          '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（$exportWhere），清理不会删除它们，需要时可自行删除。' : ''}',
         ),
         actions: [
           DialogAction(

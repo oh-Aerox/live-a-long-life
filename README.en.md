@@ -56,7 +56,8 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 |---|---|
 | iPhone | Available, the main recording device |
 | Mac | Available, for analysis, archiving and backups |
-| Android, Windows | Planned, not yet supported |
+| Android | In progress: the phone app installs and runs; on-device verification under way (Xiaomi 12) |
+| Windows | Planned, not yet supported |
 
 The app is currently installed with a free developer signature, which must be renewed every 7 days (see below).
 
@@ -88,11 +89,12 @@ To pair the first time, show the QR code under Settings → Phone connection on 
 ## Project layout
 
 ```
-app/                 Flutter app (one codebase for iPhone and Mac)
+app/                 Flutter app (one codebase for iPhone, Android and Mac)
   lib/data/          database tables, repositories, time and field metadata
   lib/services/      organizing, extraction, masking, sync, backup, analysis, Q&A
   lib/ui/            screens
   ios/ macos/        platform projects (Apple Vision text recognition lives here)
+  android/           Android project (ML Kit text recognition, LAN discovery)
   test/              unit and widget tests
 docs/                requirements, design decisions, data model, product spec, prompts, platform verification
 scripts/             one-step re-sign and install script

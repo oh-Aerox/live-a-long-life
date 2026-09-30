@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import '../data/data_profile.dart';
 
 enum LogLevel { debug, info, warn, error }
 
@@ -37,7 +38,7 @@ class AppLog {
     final minLevel = kReleaseMode ? LogLevel.info : LogLevel.debug;
     File? file;
     try {
-      final dir = await getApplicationSupportDirectory();
+      final dir = await DataProfile.supportDir();
       final logDir = Directory(p.join(dir.path, 'logs'));
       await logDir.create(recursive: true);
       file = File(p.join(logDir.path, 'app.log'));

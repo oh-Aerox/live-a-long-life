@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import 'data/app_context.dart';
+import 'data/data_profile.dart';
 import 'data/db/app_database.dart';
 import 'data/repositories/attachment_repository.dart';
 import 'data/repositories/medical_document_repository.dart';
@@ -66,7 +66,9 @@ class AppServices {
       keyStore: keyStore,
       filesDir: filesDir,
       // 手机按 Mac 设备 ID 在局域网找回新地址（V4-M5 mDNS）。
-      discover: Platform.isIOS ? const LanDiscovery().resolve : null,
+      discover: Platform.isIOS || Platform.isAndroid
+          ? const LanDiscovery().resolve
+          : null,
     );
     analysisService = AnalysisService(
       db: db,
@@ -152,7 +154,7 @@ class AppServices {
   late final ReviewService reviewService;
 
   static Future<AppServices> init() async {
-    final support = await getApplicationSupportDirectory();
+    final support = await DataProfile.supportDir();
     final dbFile = File(p.join(support.path, 'db', 'app.sqlite'));
     await dbFile.parent.create(recursive: true);
     final filesDir = Directory(p.join(support.path, 'files'));

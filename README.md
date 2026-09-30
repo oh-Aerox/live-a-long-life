@@ -56,7 +56,8 @@
 |---|---|
 | iPhone | 可用，主要的记录端 |
 | Mac | 可用，负责分析、归档和备份 |
-| 安卓、Windows | 规划中，尚未适配 |
+| 安卓 | 适配中：手机端可以安装运行，真机验证进行中（小米 12） |
+| Windows | 规划中，尚未适配 |
 
 目前通过免费开发者签名安装，7 天需要重签一次（见下文）。
 
@@ -88,11 +89,12 @@ open build/macos/Build/Products/Debug/live_a_long_life.app
 ## 项目结构
 
 ```
-app/                 Flutter 应用（iPhone 与 Mac 共用一套代码）
+app/                 Flutter 应用（iPhone、安卓与 Mac 共用一套代码）
   lib/data/          数据库表、仓库、时间与字段元数据
   lib/services/      整理、提取、脱敏、同步、备份、分析、咨询等服务
   lib/ui/            页面
   ios/ macos/        平台工程（Apple Vision 文字识别在这里实现）
+  android/           安卓工程（ML Kit 文字识别、局域网发现）
   test/              单元测试与组件测试
 docs/                需求、设计决策、数据模型、产品规格、提示词、平台验证记录
 scripts/             一键重签安装脚本
