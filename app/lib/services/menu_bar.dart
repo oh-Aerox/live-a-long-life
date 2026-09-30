@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
 
-/// Mac 菜单栏常驻图标（P-34）。原生实现见 macos/Runner/MainFlutterWindow.swift
-/// 的 MenuBarChannel：关窗只隐藏、同步服务照常运行，菜单里显示这里给的状态。
+/// Mac 菜单栏 / Windows 系统托盘常驻图标（P-34）。原生实现见
+/// macos/Runner/MainFlutterWindow.swift 的 MenuBarChannel、
+/// windows/runner/tray_channel.cpp：关窗只隐藏、同步服务照常运行，菜单里显示
+/// 这里给的状态。
 class MacMenuBar {
   const MacMenuBar();
 

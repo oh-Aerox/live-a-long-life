@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import 'desktop_text.dart';
 import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
@@ -91,8 +92,8 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                       color: Colors.orange.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text('生成之后数据有更新，这份周报可能过期：'
-                        '同步后在 Mac 上重新生成（D-14）'),
+                    child: Text(desktopText('生成之后数据有更新，这份周报可能过期：'
+                        '同步后在 Mac 上重新生成（D-14）')),
                   ),
                 Text('${report.periodStart} 至 ${report.periodEnd}',
                     style: Theme.of(context).textTheme.titleMedium),

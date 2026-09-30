@@ -25,6 +25,10 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  bonjour_ = std::make_unique<BonjourChannel>(
+      flutter_controller_->engine()->messenger());
+  tray_ = std::make_unique<TrayChannel>(
+      GetHandle(), flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,6 +44,8 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  tray_ = nullptr;
+  bonjour_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -61,10 +67,30 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     }
   }
 
+  if (tray_) {
+    std::optional<LRESULT> result = tray_->HandleMessage(message, wparam, lparam);
+    if (result) {
+      return *result;
+    }
+  }
+
   switch (message) {
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+
+    // 关闭按钮与 Alt+F4：只隐藏窗口，托盘图标留着，同步服务照常运行（P-34）。
+    case WM_CLOSE:
+      ::ShowWindow(hwnd, SW_HIDE);
+      if (tray_) {
+        tray_->OnWindowHidden();
+      }
+      return 0;
+
+    // 托盘菜单的"退出"：销毁窗口，WM_DESTROY 里结束消息循环。
+    case TrayChannel::kQuitMessage:
+      ::DestroyWindow(hwnd);
+      return 0;
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
+import 'desktop_text.dart';
 
 const _callerLabels = {
   ModelCaller.phoneOrganize: '手机整理',
@@ -71,7 +72,8 @@ class _CallTile extends StatelessWidget {
     };
     return ExpansionTile(
       title: Text('$time · ${_statusLabels[call.status]}'),
-      subtitle: Text('${_callerLabels[call.caller]} · $boundary · '
+      subtitle: Text(
+          '${desktopText('${_callerLabels[call.caller]}')} · $boundary · '
           '发送 $_sentMessageCount 条消息、$_sentAttachmentCount 个附件'),
       children: [
         Padding(

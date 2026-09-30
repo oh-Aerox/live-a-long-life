@@ -11,6 +11,7 @@ import '../data/repositories/peer_repository.dart';
 import '../services/backup_service.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_server.dart';
+import 'desktop_text.dart';
 import 'log_page.dart';
 import 'model_calls_page.dart';
 import 'model_config_page.dart';
@@ -173,14 +174,14 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ListTile(
             leading: const Icon(Icons.smart_toy_outlined),
             title: const Text('模型配置'),
-            subtitle: const Text('周报和咨询使用这台 Mac 上配置的模型，配置不与手机同步'),
+            subtitle: Text(desktopText('周报和咨询使用这台 Mac 上配置的模型，配置不与手机同步')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _push(ModelConfigPage(services: s)),
           ),
           ListTile(
             leading: const Icon(Icons.receipt_long_outlined),
             title: const Text('模型调用记录'),
-            subtitle: const Text('这台 Mac 发给模型的内容与返回（周报、咨询）'),
+            subtitle: Text(desktopText('这台 Mac 发给模型的内容与返回（周报、咨询）')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _push(ModelCallsPage(services: s)),
           ),
@@ -250,7 +251,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ListTile(
             leading: const Icon(Icons.key_outlined),
             title: const Text('更换备份密码'),
-            subtitle: const Text('密码存在这台 Mac 的钥匙串里；忘记密码备份无法解开'),
+            subtitle: Text(desktopText('密码存在这台 Mac 的钥匙串里；忘记密码备份无法解开')),
             onTap: _changeBackupPassphrase,
           ),
           _section('其他'),
@@ -263,7 +264,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('关于'),
-            subtitle: Text('长命百岁 Mac 副本 · 版本 $_version'),
+            subtitle: Text(desktopText('长命百岁 Mac 副本 · 版本 $_version')),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 24),

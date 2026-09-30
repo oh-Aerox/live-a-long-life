@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'desktop_text.dart';
 import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
@@ -111,8 +112,8 @@ class _ConsultPageState extends State<ConsultPage> {
                         '发送了什么在"模型调用记录"里可查。\n\n'
                         '咨询是问答不是录入：这里聊的不会变成健康记录，'
                         '要记录的事请回消息流正常发。'
-                        // Mac 端（D-29）：用 Mac 的模型，咨询历史不同步。
-                        '${Platform.isMacOS ? '\n\n在 Mac 上用这台 Mac 配置的模型；这里的咨询记录只存在这台 Mac，和手机上的咨询互不相通。' : ''}',
+                        // 电脑端（D-29）：用电脑的模型，咨询历史不同步。
+                        '${Platform.isMacOS || Platform.isWindows ? desktopText('\n\n在 Mac 上用这台 Mac 配置的模型；这里的咨询记录只存在这台 Mac，和手机上的咨询互不相通。') : ''}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey, height: 1.6),
                       ),
