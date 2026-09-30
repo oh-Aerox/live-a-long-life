@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../data/data_profile.dart';
 import '../data/db/app_database.dart';
@@ -66,12 +67,19 @@ class RestoreDrillResult {
 /// - 生成用临时目录名，逐文件解密校验通过后才改正式名并登记 published；
 /// - Mac 缺失的原件列入清单 missing，不当作业务记录删除。
 class BackupService {
-  /// Mac 端备份存放目录（~/Documents/长命百岁备份）；主页备份与设置页共用。
-  /// 改名前的备份留在 ~/Documents/长寿记备份 不动：backup_runs 记的是
-  /// 绝对路径，恢复演练按原路径找，搬走反而演练不了。
-  static Directory macBackupRoot() => Directory(
-      p.join(Platform.environment['HOME'] ?? '.', 'Documents',
-          DataProfile.suffixed('长命百岁备份')));
+  /// 电脑端备份存放目录（"文档/长命百岁备份"）；主页备份与设置页共用。
+  ///
+  /// - Mac：~/Documents/长命百岁备份。改名前的备份留在 ~/Documents/长寿记备份
+  ///   不动：backup_runs 记的是绝对路径，恢复演练按原路径找，搬走反而演练不了。
+  /// - Windows：系统的"文档"文件夹（按 known folder 取，被挪到别的盘或交给
+  ///   OneDrive 时跟着走）。不能用 HOME：Windows 没有这个变量，从资源管理器
+  ///   打开时会退回到当前目录。
+  static Future<Directory> backupRoot() async {
+    final documents = Platform.isWindows
+        ? (await getApplicationDocumentsDirectory()).path
+        : p.join(Platform.environment['HOME'] ?? '.', 'Documents');
+    return Directory(p.join(documents, DataProfile.suffixed('长命百岁备份')));
+  }
 
   BackupService({
     required AppDatabase db,

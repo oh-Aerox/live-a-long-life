@@ -60,7 +60,7 @@ class _MacHomePageState extends State<MacHomePage> {
     if (pass == null) return;
     setState(() => _backingUp = true);
     try {
-      final target = BackupService.macBackupRoot();
+      final target = await BackupService.backupRoot();
       await target.create(recursive: true);
       final run = await widget.services.backupService
           .backup(targetRoot: target, passphrase: pass);
@@ -262,7 +262,7 @@ class _MacHomePageState extends State<MacHomePage> {
     if (pass == null) return;
     setState(() => _backingUp = true);
     try {
-      final target = BackupService.macBackupRoot();
+      final target = await BackupService.backupRoot();
       await target.create(recursive: true);
       final run = await widget.services.backupService.backup(
         targetRoot: target,

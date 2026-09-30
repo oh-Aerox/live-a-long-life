@@ -45,6 +45,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   SyncState? _pull;
   PairingInfo? _pairing;
   String _version = '';
+  Directory? _backupDir;
 
   @override
   void initState() {
@@ -77,11 +78,13 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ..limit(1))
         .getSingleOrNull();
     final info = await PackageInfo.fromPlatform();
+    final backupDir = await BackupService.backupRoot();
     if (mounted) {
       setState(() {
         _peers = peers;
         _pull = pull;
         _version = '${info.version} (${info.buildNumber})';
+        _backupDir = backupDir;
       });
     }
   }
@@ -165,7 +168,6 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   Widget build(BuildContext context) {
     final s = widget.services;
     final server = widget.server;
-    final backupDir = BackupService.macBackupRoot();
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
@@ -241,12 +243,17 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
           ListTile(
             leading: const Icon(Icons.folder_outlined),
             title: const Text('备份位置'),
-            subtitle: Text(backupDir.path),
+            subtitle: Text(_backupDir?.path ?? ''),
             trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () async {
-              await backupDir.create(recursive: true);
-              await Process.run('open', [backupDir.path]);
-            },
+            onTap: _backupDir == null
+                ? null
+                : () async {
+                    final dir = _backupDir!;
+                    await dir.create(recursive: true);
+                    // Windows 用资源管理器打开，Mac 用访达。
+                    await Process.run(
+                        Platform.isWindows ? 'explorer' : 'open', [dir.path]);
+                  },
           ),
           ListTile(
             leading: const Icon(Icons.key_outlined),
