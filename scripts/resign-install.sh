@@ -2,13 +2,37 @@
 # 一键重签安装（D-19、P-50）。
 # 免费签名 7 天过期，到期前把 iPhone 连上 Mac，跑一次本脚本即可：
 #   ./scripts/resign-install.sh
-# 重新构建会用当前日期的签名，覆盖安装不动应用数据（A-07）。
+# 先续期描述文件（到期日从今天起算 7 天），再重新构建；覆盖安装不动应用数据（A-07）。
 set -euo pipefail
 
 cd "$(dirname "$0")/../app"
 
 # 默认设备：Aerox。接了别的设备时传设备 ID 作为第一个参数。
 DEVICE="${1:-00000000-0000000000000000}"
+
+# 续期描述文件：Xcode 会一直复用本机缓存里还没过期的描述文件，只重新构建
+# 不会延后到期日（2026-09-30 发现）。先把本应用的缓存挪开，再指定这台设备
+# 构建一次让 Xcode 重新申请——免费账号必须指定已连接的设备才能生成，
+# flutter build ios 构建的是通用目标，申请不到。失败时放回旧的，不影响已装的应用。
+echo "==> 续期描述文件"
+PROFILES="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+BACKUP="$(mktemp -d)"
+for f in "$PROFILES"/*.mobileprovision; do
+  [ -e "$f" ] || continue
+  appid="$(security cms -D -i "$f" 2>/dev/null \
+    | plutil -extract Entitlements.application-identifier raw -o - - 2>/dev/null || true)"
+  if [[ "$appid" == *.com.example.livealonglife ]]; then mv "$f" "$BACKUP/"; fi
+done
+flutter build ios --release --config-only >/dev/null
+if ! (cd ios && xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+    -configuration Release -destination "id=$DEVICE" \
+    -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
+    -derivedDataPath "$BACKUP/dd" build >"$BACKUP/xcodebuild.log" 2>&1); then
+  mv "$BACKUP"/*.mobileprovision "$PROFILES"/ 2>/dev/null || true
+  echo "!! 申请描述文件失败，已放回旧的。日志：$BACKUP/xcodebuild.log" >&2
+  exit 1
+fi
+rm -rf "$BACKUP"
 
 echo "==> 重新构建并签名（team XXXXXXXXXX）"
 flutter build ios --release
@@ -31,4 +55,6 @@ echo "==> 覆盖安装到设备 $DEVICE"
 # devicectl 原地升级安装，数据保留。
 xcrun devicectl device install app --device "$DEVICE" build/ios/iphoneos/Runner.app
 
-echo "==> 完成。打开应用确认此前的数据还在（A-07）。"
+expiry="$(security cms -D -i build/ios/iphoneos/Runner.app/embedded.mobileprovision \
+  | plutil -extract ExpirationDate raw -o - -)"
+echo "==> 完成，签名到期：${expiry}（UTC）。打开应用确认此前的数据还在（A-07）。"
