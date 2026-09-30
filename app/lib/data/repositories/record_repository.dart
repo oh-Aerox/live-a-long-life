@@ -275,7 +275,32 @@ class RecordRepository {
     for (final r in rows) {
       final i = r['_index'] as int;
       final name = r['item_name_raw'] as String;
-      final valueRaw = r['value_raw'] as String;
+      var valueRaw = r['value_raw'] as String;
+      var valueNum = (r['value_num'] as num?)?.toDouble();
+      var unitRaw = r['unit_raw'] as String?;
+      var refRangeRaw = r['ref_range_raw'] as String?;
+      var refLow = (r['ref_low'] as num?)?.toDouble();
+      var refHigh = (r['ref_high'] as num?)?.toDouble();
+      // 白细胞分类写成小数比值的，换算成百分数再进索引，和别的年份的
+      // 百分数画在同一条趋势线上；原文写进参考说明（记录本身不改）。
+      final factor = SameItem.labPercentFactor(r);
+      if (factor != 1) {
+        String fmt(double v) {
+          final s = (v * factor).toStringAsFixed(4);
+          return s.replaceFirst(RegExp(r'\.?0+$'), '');
+        }
+
+        final original = '原文为比值 $valueRaw'
+            '${refRangeRaw == null ? '' : '，参考 $refRangeRaw'}';
+        if (valueNum != null) valueRaw = fmt(valueNum);
+        refRangeRaw = refLow != null && refHigh != null
+            ? '${fmt(refLow)}-${fmt(refHigh)}（$original）'
+            : '（$original）';
+        valueNum = valueNum == null ? null : valueNum * factor;
+        refLow = refLow == null ? null : refLow * factor;
+        refHigh = refHigh == null ? null : refHigh * factor;
+        unitRaw = '%';
+      }
       await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
             recordId: recordId,
             resultIndex: i,
@@ -284,11 +309,11 @@ class RecordRepository {
             itemNameRaw: name,
             itemKey: labItemKey(name),
             valueRaw: valueRaw,
-            valueNum: Value((r['value_num'] as num?)?.toDouble()),
-            unitRaw: Value(r['unit_raw'] as String?),
-            refRangeRaw: Value(r['ref_range_raw'] as String?),
-            refLow: Value((r['ref_low'] as num?)?.toDouble()),
-            refHigh: Value((r['ref_high'] as num?)?.toDouble()),
+            valueNum: Value(valueNum),
+            unitRaw: Value(unitRaw),
+            refRangeRaw: Value(refRangeRaw),
+            refLow: Value(refLow),
+            refHigh: Value(refHigh),
             flagRaw: Value(r['flag_raw'] as String?),
             examDate: Value(occurred.localDate),
             reviewStatus: Value(

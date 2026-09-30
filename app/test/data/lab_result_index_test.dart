@@ -67,6 +67,55 @@ void main() {
     expect(changes.where((c) => c.entityType == 'lab_results'), isEmpty);
   });
 
+  test('2019 比值与 2022 百分数进同一条趋势：比值换算成百分数，原文留在参考说明',
+      () async {
+    Future<void> panel(String date, Map<String, Object?> result) =>
+        records.create(
+          recordType: RecordType.labPanel,
+          occurred: day(date),
+          dataJson: jsonEncode({
+            'medical_document_id': 'doc-$date',
+            'results': [result],
+          }),
+          fieldMeta: FieldMetaMap({}),
+          producedBy: ProducedBy.medicalExtract('call-$date'),
+        );
+    await panel('2019-05-11', {
+      'item_name_raw': '中性粒细胞比值（GRA）',
+      'value_raw': '0.481',
+      'value_num': 0.481,
+      'unit_raw': '-',
+      'ref_range_raw': '0.5- 0.7',
+      'ref_low': 0.5,
+      'ref_high': 0.7,
+      'flag_raw': '↓',
+    });
+    await panel('2022-07-17', {
+      'item_name_raw': '中性粒细胞百分数（GRA%）',
+      'value_raw': '53.30',
+      'value_num': 53.3,
+      'unit_raw': '%',
+      'ref_range_raw': '40- 75',
+      'ref_low': 40,
+      'ref_high': 75,
+      'flag_raw': null,
+    });
+
+    final history = await records.labResultHistory('中性粒细胞百分数');
+    expect(history, hasLength(2));
+    final old = history.first;
+    expect(old.examDate, '2019-05-11');
+    expect(old.valueNum, closeTo(48.1, 1e-9));
+    expect(old.valueRaw, '48.1');
+    expect(old.unitRaw, '%');
+    expect(old.refLow, closeTo(50, 1e-9));
+    expect(old.refHigh, closeTo(70, 1e-9));
+    expect(old.refRangeRaw, '50-70（原文为比值 0.481，参考 0.5- 0.7）');
+    expect(old.flagRaw, '↓');
+    expect(history.last.valueNum, 53.3);
+    expect(history.last.refRangeRaw, '40- 75');
+  });
+
   test('核对出新版本：索引随版本重建，核对状态跟上', () async {
     final rec = await createPanel('2026-09-20', '145', num_: 145);
     await records.addRevision(

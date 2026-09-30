@@ -9,15 +9,73 @@ class SameItem {
   static final _dropParen = RegExp(
       r'[（(](?:[\x00-\x7fµγβα%＃#/\-\s]+|[^（()）]*法)[）)]');
 
-  /// 检验项目的归一化键：去括号里的缩写与方法、去空白。
-  static String labKey(String itemNameRaw) => itemNameRaw
-      .replaceAll(_dropParen, '')
-      .replaceAll(_slashAbbr, '')
-      .replaceAll(RegExp(r'\s'), '');
+  /// 检验项目的归一化键：去括号里的缩写与方法、去空白，再把同一指标的
+  /// 不同写法归到一个名字（D-32 补充，2026-09-30）：
+  /// - 末尾的"（联）"（联合检测）、不带括号的检测方法（"……电发光"）、
+  ///   "测定 / 检测 / 定量 / 定性"——同一指标，不同医院、不同写法；
+  /// - 白细胞分类的"比值 / 百分比 / 百分数"归百分数，"计数 / 绝对值"
+  ///   归绝对值（比值是小数，建索引时换算，见 [labPercentFactor]）；
+  /// - 常见别名（[_aliases]）。
+  static String labKey(String itemNameRaw) {
+    var k = itemNameRaw
+        .replaceAll(_dropParen, '')
+        .replaceAll(_slashAbbr, '')
+        .replaceAll(RegExp(r'[（(]联[）)]'), '')
+        .replaceAll(RegExp(r'\s'), '');
+    k = k.replaceFirst(_methodSuffix, '');
+    final stripped = k.replaceFirst(_testSuffix, '');
+    if (stripped.length >= 2) k = stripped;
+    final wbc = _wbcDifferential.firstMatch(k);
+    if (wbc != null) {
+      k = '${wbc[1]}${_wbcAbsolute.hasMatch(wbc[2]!) ? '绝对值' : '百分数'}';
+    }
+    return _aliases[k] ?? k;
+  }
 
-  /// 中文名后面用斜杠跟的英文缩写（"体重指数/BMI"）。纯英文的比值
-  /// （"F-PSA/T-PSA"）不动。
-  static final _slashAbbr = RegExp(r'(?<=[\u4e00-\u9fff])\s*/\s*[A-Za-z][\x00-\x7f]*$');
+  /// 中文名后面用斜杠或空格跟的英文缩写（"体重指数/BMI""升主动脉内径 AOD"）。
+  /// 纯英文的比值（"F-PSA/T-PSA"）不动。
+  static final _slashAbbr = RegExp(
+      r'(?<=[\u4e00-\u9fff])\s*(?:/\s*|\s+)[A-Za-z][\x00-\x7f]*$');
+
+  static final _methodSuffix = RegExp(r'(?:电化学发光|化学发光|电发光|发光法|酶免法)$');
+  static final _testSuffix = RegExp(r'(?:测定|检测|定量|定性)$');
+
+  static final _wbcDifferential = RegExp(
+      r'^(中性粒细胞|淋巴细胞|单核细胞|嗜酸性粒细胞|嗜碱性粒细胞)'
+      r'(比值|比例|百分比|百分率|百分数|%|计数|绝对值|数目)$');
+  static final _wbcAbsolute = RegExp(r'计数|绝对值|数目');
+
+  /// 常见别名 → 本应用用的名字。只收同一指标、同一标本的叫法，
+  /// 不收"尿素氮 / 尿素"这类单位或口径不同的。
+  static const _aliases = {
+    '谷丙转氨酶': '丙氨酸氨基转移酶',
+    '谷草转氨酶': '天门冬氨酸氨基转移酶',
+    '天冬氨酸氨基转移酶': '天门冬氨酸氨基转移酶',
+    'γ-谷氨酰转肽酶': 'γ-谷氨酰转移酶',
+    '谷氨酰转肽酶': 'γ-谷氨酰转移酶',
+    'γ-谷氨酰基转移酶': 'γ-谷氨酰转移酶',
+    '血小板计数': '血小板',
+    '红细胞比容': '红细胞压积',
+    '促甲状腺激素': '促甲状腺素',
+    '甘油三脂': '甘油三酯',
+    '血肌酐': '肌酐',
+    '血尿酸': '尿酸',
+  };
+
+  /// 白细胞分类写成小数比值（0.481，参考 0.5-0.7）时换算成百分数的倍数：
+  /// 名字是比值类、没有单位或单位是"-"、参考上限（没有时看数值）不超过 1，
+  /// 才乘 100；已经是百分数的返回 1。
+  static double labPercentFactor(Map<Object?, Object?> r) {
+    final name = r['item_name_raw'];
+    if (name is! String) return 1;
+    final raw = name.replaceAll(_dropParen, '').replaceAll(RegExp(r'\s'), '');
+    final m = _wbcDifferential.firstMatch(raw);
+    if (m == null || !RegExp(r'比值|比例').hasMatch(m[2]!)) return 1;
+    final unit = '${r['unit_raw'] ?? ''}'.trim();
+    if (unit.isNotEmpty && unit != '-') return 1;
+    final scale = (r['ref_high'] as num?) ?? (r['value_num'] as num?);
+    return scale != null && scale <= 1 ? 100 : 1;
+  }
 
   /// 检验结果的值（比较用）：有解析出的数值用数值，否则用原文去掉单位与空白。
   static String labValue(Map<Object?, Object?> r) {
