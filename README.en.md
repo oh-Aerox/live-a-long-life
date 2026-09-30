@@ -16,7 +16,7 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 - **Apple Health**: sleep, steps, workouts and active energy fill in the gaps so you type less. What you tell the app yourself takes priority.
 - **Day view** and per-field corrections.
 - **Profile** collected gradually (birth month, sex, height, exercise preferences, chronic conditions, allergies…). Every item can be skipped.
-- **Export and restore**: export to JSON plus a folder of files with a manifest, and restore from an export, including the records and checkups folders and Q&A history. On Android you can also restore directly from a zip of an export made on another device.
+- **Export and restore**: export to JSON plus a folder of files with a manifest, and restore from an export, including the records and checkups folders and Q&A history. On Android you can also restore directly from a zip of an export made on another device. After a restore, the next sync prompts you on the Mac home screen to rebuild its copy: once you confirm, the Mac backs up first, then re-receives everything from the phone as the source of truth.
 
 ### Medical records and lab reports (iPhone)
 

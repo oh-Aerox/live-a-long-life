@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:live_a_long_life/data/change_log.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
@@ -180,7 +182,9 @@ void main() {
     expect(macCopy.localPath, sha);
   });
 
-  test('代次变化：Mac 拒收并提示重建，不静默混用旧序号（schema §7.3）', () async {
+  /// 模拟从导出恢复：代次清掉，回填标记仍是旧代次（旧导出会把它带回来），
+  /// Mac 上多一条手机已经没有的消息（导出之后才记的）。
+  Future<void> simulateRestore() async {
     await phoneMessages.send(
       clientMsgId: 'c1',
       role: MessageRole.user,
@@ -188,9 +192,21 @@ void main() {
       text: '第一代的数据',
       sentTz: 'Asia/Shanghai',
     );
+    await phoneMessages.send(
+      clientMsgId: 'c-lost',
+      role: MessageRole.user,
+      kind: MessageKind.text,
+      text: '导出之后才记的',
+      sentTz: 'Asia/Shanghai',
+    );
+    await phoneEnv.db.backfillChangeLogIfNeeded('test-device');
     expect((await sync.syncNow()).error, isNull);
+    expect(await macEnv.db.select(macEnv.db.messages).get(), hasLength(2));
 
-    // 模拟恢复换代次：清掉 generation，写入新变更。
+    // 恢复：导出里没有 c-lost，代次清掉，写入新变更。
+    await (phoneEnv.db.delete(phoneEnv.db.messages)
+          ..where((t) => t.clientMsgId.equals('c-lost')))
+        .go();
     await (phoneEnv.db.delete(phoneEnv.db.settings)
           ..where((t) => t.key.equals('data_generation')))
         .go();
@@ -201,11 +217,142 @@ void main() {
       text: '新代次的数据',
       sentTz: 'Asia/Shanghai',
     );
+    // 启动时回填：新代次里补上恢复回来的旧数据。
+    expect(await phoneEnv.db.backfillChangeLogIfNeeded('test-device'), 1);
+    expect(await phoneEnv.db.backfillChangeLogIfNeeded('test-device'), 0);
+  }
+
+  Future<Set<String>> macMessageTexts() async => {
+    for (final m in await macEnv.db.select(macEnv.db.messages).get())
+      m.body ?? '',
+  };
+
+  test('代次变化：Mac 拒收并记下待重建，不静默混用旧序号（schema §7.3）', () async {
+    await simulateRestore();
 
     final result = await sync.syncNow();
     expect(result.error, contains('代次已变化'));
-    // Mac 上没有第二条消息。
-    expect(await macEnv.db.select(macEnv.db.messages).get(), hasLength(1));
+    expect(await macMessageTexts(), {'第一代的数据', '导出之后才记的'});
+    final pending = await server.pendingRebuilds();
+    expect(pending.single.peerDeviceId, 'test-device');
+    expect(pending.single.generation, await phoneEnv.db.currentGeneration());
+
+    // 没确认之前再同步，仍然拒收，只记一次。
+    expect((await sync.syncNow()).error, contains('代次已变化'));
+    expect(await server.pendingRebuilds(), hasLength(1));
+  });
+
+  test('以手机为准重建：清掉旧副本，按新代次从头收全手机现有数据（D-34）', () async {
+    await simulateRestore();
+    await sync.syncNow();
+
+    // Mac 自己的行、另一台手机的行不在清理范围。
+    await PeerRepository(macEnv.db).pair(
+      peerDeviceId: 'other-phone',
+      displayName: '安卓手机',
+      certFingerprint: 'fp',
+    );
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final (id, device, date) in [
+      ('mac-row', 'mac-1', '2026-09-01'),
+      ('other-row', 'other-phone', '2026-09-02'),
+    ]) {
+      await macEnv.db.into(macEnv.db.healthDaily).insert(
+            HealthDailyCompanion.insert(
+              id: id,
+              userId: 'u',
+              createdAt: now,
+              createdOnDevice: device,
+              localDate: date,
+              aggTz: 'Asia/Shanghai',
+              intervalStartUtc: now,
+              intervalEndUtc: now,
+              metric: HealthMetric.steps,
+              value: 1,
+              fetchedAt: now,
+            ),
+          );
+    }
+
+    final cleared = await server.rebuildReplica('test-device');
+    expect(cleared, greaterThan(0));
+    expect({
+      for (final r in await macEnv.db.select(macEnv.db.healthDaily).get()) r.id
+    }, {'mac-row', 'other-row'});
+    expect(await server.pendingRebuilds(), isEmpty);
+
+    final result = await sync.syncNow();
+    expect(result.error, isNull);
+    // 导出之后才记的那条手机上已经没有，随旧副本清掉。
+    expect(await macMessageTexts(), {'第一代的数据', '新代次的数据'});
+    // 之后的新变更照常接着收。
+    await phoneMessages.send(
+      clientMsgId: 'c3',
+      role: MessageRole.user,
+      kind: MessageKind.text,
+      text: '重建之后',
+      sentTz: 'Asia/Shanghai',
+    );
+    expect((await sync.syncNow()).error, isNull);
+    expect(await macMessageTexts(), contains('重建之后'));
+  });
+
+  test('重建后回填：本机没有文件的附件不带文件依赖，同步不卡在要文件；'
+      'Mac 已有的文件照常记副本', () async {
+    final phoneFiles = Directory(p.join(tempDir.path, 'phone_files'));
+    final attachments = AttachmentRepository(
+      phoneEnv.db,
+      phoneEnv.ctx,
+      filesDir: phoneFiles,
+    );
+    Future<String> importPhoto(String name, int seed) async {
+      final src = File(p.join(tempDir.path, name));
+      await src.writeAsBytes(List.generate(300, (i) => (i + seed) % 250));
+      final imported = await attachments.importFile(
+        src,
+        mimeType: 'image/jpeg',
+        originalFilename: name,
+      );
+      final m = await phoneMessages.send(
+        clientMsgId: name,
+        role: MessageRole.user,
+        kind: MessageKind.attachments,
+        sentTz: 'Asia/Shanghai',
+      );
+      await attachments.linkToMessage(
+        messageId: m.id,
+        attachmentId: imported.attachment.id,
+        position: 0,
+      );
+      return imported.attachment.sha256;
+    }
+
+    final synced = await importPhoto('synced.jpg', 1);
+    expect((await sync.syncNow()).error, isNull);
+    // 这张 Mac 从没收到过，恢复时文件也缺了。
+    final lost = await importPhoto('lost.jpg', 7);
+    await File(p.join(phoneFiles.path, lost)).delete();
+    await File(p.join(phoneFiles.path, synced)).delete();
+    await phoneEnv.db
+        .update(phoneEnv.db.attachmentCopies)
+        .write(
+          const AttachmentCopiesCompanion(state: Value(CopyState.missing)),
+        );
+    await (phoneEnv.db.delete(
+      phoneEnv.db.settings,
+    )..where((t) => t.key.equals('data_generation'))).go();
+    await phoneEnv.db.backfillChangeLogIfNeeded('test-device');
+
+    await sync.syncNow(); // 代次变了，被拒
+    await server.rebuildReplica('test-device');
+    final result = await sync.syncNow();
+    expect(result.error, isNull);
+
+    final macAttachments = await macEnv.db.select(macEnv.db.attachments).get();
+    expect({for (final a in macAttachments) a.sha256}, {synced, lost});
+    final macCopies = (await macEnv.db.select(macEnv.db.attachmentCopies).get())
+        .where((c) => c.deviceId == 'mac-1');
+    expect({for (final c in macCopies) c.localPath}, {synced});
   });
 
   test('检验结果同步到 Mac 后建索引，新版本到达后索引跟上（D-27，2026-09-29 联调）',

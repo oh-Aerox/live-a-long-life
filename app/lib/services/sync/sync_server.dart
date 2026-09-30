@@ -30,6 +30,21 @@ const syncedTables = [
   'medical_documents',
 ];
 
+/// 对方数据代次变了、等待用户确认重建的手机。
+class PendingRebuild {
+  PendingRebuild({
+    required this.peerDeviceId,
+    required this.displayName,
+    required this.generation,
+    required this.detectedAt,
+  });
+
+  final String peerDeviceId;
+  final String displayName;
+  final String generation;
+  final DateTime detectedAt;
+}
+
 /// 默认监听端口。固定下来手机才能在 Mac 重启后按原地址重连；
 /// 被占用时向后顺延（最多 10 个）。
 const syncBasePort = 47856;
@@ -215,9 +230,11 @@ class SyncServer {
       return {'status': 'rejected', 'error': '表 $table 不在同步范围'};
     }
 
-    // 代次变化：完整重建是用户明确操作（schema §7.3），第一版先拒收提示。
+    // 代次变化：完整重建是用户明确操作（schema §7.3）。先拒收并记下
+    // 待重建，Mac 首页提示用户确认，确认后按新代次从头接收。
     final state = await _pullState(peerId);
     if (state != null && state.generation != generation) {
+      await _markRebuildPending(peerId, generation);
       return {'status': 'generation_changed'};
     }
 
@@ -237,9 +254,15 @@ class SyncServer {
         'VALUES ($placeholders)',
         variables: [for (final c in columns) _variableFor(row[c])],
       );
-      // 附件到位：给 Mac 自己记一行副本状态（不入变更日志）。
-      if (table == 'attachments' && dependsOnBlob != null) {
-        await _recordMacCopy(row, dependsOnBlob);
+      // 附件到位：给 Mac 自己记一行副本状态（不入变更日志）。手机没有
+      // 文件时不带依赖，但 Mac 可能早就收过同一个文件（重建副本时文件不删）。
+      if (table == 'attachments') {
+        final sha = dependsOnBlob ?? row['sha256'] as String?;
+        if (sha != null &&
+            (dependsOnBlob != null ||
+                await File(p.join(_filesDir.path, sha)).exists())) {
+          await _recordMacCopy(row, sha);
+        }
       }
       // 记录与版本分两条变更到达，哪条后到都会补齐；lab_panel 以外只是空操作。
       final recordId = switch (table) {
@@ -252,6 +275,101 @@ class SyncServer {
     });
     onReplicaChanged?.call();
     return {'status': 'applied', 'seq': seq};
+  }
+
+  static const _rebuildKeyPrefix = 'sync_rebuild_pending:';
+
+  Future<void> _markRebuildPending(String peerId, String generation) async {
+    final existing = await (_db.select(_db.settings)
+          ..where((t) => t.key.equals('$_rebuildKeyPrefix$peerId')))
+        .getSingleOrNull();
+    if (existing != null &&
+        (jsonDecode(existing.value) as Map)['generation'] == generation) {
+      return;
+    }
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    await _db.into(_db.settings).insertOnConflictUpdate(
+          SettingsCompanion.insert(
+            key: '$_rebuildKeyPrefix$peerId',
+            value: jsonEncode({'generation': generation, 'detected_at': now}),
+            updatedAt: now,
+          ),
+        );
+    onReplicaChanged?.call();
+  }
+
+  /// 等待用户确认重建的手机（对方数据代次变了，schema §7.3）。
+  Future<List<PendingRebuild>> pendingRebuilds() async {
+    final rows = await (_db.select(_db.settings)
+          ..where((t) => t.key.like('$_rebuildKeyPrefix%')))
+        .get();
+    final result = <PendingRebuild>[];
+    for (final row in rows) {
+      final peerId = row.key.substring(_rebuildKeyPrefix.length);
+      final v = (jsonDecode(row.value) as Map).cast<String, Object?>();
+      final peer = await _peers.active(peerId);
+      result.add(PendingRebuild(
+        peerDeviceId: peerId,
+        displayName: peer?.displayName ?? peerId,
+        generation: v['generation'] as String,
+        detectedAt: DateTime.fromMillisecondsSinceEpoch(
+            v['detected_at'] as int,
+            isUtc: true),
+      ));
+    }
+    return result;
+  }
+
+  /// 按手机的新代次重建副本（schema §7.3，用户在 Mac 上明确确认后执行）。
+  ///
+  /// 先清掉副本里这台手机的行，再把接收进度改到新代次、从第 1
+  /// 条重新接收；手机新代次里有全部数据，不做跨代次版本比较。手机上已经
+  /// 没有的内容随之从 Mac 消失——不提供"保留 Mac 多出的"：恢复后手机的
+  /// 消息序号从导出时接着编，会和 Mac 上多出的消息撞号并把它们顶掉，
+  /// 留不住（D-34）。Mac 自己产生的行（修正建议、周报、调用记录）、其他
+  /// 已配对设备的行和已收到的附件文件保留；按 created_on_device 区分，
+  /// 不认识的设备标识（换过手机、恢复前的旧标识）算这台手机的。
+  /// 返回清掉的行数。
+  Future<int> rebuildReplica(String peerId) async {
+    final pending = await (_db.select(_db.settings)
+          ..where((t) => t.key.equals('$_rebuildKeyPrefix$peerId')))
+        .getSingleOrNull();
+    if (pending == null) return 0;
+    final generation =
+        (jsonDecode(pending.value) as Map)['generation'] as String;
+    final keep = [
+      deviceId,
+      for (final peer in await _peers.all())
+        if (peer.peerDeviceId != peerId) peer.peerDeviceId,
+    ];
+    final placeholders = List.filled(keep.length, '?').join(', ');
+    var cleared = 0;
+    await _db.transaction(() async {
+      for (final table in syncedTables) {
+        cleared += await _db.customUpdate(
+          'DELETE FROM $table WHERE created_on_device NOT IN ($placeholders)',
+          variables: [for (final id in keep) Variable.withString(id)],
+          updates: {},
+        );
+      }
+      await _db.into(_db.syncStates).insertOnConflictUpdate(
+            SyncStatesCompanion.insert(
+              peerDeviceId: peerId,
+              direction: SyncDirection.pull,
+              generation: generation,
+              ackedContiguousSeq: const Value(0),
+              ackedRanges: const Value('[]'),
+              pendingCount: const Value(0),
+              lastError: const Value(null),
+            ),
+          );
+      await (_db.delete(_db.settings)
+            ..where((t) => t.key.equals('$_rebuildKeyPrefix$peerId')))
+          .go();
+    });
+    await _records?.rebuildLabResultIndex();
+    onReplicaChanged?.call();
+    return cleared;
   }
 
   Future<SyncState?> _pullState(String peerId) => (_db.select(_db.syncStates)

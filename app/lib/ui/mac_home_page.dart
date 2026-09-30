@@ -44,6 +44,7 @@ class _MacHomePageState extends State<MacHomePage> {
       PeerRepository(widget.services.db);
 
   SyncState? _pullState;
+  List<PendingRebuild> _pendingRebuilds = [];
   AnalysisArtifact? _latestReport;
   bool _generating = false;
   BackupRun? _latestBackup;
@@ -166,6 +167,7 @@ class _MacHomePageState extends State<MacHomePage> {
     final latestReport =
         await widget.services.analysisService.latest(AnalysisKind.weeklyReview);
     final latestBackup = await widget.services.backupService.latest();
+    final pendingRebuilds = await _server?.pendingRebuilds() ?? const [];
     if (mounted) {
       setState(() {
         _messageCount = messages.where((m) => m.deletedAt == null).length;
@@ -174,6 +176,7 @@ class _MacHomePageState extends State<MacHomePage> {
         _pullState = pull;
         _latestReport = latestReport;
         _latestBackup = latestBackup;
+        _pendingRebuilds = pendingRebuilds;
       });
     }
   }
@@ -208,6 +211,7 @@ class _MacHomePageState extends State<MacHomePage> {
         _load();
       };
     await _server!.start();
+    await _load(); // 服务就绪后才能读到待重建的手机
     // 局域网广播，手机在 Mac 换 IP 后能自己找回来（V4-M5 mDNS）。
     final port = _server!.port;
     if (port != null) {
@@ -216,6 +220,70 @@ class _MacHomePageState extends State<MacHomePage> {
     }
     if (mounted) setState(() {});
   }
+
+  /// 手机从导出恢复后数据代次变了（schema §7.3、D-34）：用户确认后先备份，
+  /// 备份成功才清掉旧副本，手机下次同步从新代次第 1 条重新发送。
+  Future<void> _confirmRebuild(PendingRebuild pending) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('重建手机数据副本'),
+        content: SizedBox(
+          width: 480,
+          child: Text(
+            '「${pending.displayName}」的数据代次变了（从导出恢复过，或换了手机），'
+            'Mac 从 ${_formatTime(pending.detectedAt.toLocal())} 起暂停接收它的同步。\n\n'
+            '重建会以手机现在的数据为准：先清掉 Mac 上的手机数据副本，'
+            '手机再把现有数据全部重新发一遍。手机上已经没有的内容'
+            '（比如导出之后才记的、恢复时没带回来的）会从 Mac 上清掉。\n\n'
+            '清掉之前先自动备份一次，备份不成功就不动数据；需要时可以从这份备份里找回。'
+            'Mac 自己生成的周报、修正建议，其他手机的数据和已收到的原件文件都保留。',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('备份并重建'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final pass = await _backupPassphrase();
+    if (pass == null) return;
+    setState(() => _backingUp = true);
+    try {
+      final target = BackupService.macBackupRoot();
+      await target.create(recursive: true);
+      final run = await widget.services.backupService.backup(
+        targetRoot: target,
+        passphrase: pass,
+      );
+      await _server!.rebuildReplica(pending.peerDeviceId);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '已备份到 ${run.targetPath} 并清掉旧副本，'
+            '请在手机上点一次同步',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('备份失败，没有重建：$e')));
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+      await _load();
+    }
+  }
+
+  static String _formatTime(DateTime t) =>
+      '${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
 
   Future<void> _openSettings() async {
     await _ensureServer();
@@ -319,6 +387,31 @@ class _MacHomePageState extends State<MacHomePage> {
                   Text('消息：$_messageCount 条'),
                   Text('记录：$_recordCount 条'),
                   Text('同步：$_syncText'),
+                  for (final pending in _pendingRebuilds)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '「${pending.displayName}」从导出恢复过，'
+                              '需要重建副本后才能继续同步',
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _backingUp
+                                ? null
+                                : () => _confirmRebuild(pending),
+                            child: const Text('处理'),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (_peers.isEmpty)
                     TextButton.icon(
                       icon: const Icon(Icons.qr_code_2, size: 18),

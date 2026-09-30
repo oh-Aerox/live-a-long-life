@@ -129,10 +129,16 @@ class ExportService {
     final profile = await _db.select(_db.profileFields).get();
     final settings = await _db.select(_db.settings).get();
 
-    // 设备标识与数据代次属于这台设备，不随内容导出：恢复后首次写入会
-    // 生成全新代次（schema §7.2，同一份备份恢复两次得到两个代次）。
+    // 设备标识、数据代次与回填标记属于这台设备，不随内容导出：恢复后
+    // 首次写入会生成全新代次（schema §7.2，同一份备份恢复两次得到两个
+    // 代次），并在新代次里回填全部数据。
+    const deviceOnlyKeys = {
+      'device_id',
+      'data_generation',
+      'change_log_backfilled',
+    };
     final exportedSettings = settings
-        .where((s) => s.key != 'device_id' && s.key != 'data_generation')
+        .where((s) => !deviceOnlyKeys.contains(s.key))
         .toList();
 
     final data = {

@@ -17,6 +17,7 @@ import 'db/app_database.dart';
 /// 不随导出走；恢复后首次写入自动生成全新代次（D-13）。
 extension ChangeLogging on AppDatabase {
   static const generationKey = 'data_generation';
+  static const backfillKey = 'change_log_backfilled';
 
   Future<String> currentGeneration() async {
     final row = await (select(settings)
@@ -47,26 +48,44 @@ extension ChangeLogging on AppDatabase {
     'record_revisions',
     'record_sources',
     'correction_suggestions',
+    'medical_documents',
     'health_samples',
     'health_daily',
   ];
 
-  /// 一次性回填：把变更日志埋点（V3-M1）之前就存在的行补进日志，
-  /// 否则这些存量数据永远同步不到 Mac。凭 settings 标记只做一次。
-  /// 已在日志里的实体（按 entity_type+entity_id）跳过，可安全重复调用。
+  /// 回填：把当前代次日志里还没有的行补进日志，否则这些数据永远同步
+  /// 不到 Mac。两种情况会用到：变更日志埋点（V3-M1）之前的存量数据；
+  /// 从导出恢复后换了新代次——新代次里要有完整的手机数据，Mac 才能按新
+  /// 代次重建副本（schema §7.3）。settings 的 `change_log_backfilled`
+  /// 记下已回填的代次（旧版本存的是 true），代次不同就再做一次；当前代次
+  /// 日志里已有的实体（按 entity_type+entity_id）跳过，可安全重复调用。
   Future<int> backfillChangeLogIfNeeded(String deviceId) async {
+    final generation = await currentGeneration();
     final done = await (select(settings)
-          ..where((t) => t.key.equals('change_log_backfilled')))
+          ..where((t) => t.key.equals(backfillKey)))
         .getSingleOrNull();
-    if (done != null) return 0;
+    if (done != null && jsonDecode(done.value) == generation) return 0;
 
     var count = 0;
     await transaction(() async {
       final logged = <String>{
         for (final row in await customSelect(
-                'SELECT entity_type, entity_id FROM change_logs')
-            .get())
+                'SELECT entity_type, entity_id FROM change_logs '
+                'WHERE generation = ?',
+                variables: [Variable.withString(generation)]).get())
           '${row.data['entity_type']}|${row.data['entity_id']}',
+      };
+      // 本机有文件的附件才带 depends_on_blob：清理过或恢复时缺件的附件
+      // 本机传不出文件，带上会让 Mac 一直要文件、同步卡在这一条。
+      final localFiles = <String>{
+        for (final row in await customSelect(
+            'SELECT attachment_id FROM attachment_copies '
+            'WHERE device_id = ? AND state = ?',
+            variables: [
+              Variable.withString(deviceId),
+              Variable.withString(enumToDb(CopyState.present)),
+            ]).get())
+          row.data['attachment_id'] as String,
       };
       for (final table in _backfillTables) {
         final rows =
@@ -81,15 +100,16 @@ extension ChangeLogging on AppDatabase {
             op: (row.data['deleted_at'] != null)
                 ? ChangeOp.delete
                 : ChangeOp.upsert,
-            dependsOnBlob:
-                table == 'attachments' ? row.data['sha256'] as String? : null,
+            dependsOnBlob: table == 'attachments' && localFiles.contains(id)
+                ? row.data['sha256'] as String?
+                : null,
           );
           count++;
         }
       }
-      await into(settings).insert(SettingsCompanion.insert(
-        key: 'change_log_backfilled',
-        value: jsonEncode(true),
+      await into(settings).insertOnConflictUpdate(SettingsCompanion.insert(
+        key: backfillKey,
+        value: jsonEncode(generation),
         updatedAt: DateTime.now().toUtc().millisecondsSinceEpoch,
       ));
     });
