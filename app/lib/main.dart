@@ -36,9 +36,9 @@ Future<void> main() async {
     AppLog.I.e('app', '检验项目索引重建失败', e, st);
   }
 
-  // Mac 端（V3-M0）：只读副本 + 同步接收，不初始化手机专属插件
-  // （通知、HealthKit、整理触发都属于手机，D-12）。
-  if (Platform.isMacOS) {
+  // 电脑端（V3-M0，Mac 与 Windows）：只读副本 + 同步接收，不初始化手机专属
+  // 插件（通知、HealthKit、整理触发都属于手机，D-12）。
+  if (Platform.isMacOS || Platform.isWindows) {
     // 日视图的设备数据区只读数据库，不会调用 HealthKit。
     services.healthService = HealthService(
       repository: services.health,
@@ -120,7 +120,7 @@ Future<void> main() async {
   ));
 }
 
-/// Mac 端应用（V3-M0 骨架）。
+/// 电脑端应用（V3-M0 骨架）：Mac 与 Windows 共用。
 class MacApp extends StatelessWidget {
   const MacApp({super.key, required this.services});
 
