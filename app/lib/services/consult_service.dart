@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../data/condition_entry.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
@@ -112,22 +113,33 @@ class ConsultService {
     final longTerm = <Map<String, Object?>>[];
     final temporary = <Map<String, Object?>>[];
     final recent30 = _daysAgo(30);
+    // 同一问题各年份的报告各有一条：归成一组，按最新那条算，首次发现取
+    // 最早的日期，既往写法附在 earlier 里（D-32）。
+    final reviewed = <ConditionEntry>[];
     for (final rec in await _records.byType(RecordType.condition)) {
       final rev = await _records.currentRevisionOf(rec.id);
-      final reviewed =
-          FieldMetaMap.decode(rev.fieldMeta)['condition']?.isProtected ?? false;
-      if (!reviewed) continue;
-      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      if (!(meta['condition']?.isProtected ?? false)) continue;
+      reviewed.add(ConditionEntry(rec, rev,
+          (jsonDecode(rev.data) as Map).cast<String, Object?>(), meta));
+    }
+    for (final group in ConditionEntry.groups(reviewed)) {
+      final latest = group.first;
       final entry = {
-        'name': data['name'],
-        'status': data['status'],
-        'first_found': rec.localDate,
-        'development_text': data['development_text'],
+        'name': latest.name,
+        'status': latest.data['status'],
+        'first_found': group.last.date,
+        if (group.length > 1) 'latest_report_date': latest.date,
+        'development_text': latest.data['development_text'],
+        if (group.length > 1)
+          'earlier': [
+            for (final c in group.skip(1)) '${c.date ?? ''} ${c.name}'.trim(),
+          ],
       };
-      if (data['persistence'] == 'long_term') {
+      if (latest.longTerm) {
         longTerm.add(entry);
-      } else if ((rec.localDate ?? '').compareTo(recent30) >= 0 &&
-          data['status'] == 'active') {
+      } else if ((latest.date ?? '').compareTo(recent30) >= 0 &&
+          !latest.resolved) {
         temporary.add(entry);
       }
     }

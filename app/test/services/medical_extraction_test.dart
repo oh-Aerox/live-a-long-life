@@ -324,6 +324,43 @@ void main() {
     expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
+  test('体检报告汇总与明细重复（D-32）：同一份文件里同一问题、同项目同数值只留一条',
+      () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '汇总：颈椎轻度骨质增生；AST 12.7U/L 低', x: 0.1, y: 0.2, w: 0.6, h: 0.03),
+      OcrLine(text: '颈椎DR：颈（3）-（6）椎体缘轻度骨质增生', x: 0.1, y: 0.3, w: 0.6, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'physical_exam', 'exam_date': '2022-07-17'},
+      'results': [
+        {'item_name_raw': '天门冬氨酸氨基转移酶', 'value_raw': '12.7U/L', 'value_num': 12.7, 'unit_raw': 'U/L', 'flag_raw': '低', 'source_lines': ['P1L1']},
+        {'item_name_raw': '天门冬氨酸氨基转移酶（AST）', 'value_raw': '12.7', 'value_num': 12.7, 'unit_raw': 'U/L', 'ref_range_raw': '15-40', 'flag_raw': '↓', 'source_lines': ['P1L2']},
+      ],
+      'conditions': [
+        {'name': '颈椎轻度骨质增生', 'persistence': 'long_term', 'source_lines': ['P1L1']},
+        {'name': '颈（3）-（6）椎体缘轻度骨质增生', 'persistence': 'long_term', 'source_lines': ['P1L2']},
+      ],
+    }));
+    final doc = await importDoc();
+    final out = await service.extractDocument(doc.id);
+
+    expect(out.conditionRecords, hasLength(1));
+    final cond = await records.currentRevisionOf(out.conditionRecords.single.id);
+    expect((jsonDecode(cond.data) as Map)['name'], '颈（3）-（6）椎体缘轻度骨质增生');
+    final panel = await records.currentRevisionOf(out.record.id);
+    final results = (jsonDecode(panel.data) as Map)['results'] as List;
+    expect(results.single['item_name_raw'], '天门冬氨酸氨基转移酶（AST）');
+  });
+
   Future<ModelConfig> addConfigReturning() => configs.add(
         preset: ModelPreset.anthropic,
         protocol: ModelProtocol.anthropic,

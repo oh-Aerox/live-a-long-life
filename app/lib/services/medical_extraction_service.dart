@@ -11,6 +11,7 @@ import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/repositories/record_repository.dart';
+import '../data/same_item.dart';
 import '../data/time_value.dart';
 import 'app_log.dart';
 import 'key_store.dart';
@@ -890,7 +891,7 @@ class MedicalExtractionService {
     final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
     final rawResults = (parsed['results'] as List?) ?? const [];
 
-    final results = <Map<String, Object?>>[];
+    var results = <Map<String, Object?>>[];
     for (final raw in rawResults) {
       if (raw is! Map) continue;
       final r = raw.cast<String, Object?>();
@@ -909,6 +910,10 @@ class MedicalExtractionService {
         'ocr_fixes': _ocrFixes(r['ocr_fixes']),
       });
     }
+
+    // 体检报告前面汇总、后面明细会把同一项写两遍，分批时还落在不同批里：
+    // 同项目同数值只留一条（D-32）。
+    results = SameItem.dedupeResults(results);
 
     // 文字内容（D-28）：病历的主诉/诊断/处理意见、超声等报告的所见/结论。
     // 只有文字、没有数值的报告靠它保留，不因 results 为空而丢掉。
@@ -1122,7 +1127,12 @@ class MedicalExtractionService {
   }
 
   /// 身体状况建议（D-25）：模型从诊断/结论文字提取，全部 unreviewed，
-  /// 用户在档案页核对后才算事实。同名（去空白）状况已有档案时不重复建。
+  /// 用户在档案页核对后才算事实。
+  ///
+  /// 同一份文件里说的是同一个问题的只建一条（汇总与明细各写一遍，写法
+  /// 不同，D-32），留名称更具体的那条；这份文件或同一检查日期的文件（同一
+  /// 份报告重复上传）已经建过的不再建。其他日期报告里的同一问题照样建：
+  /// 每份报告各有一条、各自关联原文件，看当前状况时按日期取最新（D-32）。
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
     required Map<String, (DraftPage, OcrLine)> lineIndex,
@@ -1133,26 +1143,38 @@ class MedicalExtractionService {
     required Set<String> attachmentIds,
   }) async {
     if (raw.isEmpty) return const [];
-    // 已有状况的名称键（含未核对的：同一份报告重新提取不重复建）。
-    final existingKeys = <String>{};
+    final existingNames = <String>[];
     for (final rec in await _records.byType(RecordType.condition)) {
       final rev = await _records.currentRevisionOf(rec.id);
-      final name = (jsonDecode(rev.data) as Map)['name'];
-      if (name is String) {
-        existingKeys.add(RecordRepository.labItemKey(name));
-      }
+      final data = jsonDecode(rev.data) as Map;
+      final sameReport = data['medical_document_id'] == documentId ||
+          (examDate != null && rec.localDate == examDate);
+      if (!sameReport) continue;
+      if (data['name'] is String) existingNames.add(data['name'] as String);
     }
 
-    final created = <RecordRow>[];
+    final picked = <Map<Object?, Object?>>[];
     for (final c in raw) {
       if (c is! Map) continue;
       final name = c['name'];
       final persistence = c['persistence'];
       if (name is! String || name.trim().isEmpty) continue;
       if (persistence != 'long_term' && persistence != 'temporary') continue;
-      final key = RecordRepository.labItemKey(name);
-      if (!existingKeys.add(key)) continue; // 同名已有，不重复建档
+      if (existingNames.any((n) => SameItem.sameProblem(n, name))) continue;
+      final same = picked.indexWhere(
+          (p) => SameItem.sameProblem(p['name'] as String, name));
+      if (same < 0) {
+        picked.add(c);
+      } else if (name.trim().length >
+          (picked[same]['name'] as String).trim().length) {
+        picked[same] = c;
+      }
+    }
 
+    final created = <RecordRow>[];
+    for (final c in picked) {
+      final name = c['name'] as String;
+      final persistence = c['persistence'];
       final locators = _locatorsOf(c['source_lines'], lineIndex, fallback);
       final locator = locators.isEmpty ? null : locators.first;
       final record = await _records.create(

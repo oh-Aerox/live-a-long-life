@@ -15,6 +15,7 @@ import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
+import 'body_map_page.dart';
 import 'conditions_page.dart';
 import 'consult_page.dart';
 import 'day_view_page.dart';
@@ -338,6 +339,7 @@ class _ChatPageState extends State<ChatPage> {
           icon: Icons.calendar_today_outlined,
           cupertinoIcon: CupertinoIcons.calendar,
           tooltip: '按日查看',
+          color: const Color(0xFF5B9BF0),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => DayViewPage(services: _s)),
@@ -347,12 +349,14 @@ class _ChatPageState extends State<ChatPage> {
           icon: Icons.medical_information_outlined,
           cupertinoIcon: CupertinoIcons.folder,
           tooltip: '病例夹与体检',
+          color: const Color(0xFF3FB984),
           onPressed: _openMedicalFolders,
         ),
         NavAction(
           icon: Icons.psychology_alt_outlined,
           cupertinoIcon: CupertinoIcons.chat_bubble_2,
           tooltip: '咨询',
+          color: const Color(0xFFF0A93B),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => ConsultPage(services: _s)),
@@ -362,6 +366,7 @@ class _ChatPageState extends State<ChatPage> {
           icon: Icons.settings_outlined,
           cupertinoIcon: CupertinoIcons.gear,
           tooltip: '设置',
+          color: const Color(0xFF9A86E8),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -683,7 +688,16 @@ class _ChatPageState extends State<ChatPage> {
                 : _buildMaterialInputRow(),
             // 打字时收起底栏，给对话留出空间。
             if (MediaQuery.viewInsetsOf(context).bottom == 0)
-              _BottomNavRow(actions: _navActions()),
+              _BottomNavRow(
+                actions: _navActions(),
+                center: _BodyMapButton(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => BodyMapPage(services: _s)),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -783,52 +797,97 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-/// 输入框下面的一排入口：图标加小字，四等分。
+/// 输入框下面的一排入口：只有彩色图标，等分；[center] 插在正中间。
+/// 名称在长按提示和读屏里。
 class _BottomNavRow extends StatelessWidget {
-  const _BottomNavRow({required this.actions});
+  const _BottomNavRow({required this.actions, this.center});
 
   final List<NavAction> actions;
+  final Widget? center;
 
   @override
   Widget build(BuildContext context) {
     final cupertino = useCupertino(context);
-    final color = cupertino
+    final fallback = cupertino
         ? CupertinoColors.secondaryLabel.resolveFrom(context)
         : Theme.of(context).colorScheme.onSurfaceVariant;
+    final items = <Widget>[
+      for (final a in actions)
+        _NavItem(
+          label: a.tooltip,
+          onTap: a.onPressed,
+          icon: Icon(cupertino ? a.cupertinoIcon : a.icon,
+              size: 26, color: a.color ?? fallback),
+        ),
+    ];
+    final c = center;
+    if (c != null) items.insert(items.length ~/ 2, c);
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 4),
       child: Row(
-        children: [
-          for (final a in actions)
-            Expanded(
-              child: Semantics(
-                label: a.tooltip,
-                button: true,
-                excludeSemantics: true,
-                child: InkResponse(
-                  onTap: a.onPressed,
-                  radius: 32,
-                  // iOS 点按没有水波纹。
-                  splashFactory: cupertino ? NoSplash.splashFactory : null,
-                  highlightShape: BoxShape.rectangle,
-                  highlightColor: cupertino ? Colors.transparent : null,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(cupertino ? a.cupertinoIcon : a.icon,
-                            size: 24, color: color),
-                        const SizedBox(height: 2),
-                        Text(a.tooltip,
-                            style: TextStyle(fontSize: 10, color: color)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+        children: [for (final item in items) Expanded(child: item)],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.label,
+    required this.onTap,
+    required this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final cupertino = useCupertino(context);
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        label: label,
+        button: true,
+        excludeSemantics: true,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 28,
+          // iOS 点按没有水波纹。
+          splashFactory: cupertino ? NoSplash.splashFactory : null,
+          highlightShape: BoxShape.rectangle,
+          highlightColor: cupertino ? Colors.transparent : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: icon),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 底栏正中的人体图入口：渐变彩色，配色取人体图里器官的蓝、绿、黄。
+class _BodyMapButton extends StatelessWidget {
+  const _BodyMapButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _NavItem(
+      label: '人体图',
+      onTap: onTap,
+      icon: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF5B9BF0), Color(0xFF4CC38A), Color(0xFFF2B33D)],
+        ).createShader(bounds),
+        child: const Icon(Icons.accessibility_new, size: 30),
       ),
     );
   }

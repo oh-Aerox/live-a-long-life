@@ -7,6 +7,7 @@ import '../change_log.dart';
 import '../db/app_database.dart';
 import '../field_meta.dart';
 import '../ids.dart';
+import '../same_item.dart';
 import '../time_value.dart';
 
 /// 一条来源链接的写入参数（schema §3.6）。
@@ -244,7 +245,7 @@ class RecordRepository {
   // 派生数据：随 lab_panel 版本同事务重建；不入变更日志、不同步。
 
   static String labItemKey(String itemNameRaw) =>
-      itemNameRaw.replaceAll(RegExp(r'\s'), '');
+      SameItem.labKey(itemNameRaw);
 
   Future<void> _reindexLabResults(
     String recordId,
@@ -262,12 +263,19 @@ class RecordRepository {
     final medicalDocumentId = data['medical_document_id'] as String?;
     final results = data['results'];
     if (results is! List) return;
-    for (var i = 0; i < results.length; i++) {
-      final r = results[i];
-      if (r is! Map) continue;
-      final name = r['item_name_raw'];
-      final valueRaw = r['value_raw'];
-      if (name is! String || valueRaw is! String) continue;
+    // 同一份报告汇总与明细重复的同项目同数值只建一行，留信息更全的那条
+    // （D-32），趋势图上同一天不出现两个点。
+    final rows = SameItem.dedupeResults([
+      for (var i = 0; i < results.length; i++)
+        if (results[i] is Map &&
+            results[i]['item_name_raw'] is String &&
+            results[i]['value_raw'] is String)
+          {...(results[i] as Map).cast<String, Object?>(), '_index': i},
+    ]);
+    for (final r in rows) {
+      final i = r['_index'] as int;
+      final name = r['item_name_raw'] as String;
+      final valueRaw = r['value_raw'] as String;
       await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
             recordId: recordId,
             resultIndex: i,

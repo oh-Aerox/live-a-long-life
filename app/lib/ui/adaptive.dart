@@ -50,12 +50,16 @@ class NavAction {
     required this.cupertinoIcon,
     required this.tooltip,
     required this.onPressed,
+    this.color,
   });
 
   final IconData icon;
   final IconData cupertinoIcon;
   final String tooltip;
   final VoidCallback? onPressed;
+
+  /// 图标颜色；null 用默认的次要文字色。只有首页底栏用。
+  final Color? color;
 }
 
 /// iOS 上是 CupertinoNavigationBar（返回键是 ‹），其它平台是 AppBar。

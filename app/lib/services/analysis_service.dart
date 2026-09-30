@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../data/change_log.dart';
+import '../data/condition_entry.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
@@ -130,26 +131,36 @@ class AnalysisService {
               t.recordType.equalsValue(RecordType.condition) &
               t.deletedAt.isNull()))
         .get();
+    // 同一问题各年份的报告各有一条：归成一组按最新那条算（D-32）。
+    final reviewedConditions = <ConditionEntry>[];
     for (final rec in conditionRecs) {
       if (rec.currentRevisionId == null) continue;
       final rev = await (_db.select(_db.recordRevisions)
             ..where((t) => t.id.equals(rec.currentRevisionId!)))
           .getSingle();
-      final reviewed =
-          FieldMetaMap.decode(rev.fieldMeta)['condition']?.isProtected ?? false;
-      if (!reviewed) continue;
-      final data = jsonDecode(rev.data) as Map;
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      if (!(meta['condition']?.isProtected ?? false)) continue;
+      reviewedConditions.add(ConditionEntry(rec, rev,
+          (jsonDecode(rev.data) as Map).cast<String, Object?>(), meta));
+    }
+    for (final group in ConditionEntry.groups(reviewedConditions)) {
+      final latest = group.first;
       final entry = {
-        'revision_id': rev.id,
-        'name': data['name'],
-        'status': data['status'],
-        'first_found': rec.localDate,
-        'development_text': data['development_text'],
+        'revision_id': latest.rev.id,
+        'name': latest.name,
+        'status': latest.data['status'],
+        'first_found': group.last.date,
+        if (group.length > 1) 'latest_report_date': latest.date,
+        'development_text': latest.data['development_text'],
+        if (group.length > 1)
+          'earlier': [
+            for (final c in group.skip(1)) '${c.date ?? ''} ${c.name}'.trim(),
+          ],
       };
-      if (data['persistence'] == 'long_term') {
+      if (latest.longTerm) {
         longTermConditions.add(entry);
-      } else if ((rec.localDate ?? '') .compareTo(recent30) >= 0 &&
-          data['status'] == 'active') {
+      } else if ((latest.date ?? '').compareTo(recent30) >= 0 &&
+          !latest.resolved) {
         recentTemporary.add(entry);
       }
     }

@@ -25,8 +25,9 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 - **Model image fallback**: for handwritten, skewed or oddly laid-out reports that on-device recognition gets wrong, you can choose "Recognize with model". Draw a box around the part to read, leaving names and IDs outside it. Only the boxed image goes to a model that supports images, and the crop is discarded after sending.
 - **Structured extraction**: lab values (item, result, unit, reference range, abnormal flag), diagnosis and report text (chief complaint, diagnosis, treatment advice, ultrasound findings and conclusions…), prescribed medications, and suggested health conditions. The model fixes OCR typos from context and lists every correction for you to check.
 - **Item-by-item review**: everything extracted starts as "not reviewed" and only counts in analysis once you confirm or correct it. Each value and passage opens the original page with the exact spot highlighted.
-- **Long-term conditions**: kept separate from temporary illnesses. Follow-ups and recoveries are appended; past diagnoses and the values measured at the time are never rewritten.
+- **Long-term conditions**: kept separate from temporary illnesses. Follow-ups and recoveries are appended; past diagnoses and the values measured at the time are never rewritten. The same problem found in reports from different years appears as one entry showing the latest report's wording, and the earlier reports' originals can still be opened.
 - **Trends and visit timeline**: each lab item is charted by exam date against its reference range; symptoms, visits and tests are laid out in order.
+- **Body map**: the colored figure in the middle of the home screen's bottom bar. Tap the head and neck, chest, abdomen or pelvis on the full-body view and it zooms in on that area, with organ labels along both sides and leader lines pointing to each organ. The pelvis shows different organs depending on the sex at birth in your profile, and you can switch it from the top-right corner. A label shows how many items need attention, in red when they have been checked and orange when they are waiting to be checked: lab values that were still abnormal the last time they were measured, abnormal findings in report text, unresolved health conditions, and discomfort reported in the last 30 days. Each problem is counted once: when a checkup report lists it in the summary and again in the details, the two are merged, and when reports from different years describe the same problem (fatty liver going from mild to moderate, say), the latest one is used and the earlier wording is listed under "Earlier". Tap a label to see the items; each one opens its original file. Items such as blood lipids, blood glucose and blood counts that don't belong to a single organ go under "Blood and metabolism" below the figure, and anything whose body part can't be recognized goes under "Other".
 - **Free up phone storage**: once originals are archived on the Mac, you can remove the phone's copies. Extracted data, review status and source links all stay; originals can be retrieved from the Mac whenever needed.
 
 ### Ask a question (iPhone, Mac)
@@ -97,7 +98,7 @@ app/                 Flutter app (one codebase for iPhone, Android and Mac)
   android/           Android project (ML Kit text recognition, LAN discovery)
   test/              unit and widget tests
 docs/                requirements, design decisions, data model, product spec, prompts, platform verification
-scripts/             one-step re-sign and install script
+scripts/             one-step re-sign and install script, body-map image cutout script
 ```
 
 Design documents start at [docs/README.md](docs/README.md) (in Chinese). Every prompt sent to a model is listed in [docs/prompts.md](docs/prompts.md).

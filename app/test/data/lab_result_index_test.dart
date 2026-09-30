@@ -52,12 +52,12 @@ void main() {
         producedBy: ProducedBy.medicalExtract('call-1'),
       );
 
-  test('创建 lab_panel：索引行同事务生成，itemKey 去空白（schema §5.3）',
+  test('创建 lab_panel：索引行同事务生成，itemKey 去空白与英文缩写（schema §5.3，D-32）',
       () async {
     await createPanel('2026-09-20', '145', num_: 145);
     final rows = await env.db.select(env.db.labResults).get();
     expect(rows, hasLength(1));
-    expect(rows.single.itemKey, '血红蛋白(HGB)');
+    expect(rows.single.itemKey, '血红蛋白');
     expect(rows.single.valueNum, 145);
     expect(rows.single.examDate, '2026-09-20');
     expect(rows.single.medicalDocumentId, 'doc-1');
