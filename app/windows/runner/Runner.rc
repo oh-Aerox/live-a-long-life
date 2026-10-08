@@ -90,7 +90,9 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "Live a Long Life" "\0"
+            // 任务管理器、通知来源显示这一项（D-30）。ProductName 保持英文：
+            // path_provider 按 CompanyName\ProductName 拼数据目录，改了会换目录。
+            VALUE "FileDescription", "长命百岁" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "live_a_long_life" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"

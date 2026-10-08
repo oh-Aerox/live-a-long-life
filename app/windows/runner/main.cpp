@@ -39,7 +39,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
-  FlutterWindow window(project);
+  // 开机自启（P-34）：安装程序写入的启动项带 --autostart，只在托盘里接收
+  // 同步，不弹窗口；用户从托盘或再次打开应用时才显示。
+  const bool start_hidden =
+      command_line != nullptr && ::wcsstr(command_line, L"--autostart") != nullptr;
+  FlutterWindow window(project, start_hidden);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"长命百岁", origin, size)) {
