@@ -376,11 +376,16 @@ void main() {
 
   test('A-25：用户修改过的字段不被整理覆盖，生成修正建议', () async {
     await addConfig();
+    // 整理只把最近 7 天的记录放进快照，记录日期要跟着今天走，写死的日期
+    // 过几天就出了窗口，模型给的 record_id 会被当成编造的拒掉。
+    final t = DateTime.now();
+    final day =
+        '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
     final m = await say('一点睡的');
     model.reply(jsonEncode([
       {
         'record_type': 'sleep',
-        'occurred': {'local_date': '2026-09-26', 'precision': 'date_only'},
+        'occurred': {'local_date': day, 'precision': 'date_only'},
         'data': {'quality_text': '还行', 'sleep_onset_text': '01:00'},
         'source_message_ids': [m.id],
       },
@@ -389,7 +394,7 @@ void main() {
     await service.pump();
 
     // 用户手动把 sleep_onset_text 改为 00:30（字段级 edited）。
-    final rec = (await records.byDate('2026-09-26')).single;
+    final rec = (await records.byDate(day)).single;
     final rev = await records.currentRevisionOf(rec.id);
     final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
     data['sleep_onset_text'] = '00:30';
@@ -411,7 +416,7 @@ void main() {
       {
         'record_id': rec.id,
         'record_type': 'sleep',
-        'occurred': {'local_date': '2026-09-26', 'precision': 'date_only'},
+        'occurred': {'local_date': day, 'precision': 'date_only'},
         'data': {'quality_text': '不太好', 'sleep_onset_text': '01:50'},
         'source_message_ids': [m2.id],
       },
