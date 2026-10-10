@@ -539,6 +539,24 @@ class RecordRepository {
             ..where((t) => t.recordRevisionId.equals(revisionId)))
           .get();
 
+  /// 当前版本引用了这些消息的未删除记录 ID。删除记录时询问是否连原消息
+  /// 一起删，用它提示这些消息还整理出了哪些别的记录。
+  Future<Set<String>> recordsCitingMessages(Set<String> messageIds) async {
+    if (messageIds.isEmpty) return {};
+    final query = _db.select(_db.recordSources).join([
+      innerJoin(
+          _db.records,
+          _db.records.currentRevisionId
+              .equalsExp(_db.recordSources.recordRevisionId)),
+    ])
+      ..where(_db.recordSources.sourceKind
+              .equalsValue(RecordSourceKind.message) &
+          _db.recordSources.sourceId.isIn(messageIds) &
+          _db.records.deletedAt.isNull());
+    final rows = await query.get();
+    return {for (final r in rows) r.readTable(_db.records).id};
+  }
+
   /// 精确去重：类型、日期、发生时间、data、来源消息集合都完全相同的记录，
   /// 只保留 created_at 最早的一条，其余 markDeleted（走变更日志同步）。
   /// 这种逐字段相同且来源相同的重复只会由"同一批消息被多个批次整理"

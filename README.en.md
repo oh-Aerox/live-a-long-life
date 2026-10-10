@@ -14,7 +14,7 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 - **Daily check-ins**: reminders at times you choose ask only about what's still missing today (breakfast, last night's bedtime, whether you exercised…).
 - **Automatic organizing**: a model turns messages into meal, sleep, mood, symptom, exercise and note records. Something you mention a day late ("I forgot to say yesterday…") is filed under the right date. Every record links back to your original words and photos, and fields you corrected are never overwritten.
 - **Apple Health**: sleep, steps, workouts and active energy fill in the gaps so you type less. What you tell the app yourself takes priority.
-- **Day view** and per-field corrections.
+- **Day view** and per-field corrections. Unwanted records can be deleted, optionally together with the messages they came from.
 - **Profile** collected gradually (birth month, sex, height, exercise preferences, chronic conditions, allergies…). Every item can be skipped.
 - **Export and restore**: export to JSON plus a folder of files with a manifest, and restore from an export, including the records and checkups folders and Q&A history. On Android you can also restore directly from a zip of an export made on another device. After a restore, the next sync prompts you on the Mac home screen to rebuild its copy: once you confirm, the Mac backs up first, then re-receives everything from the phone as the source of truth.
 

@@ -158,6 +158,49 @@ void main() {
     expect(day.single.id, isNot(a.id));
   });
 
+  test('引用某些消息的记录：只看当前版本，不含已删除', () async {
+    Future<RecordRow> withSource(String msgId) => records.create(
+          recordType: RecordType.exercise,
+          occurred: dateOnly('2026-09-28'),
+          dataJson: '{"status":"done","activity":"游泳"}',
+          fieldMeta: const FieldMetaMap({}),
+          producedBy: ProducedBy.organizeRun('run-1'),
+          sources: [
+            SourceLink(
+                sourceKind: RecordSourceKind.message,
+                sourceId: msgId,
+                messageRevisionNo: 0),
+          ],
+        );
+    final swim = await withSource('msg-1');
+    final meal = await withSource('msg-1');
+    final other = await withSource('msg-2');
+    final gone = await withSource('msg-1');
+    await records.markDeleted(gone.id);
+
+    // 新版本换了来源：旧版本引用的 msg-2 不再算。
+    final rev = await records.currentRevisionOf(other.id);
+    await records.addRevision(
+      recordId: other.id,
+      baseVersion: other.version,
+      occurred: TimeValue.decode(rev.occurred),
+      dataJson: rev.data,
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.organizeRun('run-2'),
+      sources: const [
+        SourceLink(
+            sourceKind: RecordSourceKind.message,
+            sourceId: 'msg-3',
+            messageRevisionNo: 0),
+      ],
+    );
+
+    expect(await records.recordsCitingMessages({'msg-1'}), {swim.id, meal.id});
+    expect(await records.recordsCitingMessages({'msg-2'}), isEmpty);
+    expect(await records.recordsCitingMessages({'msg-3'}), {other.id});
+    expect(await records.recordsCitingMessages({}), isEmpty);
+  });
+
   test('同一天两次运动是两条记录，互不覆盖（A-30）', () async {
     final run = await records.create(
       recordType: RecordType.exercise,

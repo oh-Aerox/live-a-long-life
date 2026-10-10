@@ -75,13 +75,14 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
             Row(
               children: [
                 TextButton(
+                  // 记录可能在详情页里被删掉，回来重读（建议随之作废）。
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (_) => RecordDetailPage(
                             services: widget.services,
                             recordId: s.targetRecordId)),
-                  ),
+                  ).then((_) => _load()),
                   child: const Text('看记录'),
                 ),
                 const Spacer(),

@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/time_value.dart';
 import '../services/medical_space_service.dart' show MedicalFile;
+import 'adaptive.dart';
 import 'medical_folder_page.dart' show medicalDocTypeLabels;
 import 'record_ui.dart';
 import 'source_viewer_page.dart';
@@ -148,6 +149,57 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     ));
   }
 
+  /// 删除这条记录（只在手机上，Mac 只读）：标记删除，走变更日志同步到
+  /// Mac；指向它的待处理修正建议一起作废。原消息由用户选是否一起删。
+  /// 医疗文件提取出的记录在医疗文件页整份删除，这里不提供。
+  Future<void> _delete() async {
+    final s = widget.services;
+    final messageIds = {
+      for (final (src, msg) in _sources)
+        if (msg != null && msg.deletedAt == null) src.sourceId,
+    };
+    final others = (await s.records.recordsCitingMessages(messageIds))
+      ..remove(widget.recordId);
+    if (!mounted) return;
+    final choice = await showAdaptiveDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: const Text('删除这条记录？'),
+        content: Text([
+          '记录从日视图移除，不再参与周报和分析；同步后 Mac 上也会移除。',
+          if (messageIds.isNotEmpty)
+            '原消息（${messageIds.length} 条）还在对话里，可以一起删掉。'
+                '${others.isEmpty ? '' : '这些消息还整理出了另外 ${others.length} 条记录，删消息不影响那些记录。'}',
+        ].join('\n\n')),
+        actions: [
+          if (messageIds.isNotEmpty)
+            DialogAction(
+                onPressed: () => Navigator.pop(context, 'with_messages'),
+                isDestructiveAction: true,
+                child: const Text('连同原消息一起删除')),
+          DialogAction(
+              onPressed: () => Navigator.pop(context, 'record'),
+              isDestructiveAction: true,
+              child: Text(messageIds.isEmpty ? '删除' : '只删除记录')),
+          DialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消')),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    await s.db.transaction(() async {
+      await s.records.markDeleted(widget.recordId);
+      await s.suggestionService.obsoletePendingFor(widget.recordId);
+      if (choice == 'with_messages') {
+        for (final id in messageIds) {
+          await s.messages.markDeleted(id);
+        }
+      }
+    });
+    if (mounted) Navigator.pop(context);
+  }
+
   /// 确认或修改归属日期（A-23 歧义核对：点一下即可改）。
   Future<void> _confirmDate() async {
     final record = _record!;
@@ -210,6 +262,12 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
               icon: const Icon(Icons.refresh),
               tooltip: '重新整理',
               onPressed: _reorganize,
+            ),
+          if (!widget.readOnly && _attachments.isEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: '删除这条记录',
+              onPressed: _delete,
             ),
         ],
       ),

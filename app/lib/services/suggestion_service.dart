@@ -70,6 +70,19 @@ class SuggestionService {
   Future<void> reject(CorrectionSuggestion suggestion) =>
       _mark(suggestion.id, SuggestionStatus.rejected);
 
+  /// 记录被用户删除后，指向它的待处理建议转 obsolete，不再出现在待处理里。
+  Future<void> obsoletePendingFor(String recordId) async {
+    final rows = await (_db.select(_db.correctionSuggestions)
+          ..where((t) =>
+              t.targetRecordId.equals(recordId) &
+              t.status.equalsValue(SuggestionStatus.pending) &
+              t.deletedAt.isNull()))
+        .get();
+    for (final row in rows) {
+      await _mark(row.id, SuggestionStatus.obsolete);
+    }
+  }
+
   Future<void> _mark(String suggestionId, SuggestionStatus status) {
     return _db.transaction(() async {
       final row = await (_db.select(_db.correctionSuggestions)

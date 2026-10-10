@@ -370,5 +370,18 @@ void main() {
           changes.where((c) => c.entityType == 'correction_suggestions'),
           isNotEmpty);
     });
+
+    test('记录被删除：待处理建议转 obsolete，处理状态入变更日志', () async {
+      final (rec, _) = await seed();
+      await records.markDeleted(rec.id);
+      await suggestions.obsoletePendingFor(rec.id);
+      expect(await suggestions.pending(), isEmpty);
+      final row = await env.db.select(env.db.correctionSuggestions).getSingle();
+      expect(row.status, SuggestionStatus.obsolete);
+      final changes = await env.db.select(env.db.changeLogs).get();
+      expect(
+          changes.where((c) => c.entityType == 'correction_suggestions'),
+          isNotEmpty);
+    });
   });
 }
