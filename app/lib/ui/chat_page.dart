@@ -313,18 +313,24 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           _SigningExpiryBanner(),
           Expanded(
-            child: StreamBuilder<List<Message>>(
-              stream: _s.messages.watchThread(),
-              builder: (context, snapshot) {
-                final messages = snapshot.data ?? const <Message>[];
-                if (messages.isEmpty) {
-                  return const Center(
-                    child: Text('想到什么，随手记下来',
-                        style: TextStyle(color: Colors.grey)),
-                  );
-                }
-                return _buildList(messages);
-              },
+            // 首页没有可返回的列表页，侧滑收不起输入法：点对话区域
+            // 或上下滑动对话即收起，底栏随之出现。
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: StreamBuilder<List<Message>>(
+                stream: _s.messages.watchThread(),
+                builder: (context, snapshot) {
+                  final messages = snapshot.data ?? const <Message>[];
+                  if (messages.isEmpty) {
+                    return const Center(
+                      child: Text('想到什么，随手记下来',
+                          style: TextStyle(color: Colors.grey)),
+                    );
+                  }
+                  return _buildList(messages);
+                },
+              ),
             ),
           ),
           _buildInputBar(),
@@ -420,6 +426,7 @@ class _ChatPageState extends State<ChatPage> {
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: reversed.length,
       itemBuilder: (context, index) => reversed[index],
