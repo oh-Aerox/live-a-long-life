@@ -113,7 +113,7 @@ class _MacHomePageState extends State<MacHomePage> {
           autofocus: true,
           decoration: InputDecoration(
               helperText:
-                  desktopText('密码存在这台 Mac 的钥匙串里；忘记密码备份无法解开')),
+                  desktopText('密码存在电脑端的钥匙串里；忘记密码备份无法解开')),
         ),
         actions: [
           TextButton(
@@ -199,7 +199,8 @@ class _MacHomePageState extends State<MacHomePage> {
     if (_server != null) return;
     _server = SyncServer(
       deviceId: widget.services.ctx.deviceId,
-      displayName: desktopText('Mac'),
+      // 手机上显示的已连接设备名（手机端仍称 Mac，D-30 发版前统一）。
+      displayName: Platform.isWindows ? '电脑' : 'Mac',
       db: widget.services.db,
       filesDir: widget.services.filesDir,
       peers: _peerRepo,
@@ -236,12 +237,12 @@ class _MacHomePageState extends State<MacHomePage> {
           width: 480,
           child: Text(desktopText(
             '「${pending.displayName}」的数据代次变了（从导出恢复过，或换了手机），'
-            'Mac 从 ${_formatTime(pending.detectedAt.toLocal())} 起暂停接收它的同步。\n\n'
-            '重建会以手机现在的数据为准：先清掉 Mac 上的手机数据副本，'
+            '电脑端从 ${_formatTime(pending.detectedAt.toLocal())} 起暂停接收它的同步。\n\n'
+            '重建会以手机现在的数据为准：先清掉电脑端的手机数据副本，'
             '手机再把现有数据全部重新发一遍。手机上已经没有的内容'
-            '（比如导出之后才记的、恢复时没带回来的）会从 Mac 上清掉。\n\n'
+            '（比如导出之后才记的、恢复时没带回来的）会从电脑端清掉。\n\n'
             '清掉之前先自动备份一次，备份不成功就不动数据；需要时可以从这份备份里找回。'
-            'Mac 自己生成的周报、修正建议，其他手机的数据和已收到的原件文件都保留。',
+            '电脑端自己生成的周报、修正建议，其他手机的数据和已收到的原件文件都保留。',
           )),
         ),
         actions: [
@@ -374,7 +375,7 @@ class _MacHomePageState extends State<MacHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(desktopText('长命百岁（Mac 副本）')), actions: [
+      appBar: AppBar(title: const Text('长命百岁'), actions: [
         // 顶部快捷入口（2026-09-29）：咨询与设置不属于某张卡片。
         TextButton.icon(
           icon: const Icon(Icons.forum_outlined, size: 18),
@@ -395,7 +396,7 @@ class _MacHomePageState extends State<MacHomePage> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text(desktopText('这台 Mac 保存手机同步来的完整副本，只读不改；'
+          Text(desktopText('电脑端保存手机同步来的完整副本，只读不改；'
               '记录的新建与修改只在手机上进行。')),
           const SizedBox(height: 16),
           Card(
@@ -523,7 +524,7 @@ class _MacHomePageState extends State<MacHomePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                      desktopText('周报用这台 Mac 上配置的模型'
+                      desktopText('周报用电脑端配置的模型'
                           '（设置 → 模型配置，不与手机同步），手机在"周报"页拉取查看。'),
                       style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],

@@ -113,7 +113,7 @@ class _ConsultPageState extends State<ConsultPage> {
                         '咨询是问答不是录入：这里聊的不会变成健康记录，'
                         '要记录的事请回消息流正常发。'
                         // 电脑端（D-29）：用电脑的模型，咨询历史不同步。
-                        '${Platform.isMacOS || Platform.isWindows ? desktopText('\n\n在 Mac 上用这台 Mac 配置的模型；这里的咨询记录只存在这台 Mac，和手机上的咨询互不相通。') : ''}',
+                        '${Platform.isMacOS || Platform.isWindows ? desktopText('\n\n电脑端的咨询用电脑端配置的模型；咨询记录只存在电脑端，和手机上的咨询互不相通。') : ''}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey, height: 1.6),
                       ),

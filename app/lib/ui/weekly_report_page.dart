@@ -75,10 +75,13 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           ),
       ]),
       body: report == null
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('还没有周报。在 Mac 上生成后，点右上角"从 Mac 获取"。'),
+                padding: const EdgeInsets.all(24),
+                // 电脑端（只读）没有"获取"按钮，周报在首页生成。
+                child: Text(widget.readOnly
+                    ? '还没有周报，在首页的周报卡片里生成。'
+                    : '还没有周报。在 Mac 上生成后，点右上角"从 Mac 获取"。'),
               ),
             )
           : ListView(
