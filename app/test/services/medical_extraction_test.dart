@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
+import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/data/repositories/attachment_repository.dart';
 import 'package:live_a_long_life/data/repositories/medical_document_repository.dart';
 import 'package:live_a_long_life/data/repositories/model_config_repository.dart';
@@ -467,6 +468,107 @@ void main() {
     rev = await records.currentRevisionOf(first.record.id);
     expect(((jsonDecode(rev.data) as Map)['findings'] as List)[1]['text_raw'],
         '胆囊结石（单发）');
+  });
+
+  group('用模型整理文字内容（D-35）', () {
+    Future<(MedicalExtractionService, String)> extracted() async {
+      await addConfig();
+      final doc = await importDoc();
+      final extractor = FakeExtractor(ocrResults: const [
+        OcrLine(text: '甲状腺：甲状腺形态大小正常，回声均匀', x: 0.1, y: 0.1, w: 0.8, h: 0.03),
+        OcrLine(text: '检查所见：甲状腺未见异常', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+        OcrLine(text: '建议：定期复查', x: 0.1, y: 0.3, w: 0.8, h: 0.03),
+      ]);
+      final service = buildService(extractor);
+      model.reply(jsonEncode({
+        'doc': {'doc_type': 'imaging_report', 'exam_date': '2026-09-20'},
+        'results': [],
+        'findings': [
+          {
+            'section_raw': '甲状腺',
+            'text_raw': '甲状腺形态大小正常，回声均匀',
+            'source_lines': ['P1L1'],
+            'ocr_fixes': ['回声均云→回声均匀'],
+          },
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'source_lines': ['P1L2']},
+          {'section_raw': '建议', 'text_raw': '定期复查', 'source_lines': ['P1L3']},
+        ],
+      }));
+      await service.extractDocument(doc.id);
+      // 第 3 段先确认，整理时原样保留就不该退回未核对。
+      final record = (await records.labPanelOfDocument(doc.id))!;
+      final rev = await records.currentRevisionOf(record.id);
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      await records.addRevision(
+        recordId: record.id,
+        baseVersion: record.version,
+        occurred: TimeValue.decode(rev.occurred),
+        dataJson: rev.data,
+        fieldMeta: FieldMetaMap({
+          ...meta.fields,
+          'findings.2': const FieldMeta(
+              origin: FieldOrigin.modelInferred,
+              reviewStatus: ReviewStatus.confirmed),
+        }),
+        producedBy: ProducedBy.userEdit(),
+      );
+      return (service, doc.id);
+    }
+
+    test('同一部位的所见与结论合并：定位与修正跟着走，原样保留的条目不丢核对状态', () async {
+      final (service, docId) = await extracted();
+      model.reply(jsonEncode({
+        'findings': [
+          {
+            'section_raw': '甲状腺',
+            'text_raw': '所见：甲状腺形态大小正常，回声均匀\n结论：甲状腺未见异常',
+            'from': [1, 2],
+          },
+          {'section_raw': '建议', 'text_raw': '定期复查', 'from': [3]},
+        ],
+      }));
+      final outcome = await service.tidyFindings(docId);
+      expect(outcome.changed, isTrue);
+      expect((outcome.before, outcome.after), (3, 2));
+      // 只发已提取的文字。
+      expect(model.calls.last, contains('甲状腺未见异常'));
+      expect(model.calls.last, isNot(contains('P1L')));
+
+      final rev = await records.currentRevisionOf(outcome.record.id);
+      final findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+      expect(findings, hasLength(2));
+      expect(findings[0]['section_raw'], '甲状腺');
+      expect(findings[0]['locator'] as List, hasLength(2));
+      expect(findings[0]['ocr_fixes'], ['回声均云→回声均匀']);
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      expect(meta['findings.0']!.reviewStatus, ReviewStatus.unreviewed);
+      expect(meta['findings.1']!.reviewStatus, ReviewStatus.confirmed);
+      expect(meta['findings.2'], isNull);
+      expect(outcome.previousData, contains('检查所见'));
+    });
+
+    test('模型漏了某一段：整个不改；没有可合并的不写新版本', () async {
+      final (service, docId) = await extracted();
+      final version = (await records.labPanelOfDocument(docId))!.version;
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '甲状腺', 'text_raw': '甲状腺未见异常', 'from': [1, 2]},
+        ],
+      }));
+      await expectLater(service.tidyFindings(docId), throwsStateError);
+      expect((await records.labPanelOfDocument(docId))!.version, version);
+
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '甲状腺', 'text_raw': '甲状腺形态大小正常，回声均匀', 'from': [1]},
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'from': [2]},
+          {'section_raw': '建议', 'text_raw': '定期复查', 'from': [3]},
+        ],
+      }));
+      final outcome = await service.tidyFindings(docId);
+      expect(outcome.changed, isFalse);
+      expect((await records.labPanelOfDocument(docId))!.version, version);
+    });
   });
 
   test('门诊病历（D-28）：药品按条提取、识别修正记录保留、空药名丢弃', () async {

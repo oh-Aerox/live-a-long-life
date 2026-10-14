@@ -44,6 +44,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   /// 逐条核对的列表（D-28）：findings 文字内容、medications 处方药品。
   Map<String, List<Map<String, Object?>>> _entries = {};
   bool _imageSending = false;
+  bool _tidying = false;
 
   @override
   void initState() {
@@ -210,6 +211,60 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       messenger.showSnackBar(SnackBar(content: Text('识图失败：$e')));
     } finally {
       if (mounted) setState(() => _imageSending = false);
+      await _load();
+    }
+  }
+
+  /// 用模型整理文字内容（D-35）：同一部位的所见与结论合并、重复的去掉。
+  /// 只发已提取的文字；写成新版本，提示条上可以撤销。
+  Future<void> _tidyFindings() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: const Text('用模型整理文字？'),
+        content: Text('把下面 ${_entryList('findings').length} 段诊断与检查文字发给默认模型，'
+            '同一部位的所见和结论合并成一条，重复的去掉，原文不改写。'
+            '\n\n只发这些已提取的文字，不发图片。合并出来的条目要重新核对，'
+            '整理前的版本保留在修改历史里。'),
+        actions: [
+          DialogAction(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          DialogAction(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('整理')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _tidying = true);
+    try {
+      final outcome = await widget.services.medicalExtraction
+          .tidyFindings(widget.documentId);
+      if (!outcome.changed) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('没有需要合并的条目，未改动')));
+        return;
+      }
+      messenger.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text('已整理：${outcome.before} 段合并为 ${outcome.after} 段，'
+            '合并的条目需要重新核对'),
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () async {
+            // 整理后又改过就不撤，免得把后来的核对一起退回去。
+            if (_record?.version != outcome.record.version) return;
+            await _writeRevision(outcome.previousData!,
+                FieldMetaMap.decode(outcome.previousFieldMeta!));
+          },
+        ),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('整理失败：$e')));
+    } finally {
+      if (mounted) setState(() => _tidying = false);
       await _load();
     }
   }
@@ -701,6 +756,58 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                         const Expanded(
                           child: Text(
                               '本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey)),
+                        ),
+                      ],
+                    ),
+            ),
+          if (!widget.readOnly && _entryList('findings').length >= 2)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: cupertino
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CupertinoButton.tinted(
+                          onPressed: _tidying ? null : _tidyFindings,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _tidying
+                                  ? const CupertinoActivityIndicator()
+                                  : const Icon(CupertinoIcons.wand_stars,
+                                      size: 20),
+                              const SizedBox(width: 6),
+                              Text(_tidying ? '模型整理中…' : '用模型整理'),
+                            ],
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                              '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
+                              style: hintStyle),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _tidying ? null : _tidyFindings,
+                          icon: _tidying
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator.adaptive(
+                                      strokeWidth: 2))
+                              : const Icon(Icons.auto_fix_high_outlined),
+                          label: Text(_tidying ? '模型整理中…' : '用模型整理'),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                              '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
                               style: TextStyle(
                                   fontSize: 11, color: Colors.grey)),
                         ),

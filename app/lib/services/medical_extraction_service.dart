@@ -143,6 +143,35 @@ const labExtractImageSystemPrompt = '''
 - 没有的部分给空数组。
 ''';
 
+/// 文字内容整理提示词（D-35）：提取按栏目分条，超声等报告常把同一部位的
+/// 所见和结论拆成两条、体检报告汇总与明细各写一遍。用户在医疗文件详情点
+/// "用模型整理"时，把已提取的文字内容（来自脱敏后的文本）发给模型合并去重。
+/// 改动本提示词时同步更新 docs/prompts.md。
+const findingsTidySystemPrompt = '''
+你在整理一份医疗文件里已经提取出的文字内容。输入是 JSON：
+{"findings": [{"id": 1, "section_raw": "栏目名称或 null", "text_raw": "内容"}]}
+这些条目是按报告栏目机械拆开的，常见问题：同一部位/同一项检查的"所见"和
+"结论/提示"分成了两条（如 条目"甲状腺"：甲状腺形态大小正常，回声均匀；条目
+"检查所见"：甲状腺未见异常）；体检报告汇总页和明细页把同一个问题写了两遍。
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}]}
+
+规则：
+- 同一部位或同一项检查的所见、描述、结论、提示合并成一条：section_raw 写部位或
+  检查名（如"甲状腺""肝胆脾胰超声""心电图"），text_raw 按"所见：……\\n结论：……"
+  分行写，标签用原栏目的叫法（所见/描述/提示/结论/印象）；只有一部分时不加标签；
+- 意思相同的重复条目（汇总与明细、同一句换了写法）只留一条，保留写得更完整的那
+  一种措辞；被去掉的条目 id 也要写进保留那条的 from；
+- 主诉、现病史、既往史、诊断、处理意见、建议、医嘱等病历栏目各自独立，不要和
+  检查所见合并，也不要互相合并；
+- 不同部位、不同检查不要合并；拿不准是不是同一部位时不合并；
+- 文字照原文，不要摘要、改写、补充或删减内容，合并时只做拼接和去掉重复的句子；
+  不要修改数字、单位、大小、日期；
+- 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
+- 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
+''';
+
 /// 识图调用：比 [OrganizeModelCall] 多一张图片（base64 PNG）。
 typedef MedicalImageCall = Future<ModelResponse> Function({
   required ModelConfig config,
@@ -213,6 +242,25 @@ class MedicalExtractOutcome {
 
   /// 分批发送时重试后仍失败的页（其余批次的结果照常保存，可重新提取补上）。
   final List<int> failedPages;
+}
+
+/// 文字内容整理结果（D-35）。有改动时带上整理前的数据，界面撤销时写回。
+class FindingsTidyOutcome {
+  const FindingsTidyOutcome({
+    required this.before,
+    required this.after,
+    required this.record,
+    this.previousData,
+    this.previousFieldMeta,
+  });
+
+  final int before;
+  final int after;
+  final RecordRow record;
+  final String? previousData;
+  final String? previousFieldMeta;
+
+  bool get changed => previousData != null;
 }
 
 /// 一页的预览信息（提取前的页筛选展示：默认判定 + 用户覆盖）。
@@ -623,6 +671,163 @@ class MedicalExtractionService {
       possibleDuplicateRecordIds: saved.duplicates,
       conditionRecords: saved.conditions,
     );
+  }
+
+  /// 用模型整理文字内容（D-35）：把当前版本的 findings 发给模型，同一部位的
+  /// 所见与结论合并、重复的去掉，写成记录的新版本（旧版本保留，可撤销）。
+  /// 只发已提取的文字（来自脱敏后的文本），不发图片和原始识别文本。
+  /// 每段输入都要落进某一条输出，漏了就整个不改；没合并任何一条时不写新版本。
+  /// 原样保留的条目保持核对状态，合并出来的条目回到未核对。
+  Future<FindingsTidyOutcome> tidyFindings(String documentId) async {
+    final record = await _records.labPanelOfDocument(documentId);
+    if (record == null) throw StateError('这份文件还没有提取');
+    final rev = await _records.currentRevisionOf(record.id);
+    final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+    final findings = [
+      for (final f in data['findings'] as List? ?? const [])
+        (f as Map).cast<String, Object?>()
+    ];
+    if (findings.length < 2) throw StateError('文字内容不到两段，不用整理');
+    final config = await _modelConfigs.defaultConfig();
+    if (config == null) {
+      throw StateError('还没有配置模型：先在"模型配置"里添加');
+    }
+    final apiKey = config.keychainRef.isEmpty
+        ? ''
+        : (await _keyStore.read(config.keychainRef) ?? '');
+
+    final payload = jsonEncode({
+      'findings': [
+        for (var i = 0; i < findings.length; i++)
+          {
+            'id': i + 1,
+            'section_raw': findings[i]['section_raw'],
+            'text_raw': findings[i]['text_raw'],
+          }
+      ],
+    });
+    final summary = '医疗文件已提取的文字内容 ${findings.length} 段（合并去重）';
+    final requestAt = ids.nowMs();
+    ModelResponse response;
+    try {
+      response = await _modelCall(
+        config: config,
+        apiKey: apiKey,
+        system: findingsTidySystemPrompt,
+        userText: payload,
+        maxTokens: 8192,
+      );
+    } catch (e) {
+      await _organize.recordModelCall(
+        modelConfigId: config.id,
+        dataBoundary: config.dataBoundary,
+        sentMessageIdsJson: '[]',
+        sentAttachmentIdsJson: '[]',
+        requestAt: requestAt,
+        responseAt: ids.nowMs(),
+        status: ModelCallStatus.failed,
+        caller: ModelCaller.phoneMedicalExtract,
+        sentSummary: summary,
+        requestText: payload,
+      );
+      rethrow;
+    }
+    final call = await _organize.recordModelCall(
+      modelConfigId: config.id,
+      dataBoundary: config.dataBoundary,
+      sentMessageIdsJson: '[]',
+      sentAttachmentIdsJson: '[]',
+      requestAt: requestAt,
+      responseAt: ids.nowMs(),
+      status: ModelCallStatus.succeeded,
+      tokensIn: response.tokensIn,
+      tokensOut: response.tokensOut,
+      responseText: response.text,
+      caller: ModelCaller.phoneMedicalExtract,
+      sentSummary: summary,
+      requestText: payload,
+    );
+
+    final parsed = _parse(response.text);
+    final out = parsed?['findings'];
+    if (out is! List) {
+      AppLog.I.w('extract', '文字整理解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析，没有改动');
+    }
+    final meta = FieldMetaMap.decode(rev.fieldMeta);
+    final tidied = <Map<String, Object?>>[];
+    final fields = Map<String, FieldMeta>.from(meta.fields)
+      ..removeWhere((k, _) => k.startsWith('findings.'));
+    final covered = <int>{};
+    for (final raw in out) {
+      if (raw is! Map) continue;
+      final text = raw['text_raw'];
+      if (text is! String || text.trim().isEmpty) continue;
+      final from = <int>[
+        for (final id in raw['from'] as List? ?? const [])
+          if (id is num && id >= 1 && id <= findings.length) id.toInt() - 1
+      ];
+      if (from.isEmpty) continue;
+      from.sort();
+      covered.addAll(from);
+      final section = raw['section_raw'];
+      final entry = <String, Object?>{
+        'section_raw': section is String && section.trim().isNotEmpty
+            ? section.trim()
+            : null,
+        'text_raw': text.trim(),
+        // 定位与识别修正跟着来源走，合并后仍能逐处回原件。
+        'locator': {
+          for (final i in from)
+            for (final l in findings[i]['locator'] as List? ?? const [])
+              jsonEncode(l): l
+        }.values.toList(),
+        'ocr_fixes': {
+          for (final i in from) ..._ocrFixes(findings[i]['ocr_fixes'])
+        }.toList(),
+      };
+      final source = findings[from.first];
+      final unchanged = from.length == 1 &&
+          entry['section_raw'] == source['section_raw'] &&
+          entry['text_raw'] == source['text_raw'];
+      final kept = unchanged ? meta['findings.${from.first}'] : null;
+      fields['findings.${tidied.length}'] = kept ??
+          const FieldMeta(
+              origin: FieldOrigin.modelInferred,
+              reviewStatus: ReviewStatus.unreviewed);
+      tidied.add(entry);
+    }
+    final missing = [
+      for (var i = 0; i < findings.length; i++)
+        if (!covered.contains(i)) i + 1
+    ];
+    if (missing.isNotEmpty) {
+      AppLog.I.w('extract', '文字整理漏了第 ${missing.join('、')} 段，未改动');
+      throw StateError('模型整理时漏掉了第 ${missing.join('、')} 段，没有改动，可以再试一次');
+    }
+    if (tidied.length == findings.length) {
+      AppLog.I.i('extract', '文字整理：${findings.length} 段没有可合并的');
+      return FindingsTidyOutcome(
+          before: findings.length, after: tidied.length, record: record);
+    }
+    data['findings'] = tidied;
+    final updated = await _records.addRevision(
+      recordId: record.id,
+      baseVersion: record.version,
+      occurred: TimeValue.decode(rev.occurred),
+      occurredEnd:
+          rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
+      dataJson: jsonEncode(data),
+      fieldMeta: FieldMetaMap(fields),
+      producedBy: ProducedBy.medicalExtract(call.id),
+    );
+    AppLog.I.i('extract', '文字整理：${findings.length} 段合并为 ${tidied.length} 段');
+    return FindingsTidyOutcome(
+        before: findings.length,
+        after: tidied.length,
+        record: updated,
+        previousData: rev.data,
+        previousFieldMeta: rev.fieldMeta);
   }
 
   /// 对一份医疗文件做结构化提取（不经预览直接发送；测试与批量场景用）。

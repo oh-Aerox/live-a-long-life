@@ -106,7 +106,12 @@ String? reviewedMedicalSummary(Map<String, Object?> data, FieldMetaMap meta) {
     final f = findings[i] as Map;
     final section = '${f['section_raw'] ?? ''}';
     if (!reviewed('findings.$i')) continue;
-    if (!RegExp('诊断|结论|提示|印象').hasMatch(section)) continue;
+    // 用模型整理合并过的条目（D-35）栏目是部位名，结论在内容里带标签。
+    if (!RegExp('诊断|结论|提示|印象').hasMatch(section) &&
+        !RegExp(r'(^|\n)(诊断|结论|提示|印象)[：:]')
+            .hasMatch('${f['text_raw'] ?? ''}')) {
+      continue;
+    }
     parts.add('$section：${f['text_raw']}');
   }
 
