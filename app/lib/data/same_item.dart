@@ -16,7 +16,12 @@ class SameItem {
   /// - 白细胞分类的"比值 / 百分比 / 百分数"归百分数，"计数 / 绝对值"
   ///   归绝对值（比值是小数，建索引时换算，见 [labPercentFactor]）；
   /// - 常见别名（[_aliases]）。
-  static String labKey(String itemNameRaw) {
+  ///
+  /// [panel] 是报告上的检查大项（D-36）。尿常规、便常规里的项目名脱离大项
+  /// 就分不清（尿"白细胞""葡萄糖""胆红素"与血里的同名），键前加标本
+  /// （"尿白细胞""尿糖""便隐血"）；本来就带"尿/便"的名字不重复加。
+  static String labKey(String itemNameRaw, {String? panel}) {
+    final specimen = specimenOf(panel);
     var k = itemNameRaw
         .replaceAll(_dropParen, '')
         .replaceAll(_slashAbbr, '')
@@ -29,7 +34,47 @@ class SameItem {
     if (wbc != null) {
       k = '${wbc[1]}${_wbcAbsolute.hasMatch(wbc[2]!) ? '绝对值' : '百分数'}';
     }
+    if (specimen != null) {
+      final base = k.startsWith(specimen) ? k.substring(1) : k;
+      return '$specimen${_specimenAliases[base.toLowerCase()] ?? base}';
+    }
     return _aliases[k] ?? k;
+  }
+
+  /// 检查大项对应的标本：尿常规/尿液分析/尿沉渣 → 尿，便常规/粪便常规 → 便；
+  /// 血液类和认不出的返回 null（键不加前缀，与没有大项的旧数据一致）。
+  static String? specimenOf(String? panel) {
+    if (panel == null) return null;
+    if (RegExp(r'尿(?!酸|素)').hasMatch(panel)) return '尿';
+    if (RegExp('便|粪').hasMatch(panel)) return '便';
+    return null;
+  }
+
+  /// 尿、便检查里同一项目的不同写法（去掉开头的"尿/便"后）→ 统一名。
+  /// pH 不叫"酸碱度"以外的名字：键"尿pH"会被人体图的 Hp（幽门螺杆菌）规则
+  /// 不分大小写命中。
+  static const _specimenAliases = {
+    '胆素原': '胆原',
+    'ph': '液酸碱度',
+    'ph值': '液酸碱度',
+    '酸碱度': '液酸碱度',
+    '潜血': '隐血',
+    '蛋白质': '蛋白',
+    '葡萄糖': '糖',
+  };
+
+  /// 趋势列表的分组名（D-36）：尿液分析、尿沉渣、粪便常规等归成"尿常规"
+  /// "便常规"（尿微量白蛋白这类单项保留原名），其他大项去空白和
+  /// "检查/检测/测定"后缀；没有大项的归"其他"。
+  static String panelGroup(String? panel) {
+    final specimen = specimenOf(panel);
+    if (specimen != null &&
+        RegExp('常规|分析|沉渣|尿液|尿检|大便|粪便').hasMatch(panel!)) {
+      return '$specimen常规';
+    }
+    final p = (panel ?? '').replaceAll(RegExp(r'\s'), '');
+    final stripped = p.replaceFirst(RegExp(r'(?:检查|检测|测定)$'), '');
+    return stripped.isEmpty ? '其他' : stripped;
   }
 
   /// 中文名后面用斜杠或空格跟的英文缩写（"体重指数/BMI""升主动脉内径 AOD"）。
@@ -97,7 +142,9 @@ class SameItem {
     final out = <Map<String, Object?>?>[];
     for (final r in results) {
       final name = r['item_name_raw'];
-      final key = name is String ? '${labKey(name)}|${labValue(r)}' : null;
+      final key = name is String
+          ? '${labKey(name, panel: r['panel_raw'] as String?)}|${labValue(r)}'
+          : null;
       final prev = key == null ? null : keep[key];
       if (prev == null) {
         if (key != null) keep[key] = out.length;

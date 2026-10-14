@@ -125,10 +125,11 @@ class BodyMapRules {
       ];
 
   static final _labRules = _compile(const {
-    'bladder': ['尿白细胞', '亚硝酸盐', '尿细菌'],
+    'bladder': ['尿白细胞', '亚硝酸盐', '尿细菌', '尿上皮'],
     'kidney': [
       '肌酐', '尿素', '胱抑素', '肾小球', 'eGFR', 'β2微球蛋白', 'β2-微球蛋白',
       '尿蛋白', '尿微量白蛋白', '尿隐血', '尿潜血', '尿红细胞', '尿比重',
+      '尿管型', '尿液酸碱度',
       'CREA', 'Cr', 'Scr', 'BUN', 'UREA', 'Cys-C', 'CysC',
     ],
     'thyroid': [
@@ -425,7 +426,8 @@ class BodyMapService {
           final name = r['item_name_raw'];
           final value = r['value_raw'];
           if (name is! String || value is! String) continue;
-          final key = RecordRepository.labItemKey(name);
+          final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
+          final key = RecordRepository.labItemKey(name, panel: panel);
           final prev = latestLab[key];
           // 同一天（同一份报告汇总与明细）后面的覆盖前面的：明细信息更全。
           if (prev != null && (prev.$1 ?? '').compareTo(date ?? '') > 0) {
@@ -496,10 +498,9 @@ class BodyMapService {
         }
       }
     }
-    for (final (_, name, f) in latestLab.values) {
+    for (final MapEntry(:key, value: (_, name, f)) in latestLab.entries) {
       if (f == null) continue;
       // 同一份报告已经据此下了诊断（"尿酸高"与"尿酸 463 ↑"）：只列诊断。
-      final key = RecordRepository.labItemKey(name);
       if (shownConditions.any((c) =>
           c.medicalDocumentId != null &&
           c.medicalDocumentId == f.medicalDocumentId &&
@@ -507,7 +508,10 @@ class BodyMapService {
           c.name.contains(key))) {
         continue;
       }
-      add(BodyMapRules.organOfLabItem(name), f);
+      // 尿、便检查的项目按带标本的键归器官（"白细胞"在尿常规里是"尿白细胞"，
+      // 归膀胱而不是血液，D-36）。
+      add(BodyMapRules.organOfLabItem(key == SameItem.labKey(name) ? name : key),
+          f);
     }
     for (final e in texts.entries) {
       for (final group in SameItem.groups(e.value, (f) => f.title, (f) => f.date)) {

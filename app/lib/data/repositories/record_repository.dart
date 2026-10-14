@@ -244,8 +244,8 @@ class RecordRepository {
   // ---- 检验项目索引（schema §5.3，D-27）----
   // 派生数据：随 lab_panel 版本同事务重建；不入变更日志、不同步。
 
-  static String labItemKey(String itemNameRaw) =>
-      SameItem.labKey(itemNameRaw);
+  static String labItemKey(String itemNameRaw, {String? panel}) =>
+      SameItem.labKey(itemNameRaw, panel: panel);
 
   Future<void> _reindexLabResults(
     String recordId,
@@ -275,6 +275,7 @@ class RecordRepository {
     for (final r in rows) {
       final i = r['_index'] as int;
       final name = r['item_name_raw'] as String;
+      final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
       var valueRaw = r['value_raw'] as String;
       var valueNum = (r['value_num'] as num?)?.toDouble();
       var unitRaw = r['unit_raw'] as String?;
@@ -307,7 +308,8 @@ class RecordRepository {
             revisionId: revisionId,
             medicalDocumentId: Value(medicalDocumentId),
             itemNameRaw: name,
-            itemKey: labItemKey(name),
+            itemKey: labItemKey(name, panel: panel),
+            panelRaw: Value(panel),
             valueRaw: valueRaw,
             valueNum: Value(valueNum),
             unitRaw: Value(unitRaw),

@@ -188,6 +188,22 @@ void main() {
       expect(liver.first.detail, contains('此前：2019-05-11 脂肪肝（轻度）'));
     });
 
+    test('尿常规的项目归膀胱/肾，不和血液里的同名项目混（D-36）', () async {
+      await addPanel('2022-07-17', [
+        {'panel_raw': '血常规', 'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'value_num': 5.33, 'ref_low': 3.5, 'ref_high': 9.5},
+        {'panel_raw': '尿常规', 'item_name_raw': '白细胞(LEU)', 'value_raw': '+', 'flag_raw': '↑'},
+        {'panel_raw': '尿常规', 'item_name_raw': '蛋白质(PRO)', 'value_raw': '+', 'flag_raw': '↑'},
+        {'panel_raw': '尿常规', 'item_name_raw': 'pH值(pH)', 'value_raw': '8.5', 'value_num': 8.5, 'ref_low': 4.5, 'ref_high': 8},
+      ]);
+      final data = await BodyMapService(records: records, profile: profile)
+          .load(now: DateTime(2026, 9, 30));
+      expect(data.of('bladder').map((f) => f.title), ['白细胞(LEU) + ↑']);
+      expect(data.of('kidney').map((f) => f.title),
+          containsAll(['蛋白质(PRO) + ↑', 'pH值(pH) 8.5']));
+      expect(data.of(bloodOrganId), isEmpty, reason: '血白细胞正常，尿白细胞不算血液');
+      expect(data.of('stomach'), isEmpty, reason: 'pH 不被 Hp 规则误中');
+    });
+
     test('检验只看每项最近一次；报告文字、状况、不适各自归位', () async {
       await profile.setField('sex_at_birth', value: '女');
       await addPanel('2025-03-01', [

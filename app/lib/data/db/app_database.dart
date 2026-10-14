@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +117,10 @@ class AppDatabase extends _$AppDatabase {
             // 发送前确认页的行修改持久化（D-28）。
             await _addColumnIfMissing(
                 m, medicalDocuments, medicalDocuments.lineEdits);
+          }
+          if (from < 16) {
+            // 检验项目的检查大项（D-36）。索引是派生表，启动时整表重建。
+            await _addColumnIfMissing(m, labResults, labResults.panelRaw);
           }
         },
         beforeOpen: (details) async {

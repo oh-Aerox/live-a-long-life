@@ -13,6 +13,7 @@
 | 医疗文件结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引，用户预览修改后发出（D-28）。**不发图片；调用记录含遮蔽项数与发送范围 sent_summary** | 医疗文件详情"识别并预览"→"确认发送" |
 | 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
 | 医疗文件文字整理 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 当前版本已提取的文字内容（栏目 + 内容，来自脱敏后的文本）。**不发图片、行号和原始识别文本** | 医疗文件详情"用模型整理"（文字内容两段以上，确认后发送） |
+| 医疗文件补检查大项 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 已提取的检验项目名称与已有大项（按报告顺序）。**不发数值、图片** | 医疗文件详情"用模型补大项"（有检验项目没有大项时出现） |
 | 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
@@ -120,6 +121,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
   },
   "results": [
     {
+      "panel_raw": "所属检查大项的标题（如 血常规、尿常规、肝功能、血脂）" 或 null,
       "item_name_raw": "项目名称",
       "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
@@ -181,6 +183,15 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
 - source_lines 只能用输入里出现的行号，不要编造；一条内容来自多行时全部列出；
 - 没有检验数值表时 results 为空数组；文字内容不进 results，放进 findings；
+- panel_raw 写该项所在表格或段落的大标题（体检报告常见：血常规、尿常规、
+  便常规、肝功能、肾功能、血脂、血糖、甲状腺功能、肿瘤标志物），按报告原文；
+  尿常规、便常规里的项目（白细胞、红细胞、葡萄糖、蛋白质、胆红素、pH、比重、
+  隐血等）一定要填，它们脱离大项就和血液里的同名项目分不清；项目名照原文写，
+  不要自己加"尿""便"；
+- 输入可能是一份长报告中间的几页（分批发送），表格从上一页续过来、本页没有
+  大标题：这时按项目名称和英文缩写判断它属于哪个大项（如 白细胞计数(WBC)、
+  红细胞计数(RBC)、血红蛋白、血小板 属于血常规），不要因为本页没有标题就留
+  null；只有确实不属于任何检验大项、也判断不出的（如 身高、血压）才留 null；
 - findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、既往史、
   过敏史、体格检查、辅助检查、诊断、处理意见、医嘱，超声/影像/心电图等报告的所见、
   提示、结论、印象，检验单上的结论或备注；按栏目分条，完整保留内容，不要摘要或合并
@@ -203,6 +214,8 @@ data 字段（只填有依据的，缺的字段不要编造）：
 
 识别纠错与药品（D-28，2026-09-29 联调第二轮加入）：真机门诊病历暴露两个问题——提示词要求"逐字抄写"导致 OCR 错字（会明部/感來/规辣史）被原样保留；没有药品栏位，处方药被丢。改为：模型按上下文修正明显识别错误、重组被表格拆散的行，**每处修正写进 `ocr_fixes`** 在核对页橙色显示；数值、剂量里的数字只允许修正明确字符混淆，不许按常识改；新增 `medications`。修正前的识别原文保留在 locator 的 `line_text`，可对照原件。
 
+检查大项（D-36，2026-10-14 加入）：体检报告的尿常规项目（白细胞、葡萄糖、胆红素、pH、比重……）脱离"尿常规"大标题就和血里的同名项目分不清。results 每项加 `panel_raw`，按报告大标题写，尿常规、便常规里的一定要填；项目名照原文，不自己加"尿"。分批发送时后一批常从续表开始、没有大标题（2026-10-14 真机：第二页的血常规全成了"未标大项"），提示词要求按项目名称判断，判断不出才留 null。应用据此给尿、便项目的查询键加标本前缀（见 schema §5.3）。
+
 ## 3b. 医疗文件模型识图（兜底）
 
 - **系统提示词：** `labExtractImageSystemPrompt`（medical_extraction_service.dart）
@@ -218,7 +231,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
           "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
-  "results": [{"item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
   "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
@@ -231,6 +244,8 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 图片只是局部时，只整理图上有的部分，不要推测图外的内容；
 - 不要在任何字段里写出姓名、身份证号、门诊卡号、电话、住址等个人信息；
 - results、findings、medications、conditions 的收录范围与分类规则同检验报告提取：
+  panel_raw 写检验项目所在的大标题（尿常规、便常规里的项目一定要填；图上
+  没有标题时按项目名称判断，判断不出才留 null），
   文字内容按栏目分条放 findings，开具的药品放 medications，
   conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
 - 没有的部分给空数组。
@@ -267,6 +282,39 @@ data 字段（只填有依据的，缺的字段不要编造）：
   不要修改数字、单位、大小、日期；
 - 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
 - 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
+```
+
+## 3d. 医疗文件补检查大项（D-36）
+
+- **系统提示词：** `panelFillSystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** JSON `{"results": [{"id", "item_name_raw", "panel_raw"}]}`，即当前版本的检验项目名称和已有的大项（没有的为 null），按报告顺序，id 从 1 编号。**不发数值、单位、参考范围**
+- **触发：** 医疗文件详情里有检验项目没有大项时出现"用模型补大项"：D-36 之前提取的报告（全没有），或分批提取时后一页续表没读到标题的
+- **超时：** 180 秒（同提取）
+- **应用侧防线：** 只填还没有大项的项目，已有的不改；编造的 id 丢弃；核对状态不变；写成新版本，可撤销；都有大项时不调用
+
+```
+你在给一份体检或检验报告里已经提取出的检验项目补上所属的检查大项。输入是 JSON：
+{"results": [{"id": 1, "item_name_raw": "项目名称", "panel_raw": "已知大项" 或 null}]}
+项目按报告上的顺序排列，同一大项的项目通常连在一起（如 血常规 一组、尿常规
+一组、肝功能 一组）。panel_raw 已有的是提取时从报告标题读到的，作为参照；
+你要给 panel_raw 为 null 的项目补上。常见情况是长报告分批提取，后一页续表的
+项目没有读到标题：它们前后的项目已标了哪个大项、项目名称像哪个大项，就补哪个。
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"results": [{"id": 1, "panel_raw": "大项名称" 或 null}]}
+只输出输入里 panel_raw 为 null 的项目。
+
+规则：
+- 已有的大项怎么写，同一组补的就怎么写（输入写"血常规"就不要补成"血液常规"）；
+- 大项用体检报告常见的叫法：血常规、尿常规、便常规、肝功能、肾功能、血脂、
+  血糖、电解质、甲状腺功能、肿瘤标志物、凝血功能、乙肝五项 等；
+- 根据项目名称、英文缩写和前后顺序判断：尿常规常见 比重(SG)、pH、白细胞(LEU)、
+  隐血(ERY)、亚硝酸盐(NIT)、酮体(KET)、胆红素(BIL)、尿胆原(UBG)、蛋白质(PRO)、
+  葡萄糖(GLU)，以及镜检的红细胞、白细胞、上皮细胞、管型、结晶；
+  血常规常见 白细胞计数(WBC)、红细胞计数(RBC)、血红蛋白、血小板、各类细胞百分数；
+- 同名项目（白细胞、葡萄糖、胆红素、蛋白）要看它所在的那一组和缩写判断，
+  不要都归到血液；
+- 拿不准的给 null，不要猜。
 ```
 
 ## 4. 主动咨询

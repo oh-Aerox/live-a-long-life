@@ -92,4 +92,37 @@ void main() {
       ['肝囊肿'],
     ]);
   });
+
+  test('尿常规、便常规的项目键带标本（D-36，用户 2019/2022/2023 体检实测）', () {
+    String urine(String name) => SameItem.labKey(name, panel: '尿常规');
+    expect(urine('白细胞(LEU)'), '尿白细胞');
+    expect(urine('葡萄糖(GLU)'), '尿糖');
+    expect(urine('葡萄糖 （Glu）'), '尿糖');
+    expect(urine('胆红素(BIL)'), '尿胆红素');
+    expect(urine('蛋白质(PRO)'), '尿蛋白');
+    expect(urine('隐血(ERY)'), '尿隐血');
+    // 不同年份写法不同的对上。
+    expect(urine('比重（SG）'), urine('尿比重'));
+    expect(urine('尿胆原(UBG)'), urine('尿胆素原'));
+    expect(urine('pH值(pH)'), urine('PH值'));
+    expect(urine('pH值(pH)'), isNot(contains('尿酸')));
+    // 镜检和干化学分开；与血里的同名项目分开。
+    expect(urine('白细胞（高倍视野）'), isNot(urine('白细胞(LEU)')));
+    expect(urine('葡萄糖(GLU)'), isNot(SameItem.labKey('葡萄糖(GLU)', panel: '血糖')));
+    expect(SameItem.labKey('潜血', panel: '便常规'), '便隐血');
+    // 血液类大项、没有大项的不加前缀，和旧数据一致。
+    expect(SameItem.labKey('白细胞计数（WBC）', panel: '血常规'), '白细胞计数');
+    expect(SameItem.labKey('尿酸（UA）', panel: '肾功能'), '尿酸');
+    expect(SameItem.labKey('白细胞(LEU)'), '白细胞');
+  });
+
+  test('趋势分组名（D-36）', () {
+    expect(SameItem.panelGroup('尿液分析'), '尿常规');
+    expect(SameItem.panelGroup('尿沉渣'), '尿常规');
+    expect(SameItem.panelGroup('粪便常规'), '便常规');
+    expect(SameItem.panelGroup('尿微量白蛋白'), '尿微量白蛋白');
+    expect(SameItem.panelGroup('肝功能检查'), '肝功能');
+    expect(SameItem.panelGroup(' 血常规 '), '血常规');
+    expect(SameItem.panelGroup(null), '其他');
+  });
 }

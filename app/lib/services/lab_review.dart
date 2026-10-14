@@ -106,6 +106,7 @@ class LabReview {
     String dataJson,
     FieldMetaMap meta,
     int index, {
+    String? panelRaw,
     String? itemNameRaw,
     String? valueRaw,
     String? unitRaw,
@@ -117,6 +118,7 @@ class LabReview {
       throw RangeError('结果项不存在：$index');
     }
     final r = Map<String, Object?>.from(results[index]);
+    if (panelRaw != null) r['panel_raw'] = panelRaw.isEmpty ? null : panelRaw;
     if (itemNameRaw != null) r['item_name_raw'] = itemNameRaw;
     if (valueRaw != null) {
       r['value_raw'] = valueRaw;

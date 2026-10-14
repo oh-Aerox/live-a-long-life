@@ -1,5 +1,6 @@
 import 'db/app_database.dart';
 import 'field_meta.dart';
+import 'same_item.dart';
 
 /// 记录数据的纯文本摘要与取值展示（UI 列表和咨询上下文共用，无 UI 依赖）。
 
@@ -126,7 +127,10 @@ String? reviewedMedicalSummary(Map<String, Object?> data, FieldMetaMap meta) {
     final outOfRange =
         v != null && ((low != null && v < low) || (high != null && v > high));
     if (r['flag_raw'] == null && !outOfRange) continue;
+    // 尿常规的"白细胞"给模型看时带上大项，免得当成血白细胞（D-36）。
+    final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
     abnormal.add([
+      if (SameItem.specimenOf(panel) != null) SameItem.panelGroup(panel),
       r['item_name_raw'],
       '${r['value_raw']}${r['unit_raw'] ?? ''}',
       if (r['flag_raw'] != null) r['flag_raw'],

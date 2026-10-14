@@ -37,6 +37,7 @@ const labExtractSystemPrompt = '''
   },
   "results": [
     {
+      "panel_raw": "所属检查大项的标题（如 血常规、尿常规、肝功能、血脂）" 或 null,
       "item_name_raw": "项目名称",
       "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
@@ -98,6 +99,15 @@ const labExtractSystemPrompt = '''
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
 - source_lines 只能用输入里出现的行号，不要编造；一条内容来自多行时全部列出；
 - 没有检验数值表时 results 为空数组；文字内容不进 results，放进 findings；
+- panel_raw 写该项所在表格或段落的大标题（体检报告常见：血常规、尿常规、
+  便常规、肝功能、肾功能、血脂、血糖、甲状腺功能、肿瘤标志物），按报告原文；
+  尿常规、便常规里的项目（白细胞、红细胞、葡萄糖、蛋白质、胆红素、pH、比重、
+  隐血等）一定要填，它们脱离大项就和血液里的同名项目分不清；项目名照原文写，
+  不要自己加"尿""便"；
+- 输入可能是一份长报告中间的几页（分批发送），表格从上一页续过来、本页没有
+  大标题：这时按项目名称和英文缩写判断它属于哪个大项（如 白细胞计数(WBC)、
+  红细胞计数(RBC)、血红蛋白、血小板 属于血常规），不要因为本页没有标题就留
+  null；只有确实不属于任何检验大项、也判断不出的（如 身高、血压）才留 null；
 - findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、既往史、
   过敏史、体格检查、辅助检查、诊断、处理意见、医嘱，超声/影像/心电图等报告的所见、
   提示、结论、印象，检验单上的结论或备注；按栏目分条，完整保留内容，不要摘要或合并
@@ -125,7 +135,7 @@ const labExtractImageSystemPrompt = '''
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
           "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
-  "results": [{"item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
   "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
@@ -138,6 +148,8 @@ const labExtractImageSystemPrompt = '''
 - 图片只是局部时，只整理图上有的部分，不要推测图外的内容；
 - 不要在任何字段里写出姓名、身份证号、门诊卡号、电话、住址等个人信息；
 - results、findings、medications、conditions 的收录范围与分类规则同检验报告提取：
+  panel_raw 写检验项目所在的大标题（尿常规、便常规里的项目一定要填；图上
+  没有标题时按项目名称判断，判断不出才留 null），
   文字内容按栏目分条放 findings，开具的药品放 medications，
   conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
 - 没有的部分给空数组。
@@ -170,6 +182,34 @@ const findingsTidySystemPrompt = '''
   不要修改数字、单位、大小、日期；
 - 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
 - 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
+''';
+
+/// 补检查大项提示词（D-36）：D-36 之前提取的报告没有 panel_raw，尿常规
+/// 里的"白细胞""葡萄糖"和血里的同名项目混在一起。只按顺序发项目名称。
+/// 改动本提示词时同步更新 docs/prompts.md。
+const panelFillSystemPrompt = '''
+你在给一份体检或检验报告里已经提取出的检验项目补上所属的检查大项。输入是 JSON：
+{"results": [{"id": 1, "item_name_raw": "项目名称", "panel_raw": "已知大项" 或 null}]}
+项目按报告上的顺序排列，同一大项的项目通常连在一起（如 血常规 一组、尿常规
+一组、肝功能 一组）。panel_raw 已有的是提取时从报告标题读到的，作为参照；
+你要给 panel_raw 为 null 的项目补上。常见情况是长报告分批提取，后一页续表的
+项目没有读到标题：它们前后的项目已标了哪个大项、项目名称像哪个大项，就补哪个。
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"results": [{"id": 1, "panel_raw": "大项名称" 或 null}]}
+只输出输入里 panel_raw 为 null 的项目。
+
+规则：
+- 已有的大项怎么写，同一组补的就怎么写（输入写"血常规"就不要补成"血液常规"）；
+- 大项用体检报告常见的叫法：血常规、尿常规、便常规、肝功能、肾功能、血脂、
+  血糖、电解质、甲状腺功能、肿瘤标志物、凝血功能、乙肝五项 等；
+- 根据项目名称、英文缩写和前后顺序判断：尿常规常见 比重(SG)、pH、白细胞(LEU)、
+  隐血(ERY)、亚硝酸盐(NIT)、酮体(KET)、胆红素(BIL)、尿胆原(UBG)、蛋白质(PRO)、
+  葡萄糖(GLU)，以及镜检的红细胞、白细胞、上皮细胞、管型、结晶；
+  血常规常见 白细胞计数(WBC)、红细胞计数(RBC)、血红蛋白、血小板、各类细胞百分数；
+- 同名项目（白细胞、葡萄糖、胆红素、蛋白）要看它所在的那一组和缩写判断，
+  不要都归到血液；
+- 拿不准的给 null，不要猜。
 ''';
 
 /// 识图调用：比 [OrganizeModelCall] 多一张图片（base64 PNG）。
@@ -261,6 +301,22 @@ class FindingsTidyOutcome {
   final String? previousFieldMeta;
 
   bool get changed => previousData != null;
+}
+
+/// 补检查大项结果（D-36）。有改动时带上补之前的数据，界面撤销时写回。
+class PanelFillOutcome {
+  const PanelFillOutcome({
+    required this.filled,
+    required this.record,
+    this.previousData,
+    this.previousFieldMeta,
+  });
+
+  /// 补上大项的项目数。
+  final int filled;
+  final RecordRow record;
+  final String? previousData;
+  final String? previousFieldMeta;
 }
 
 /// 一页的预览信息（提取前的页筛选展示：默认判定 + 用户覆盖）。
@@ -688,13 +744,6 @@ class MedicalExtractionService {
         (f as Map).cast<String, Object?>()
     ];
     if (findings.length < 2) throw StateError('文字内容不到两段，不用整理');
-    final config = await _modelConfigs.defaultConfig();
-    if (config == null) {
-      throw StateError('还没有配置模型：先在"模型配置"里添加');
-    }
-    final apiKey = config.keychainRef.isEmpty
-        ? ''
-        : (await _keyStore.read(config.keychainRef) ?? '');
 
     final payload = jsonEncode({
       'findings': [
@@ -706,46 +755,10 @@ class MedicalExtractionService {
           }
       ],
     });
-    final summary = '医疗文件已提取的文字内容 ${findings.length} 段（合并去重）';
-    final requestAt = ids.nowMs();
-    ModelResponse response;
-    try {
-      response = await _modelCall(
-        config: config,
-        apiKey: apiKey,
-        system: findingsTidySystemPrompt,
-        userText: payload,
-        maxTokens: 8192,
-      );
-    } catch (e) {
-      await _organize.recordModelCall(
-        modelConfigId: config.id,
-        dataBoundary: config.dataBoundary,
-        sentMessageIdsJson: '[]',
-        sentAttachmentIdsJson: '[]',
-        requestAt: requestAt,
-        responseAt: ids.nowMs(),
-        status: ModelCallStatus.failed,
-        caller: ModelCaller.phoneMedicalExtract,
-        sentSummary: summary,
-        requestText: payload,
-      );
-      rethrow;
-    }
-    final call = await _organize.recordModelCall(
-      modelConfigId: config.id,
-      dataBoundary: config.dataBoundary,
-      sentMessageIdsJson: '[]',
-      sentAttachmentIdsJson: '[]',
-      requestAt: requestAt,
-      responseAt: ids.nowMs(),
-      status: ModelCallStatus.succeeded,
-      tokensIn: response.tokensIn,
-      tokensOut: response.tokensOut,
-      responseText: response.text,
-      caller: ModelCaller.phoneMedicalExtract,
-      sentSummary: summary,
-      requestText: payload,
+    final (response, callId) = await _callAndRecord(
+      system: findingsTidySystemPrompt,
+      payload: payload,
+      summary: '医疗文件已提取的文字内容 ${findings.length} 段（合并去重）',
     );
 
     final parsed = _parse(response.text);
@@ -819,12 +832,141 @@ class MedicalExtractionService {
           rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
       dataJson: jsonEncode(data),
       fieldMeta: FieldMetaMap(fields),
-      producedBy: ProducedBy.medicalExtract(call.id),
+      producedBy: ProducedBy.medicalExtract(callId),
     );
     AppLog.I.i('extract', '文字整理：${findings.length} 段合并为 ${tidied.length} 段');
     return FindingsTidyOutcome(
         before: findings.length,
         after: tidied.length,
+        record: updated,
+        previousData: rev.data,
+        previousFieldMeta: rev.fieldMeta);
+  }
+
+  /// 事后整理类调用（文字整理、补大项）：用默认模型发一段已提取的数据，
+  /// 成功失败都记调用记录。不带附件、不带图片。
+  Future<(ModelResponse, String)> _callAndRecord({
+    required String system,
+    required String payload,
+    required String summary,
+  }) async {
+    final config = await _modelConfigs.defaultConfig();
+    if (config == null) {
+      throw StateError('还没有配置模型：先在"模型配置"里添加');
+    }
+    final apiKey = config.keychainRef.isEmpty
+        ? ''
+        : (await _keyStore.read(config.keychainRef) ?? '');
+    final requestAt = ids.nowMs();
+    ModelResponse response;
+    try {
+      response = await _modelCall(
+        config: config,
+        apiKey: apiKey,
+        system: system,
+        userText: payload,
+        maxTokens: 8192,
+      );
+    } catch (e) {
+      await _organize.recordModelCall(
+        modelConfigId: config.id,
+        dataBoundary: config.dataBoundary,
+        sentMessageIdsJson: '[]',
+        sentAttachmentIdsJson: '[]',
+        requestAt: requestAt,
+        responseAt: ids.nowMs(),
+        status: ModelCallStatus.failed,
+        caller: ModelCaller.phoneMedicalExtract,
+        sentSummary: summary,
+        requestText: payload,
+      );
+      rethrow;
+    }
+    final call = await _organize.recordModelCall(
+      modelConfigId: config.id,
+      dataBoundary: config.dataBoundary,
+      sentMessageIdsJson: '[]',
+      sentAttachmentIdsJson: '[]',
+      requestAt: requestAt,
+      responseAt: ids.nowMs(),
+      status: ModelCallStatus.succeeded,
+      tokensIn: response.tokensIn,
+      tokensOut: response.tokensOut,
+      responseText: response.text,
+      caller: ModelCaller.phoneMedicalExtract,
+      sentSummary: summary,
+      requestText: payload,
+    );
+    return (response, call.id);
+  }
+
+  /// 给没有检查大项的检验项目补上（D-36）：按顺序发项目名称和已有的大项
+  /// （分批提取时后一页续表的项目常读不到标题，靠前后已标的补），模型标出
+  /// 所属大项，写成新版本。已有大项的不改；不发数值；核对状态不变（大项
+  /// 不是 D-04 的关键字段，详情页按大项分组展示供用户看）。
+  Future<PanelFillOutcome> fillPanels(String documentId) async {
+    final record = await _records.labPanelOfDocument(documentId);
+    if (record == null) throw StateError('这份文件还没有提取');
+    final rev = await _records.currentRevisionOf(record.id);
+    final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+    final results = [
+      for (final r in data['results'] as List? ?? const [])
+        (r as Map).cast<String, Object?>()
+    ];
+    if (!results.any((r) => r['panel_raw'] == null)) {
+      return PanelFillOutcome(filled: 0, record: record);
+    }
+    final payload = jsonEncode({
+      'results': [
+        for (var i = 0; i < results.length; i++)
+          {
+            'id': i + 1,
+            'item_name_raw': results[i]['item_name_raw'],
+            'panel_raw': results[i]['panel_raw'],
+          }
+      ],
+    });
+    final (response, callId) = await _callAndRecord(
+      system: panelFillSystemPrompt,
+      payload: payload,
+      summary: '医疗文件检验项目名称 ${results.length} 个及已知大项'
+          '（补 ${results.where((r) => r['panel_raw'] == null).length} 个的大项，不含数值）',
+    );
+    final out = _parse(response.text)?['results'];
+    if (out is! List) {
+      AppLog.I.w('extract', '补大项解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析，没有改动');
+    }
+    var filled = 0;
+    for (final raw in out) {
+      if (raw is! Map) continue;
+      final id = raw['id'];
+      final panel = raw['panel_raw'];
+      if (id is! num || id < 1 || id > results.length) continue;
+      if (panel is! String || panel.trim().isEmpty) continue;
+      final r = results[id.toInt() - 1];
+      if (r['panel_raw'] != null) continue;
+      r['panel_raw'] = panel.trim();
+      filled++;
+    }
+    if (filled == 0) {
+      AppLog.I.i('extract', '补大项：模型没有标出任何一项');
+      return PanelFillOutcome(filled: 0, record: record);
+    }
+    data['results'] = results;
+    final updated = await _records.addRevision(
+      recordId: record.id,
+      baseVersion: record.version,
+      occurred: TimeValue.decode(rev.occurred),
+      occurredEnd:
+          rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
+      dataJson: jsonEncode(data),
+      fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
+      producedBy: ProducedBy.medicalExtract(callId),
+    );
+    AppLog.I.i('extract', '补大项：${results.length} 项中补上 $filled 项');
+    return PanelFillOutcome(
+        filled: filled,
         record: updated,
         previousData: rev.data,
         previousFieldMeta: rev.fieldMeta);
@@ -1102,7 +1244,11 @@ class MedicalExtractionService {
       final r = raw.cast<String, Object?>();
       if (r['item_name_raw'] is! String || r['value_raw'] is! String) continue;
       final locators = _locatorsOf(r['source_lines'], lineIndex, fallback);
+      final panel = r['panel_raw'];
       results.add({
+        'panel_raw': panel is String && panel.trim().isNotEmpty
+            ? panel.trim()
+            : null,
         'item_name_raw': r['item_name_raw'],
         'value_raw': r['value_raw'],
         'value_num': r['value_num'],
@@ -1469,8 +1615,9 @@ class MedicalExtractionService {
     for (final r in results) {
       final name = r['item_name_raw'];
       if (name is! String) continue;
-      final history =
-          await _records.labResultHistory(RecordRepository.labItemKey(name));
+      final history = await _records.labResultHistory(RecordRepository.labItemKey(
+          name,
+          panel: r['panel_raw'] as String?));
       for (final row in history) {
         if (row.recordId != newRecordId && row.examDate == examDate) {
           hits.add(row.recordId);

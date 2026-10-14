@@ -13,6 +13,7 @@ import 'package:live_a_long_life/data/repositories/model_config_repository.dart'
 import 'package:live_a_long_life/data/repositories/organize_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/services/key_store.dart';
+import 'package:live_a_long_life/services/lab_review.dart';
 import 'package:live_a_long_life/services/medical_extraction_service.dart';
 import 'package:live_a_long_life/services/model_client.dart';
 import 'package:live_a_long_life/services/text_extraction.dart';
@@ -569,6 +570,107 @@ void main() {
       expect(outcome.changed, isFalse);
       expect((await records.labPanelOfDocument(docId))!.version, version);
     });
+  });
+
+  test('补检查大项（D-36）：只发项目名，已有大项不改，核对状态不变，索引按大项重建', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '白细胞计数（WBC） 5.33 10^9/L 3.5-9.5', x: 0.1, y: 0.1, w: 0.8, h: 0.03),
+      OcrLine(text: '白细胞(LEU) neg', x: 0.1, y: 0.2, w: 0.8, h: 0.03),
+      OcrLine(text: '比重（SG） 1.025', x: 0.1, y: 0.3, w: 0.8, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    // 模拟 D-36 之前的提取：没有 panel_raw。
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'lab_report', 'exam_date': '2022-07-17'},
+      'results': [
+        {'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'value_num': 5.33, 'source_lines': ['P1L1']},
+        {'item_name_raw': '白细胞(LEU)', 'value_raw': 'neg', 'source_lines': ['P1L2']},
+        {'item_name_raw': '比重（SG）', 'value_raw': '1.025', 'value_num': 1.025, 'source_lines': ['P1L3']},
+      ],
+    }));
+    final extracted = await service.extractDocument(doc.id);
+    var rev = await records.currentRevisionOf(extracted.record.id);
+    final (data, meta) = LabReview.confirmResult(
+        rev.data, FieldMetaMap.decode(rev.fieldMeta), 1);
+    await records.addRevision(
+      recordId: extracted.record.id,
+      baseVersion: 1,
+      occurred: TimeValue.decode(rev.occurred),
+      dataJson: data,
+      fieldMeta: meta,
+      producedBy: ProducedBy.userEdit(),
+    );
+    expect((await records.labResultsOfDocument(doc.id))[1].itemKey, '白细胞');
+
+    model.reply(jsonEncode({
+      'results': [
+        {'id': 1, 'panel_raw': '血常规'},
+        {'id': 2, 'panel_raw': '尿常规'},
+        {'id': 3, 'panel_raw': null},
+        {'id': 9, 'panel_raw': '编造'},
+      ],
+    }));
+    final outcome = await service.fillPanels(doc.id);
+    expect(outcome.filled, 2);
+    expect(model.calls.last, contains('白细胞(LEU)'));
+    expect(model.calls.last, isNot(contains('neg')), reason: '不发数值');
+    expect(model.calls.last, isNot(contains('5.33')));
+
+    rev = await records.currentRevisionOf(extracted.record.id);
+    expect(FieldMetaMap.decode(rev.fieldMeta)['results.1']!.reviewStatus,
+        ReviewStatus.confirmed);
+    final rows = await records.labResultsOfDocument(doc.id);
+    expect([for (final r in rows) r.itemKey], ['白细胞计数', '尿白细胞', '比重']);
+    expect(rows[1].panelRaw, '尿常规');
+
+    // 新提取直接带大项。
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'lab_report', 'exam_date': '2022-07-17'},
+      'results': [
+        {'panel_raw': ' 尿常规 ', 'item_name_raw': '比重（SG）', 'value_raw': '1.025', 'source_lines': ['P1L3']},
+      ],
+    }));
+    await service.extractDocument(doc.id);
+    expect((await records.labResultsOfDocument(doc.id)).single.itemKey, '尿比重');
+    // 都有大项时不调模型。
+    final calls = model.calls.length;
+    expect((await service.fillPanels(doc.id)).filled, 0);
+    expect(model.calls.length, calls);
+  });
+
+  test('补检查大项：分批提取后续表的项目没读到标题，带上已有大项补空缺（D-36）', () async {
+    await addConfig();
+    final doc = await importDoc();
+    final service = buildService(FakeExtractor(ocrResults: const [
+      OcrLine(text: '血常规', x: 0.1, y: 0.05, w: 0.3, h: 0.03),
+    ]));
+    // 第 1 批读到"血常规"标题，第 2 批续表没有。
+    model.reply(jsonEncode({
+      'doc': {'doc_type': 'lab_report', 'exam_date': '2022-07-17'},
+      'results': [
+        {'panel_raw': '血常规', 'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'source_lines': ['P1L1']},
+        {'panel_raw': null, 'item_name_raw': '血小板计数（PLT）', 'value_raw': '210', 'source_lines': ['P1L1']},
+        {'panel_raw': '尿常规', 'item_name_raw': '白细胞(LEU)', 'value_raw': 'neg', 'source_lines': ['P1L1']},
+      ],
+    }));
+    await service.extractDocument(doc.id);
+
+    model.reply(jsonEncode({
+      'results': [
+        {'id': 2, 'panel_raw': '血常规'},
+        {'id': 3, 'panel_raw': '血常规'}, // 已有大项的不改
+      ],
+    }));
+    final outcome = await service.fillPanels(doc.id);
+    expect(outcome.filled, 1);
+    final sent = jsonDecode(model.calls.last) as Map;
+    expect([for (final r in sent['results'] as List) r['panel_raw']],
+        ['血常规', null, '尿常规']);
+    expect(model.calls.last, isNot(contains('210')), reason: '不发数值');
+    final rows = await records.labResultsOfDocument(doc.id);
+    expect([for (final r in rows) r.panelRaw], ['血常规', '血常规', '尿常规']);
   });
 
   test('门诊病历（D-28）：药品按条提取、识别修正记录保留、空药名丢弃', () async {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
@@ -161,5 +162,28 @@ void main() {
     expect(rebuilt, 1); // 已删除的记录不回来
     final rows = await env.db.select(env.db.labResults).get();
     expect(rows.single.examDate, '2026-09-20');
+  });
+
+  test('检查大项进索引；尿常规的白细胞与血常规的分开建键（D-36）', () async {
+    await records.create(
+      recordType: RecordType.labPanel,
+      occurred: day('2022-07-17'),
+      dataJson: jsonEncode({
+        'medical_document_id': 'doc-1',
+        'results': [
+          {'panel_raw': '血常规', 'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'value_num': 5.33},
+          {'panel_raw': '尿常规', 'item_name_raw': '白细胞(LEU)', 'value_raw': 'neg'},
+          {'panel_raw': '尿常规', 'item_name_raw': '比重（SG）', 'value_raw': '1.025', 'value_num': 1.025},
+        ],
+      }),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+    final rows = await (env.db.select(env.db.labResults)
+          ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
+        .get();
+    expect([for (final r in rows) r.itemKey], ['白细胞计数', '尿白细胞', '尿比重']);
+    expect(rows[1].panelRaw, '尿常规');
+    expect(await records.labResultHistory('尿比重'), hasLength(1));
   });
 }

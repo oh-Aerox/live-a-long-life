@@ -19267,6 +19267,17 @@ class $LabResultsTable extends LabResults
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _panelRawMeta = const VerificationMeta(
+    'panelRaw',
+  );
+  @override
+  late final GeneratedColumn<String> panelRaw = GeneratedColumn<String>(
+    'panel_raw',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _valueRawMeta = const VerificationMeta(
     'valueRaw',
   );
@@ -19382,6 +19393,7 @@ class $LabResultsTable extends LabResults
     medicalDocumentId,
     itemNameRaw,
     itemKey,
+    panelRaw,
     valueRaw,
     valueNum,
     unitRaw,
@@ -19459,6 +19471,12 @@ class $LabResultsTable extends LabResults
       );
     } else if (isInserting) {
       context.missing(_itemKeyMeta);
+    }
+    if (data.containsKey('panel_raw')) {
+      context.handle(
+        _panelRawMeta,
+        panelRaw.isAcceptableOrUnknown(data['panel_raw']!, _panelRawMeta),
+      );
     }
     if (data.containsKey('value_raw')) {
       context.handle(
@@ -19554,6 +19572,10 @@ class $LabResultsTable extends LabResults
         DriftSqlType.string,
         data['${effectivePrefix}item_key'],
       )!,
+      panelRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}panel_raw'],
+      ),
       valueRaw: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}value_raw'],
@@ -19615,6 +19637,9 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   final String? medicalDocumentId;
   final String itemNameRaw;
   final String itemKey;
+
+  /// 报告上的检查大项（尿常规、血常规、肝功能…），可空（D-36）。
+  final String? panelRaw;
   final String valueRaw;
   final double? valueNum;
   final String? unitRaw;
@@ -19632,6 +19657,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     this.medicalDocumentId,
     required this.itemNameRaw,
     required this.itemKey,
+    this.panelRaw,
     required this.valueRaw,
     this.valueNum,
     this.unitRaw,
@@ -19654,6 +19680,9 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     }
     map['item_name_raw'] = Variable<String>(itemNameRaw);
     map['item_key'] = Variable<String>(itemKey);
+    if (!nullToAbsent || panelRaw != null) {
+      map['panel_raw'] = Variable<String>(panelRaw);
+    }
     map['value_raw'] = Variable<String>(valueRaw);
     if (!nullToAbsent || valueNum != null) {
       map['value_num'] = Variable<double>(valueNum);
@@ -19695,6 +19724,9 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           : Value(medicalDocumentId),
       itemNameRaw: Value(itemNameRaw),
       itemKey: Value(itemKey),
+      panelRaw: panelRaw == null && nullToAbsent
+          ? const Value.absent()
+          : Value(panelRaw),
       valueRaw: Value(valueRaw),
       valueNum: valueNum == null && nullToAbsent
           ? const Value.absent()
@@ -19736,6 +19768,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       ),
       itemNameRaw: serializer.fromJson<String>(json['itemNameRaw']),
       itemKey: serializer.fromJson<String>(json['itemKey']),
+      panelRaw: serializer.fromJson<String?>(json['panelRaw']),
       valueRaw: serializer.fromJson<String>(json['valueRaw']),
       valueNum: serializer.fromJson<double?>(json['valueNum']),
       unitRaw: serializer.fromJson<String?>(json['unitRaw']),
@@ -19758,6 +19791,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       'medicalDocumentId': serializer.toJson<String?>(medicalDocumentId),
       'itemNameRaw': serializer.toJson<String>(itemNameRaw),
       'itemKey': serializer.toJson<String>(itemKey),
+      'panelRaw': serializer.toJson<String?>(panelRaw),
       'valueRaw': serializer.toJson<String>(valueRaw),
       'valueNum': serializer.toJson<double?>(valueNum),
       'unitRaw': serializer.toJson<String?>(unitRaw),
@@ -19778,6 +19812,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     Value<String?> medicalDocumentId = const Value.absent(),
     String? itemNameRaw,
     String? itemKey,
+    Value<String?> panelRaw = const Value.absent(),
     String? valueRaw,
     Value<double?> valueNum = const Value.absent(),
     Value<String?> unitRaw = const Value.absent(),
@@ -19797,6 +19832,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
         : this.medicalDocumentId,
     itemNameRaw: itemNameRaw ?? this.itemNameRaw,
     itemKey: itemKey ?? this.itemKey,
+    panelRaw: panelRaw.present ? panelRaw.value : this.panelRaw,
     valueRaw: valueRaw ?? this.valueRaw,
     valueNum: valueNum.present ? valueNum.value : this.valueNum,
     unitRaw: unitRaw.present ? unitRaw.value : this.unitRaw,
@@ -19824,6 +19860,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           ? data.itemNameRaw.value
           : this.itemNameRaw,
       itemKey: data.itemKey.present ? data.itemKey.value : this.itemKey,
+      panelRaw: data.panelRaw.present ? data.panelRaw.value : this.panelRaw,
       valueRaw: data.valueRaw.present ? data.valueRaw.value : this.valueRaw,
       valueNum: data.valueNum.present ? data.valueNum.value : this.valueNum,
       unitRaw: data.unitRaw.present ? data.unitRaw.value : this.unitRaw,
@@ -19850,6 +19887,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
           ..write('itemKey: $itemKey, ')
+          ..write('panelRaw: $panelRaw, ')
           ..write('valueRaw: $valueRaw, ')
           ..write('valueNum: $valueNum, ')
           ..write('unitRaw: $unitRaw, ')
@@ -19872,6 +19910,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     medicalDocumentId,
     itemNameRaw,
     itemKey,
+    panelRaw,
     valueRaw,
     valueNum,
     unitRaw,
@@ -19893,6 +19932,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           other.medicalDocumentId == this.medicalDocumentId &&
           other.itemNameRaw == this.itemNameRaw &&
           other.itemKey == this.itemKey &&
+          other.panelRaw == this.panelRaw &&
           other.valueRaw == this.valueRaw &&
           other.valueNum == this.valueNum &&
           other.unitRaw == this.unitRaw &&
@@ -19912,6 +19952,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   final Value<String?> medicalDocumentId;
   final Value<String> itemNameRaw;
   final Value<String> itemKey;
+  final Value<String?> panelRaw;
   final Value<String> valueRaw;
   final Value<double?> valueNum;
   final Value<String?> unitRaw;
@@ -19930,6 +19971,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     this.medicalDocumentId = const Value.absent(),
     this.itemNameRaw = const Value.absent(),
     this.itemKey = const Value.absent(),
+    this.panelRaw = const Value.absent(),
     this.valueRaw = const Value.absent(),
     this.valueNum = const Value.absent(),
     this.unitRaw = const Value.absent(),
@@ -19949,6 +19991,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     this.medicalDocumentId = const Value.absent(),
     required String itemNameRaw,
     required String itemKey,
+    this.panelRaw = const Value.absent(),
     required String valueRaw,
     this.valueNum = const Value.absent(),
     this.unitRaw = const Value.absent(),
@@ -19974,6 +20017,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     Expression<String>? medicalDocumentId,
     Expression<String>? itemNameRaw,
     Expression<String>? itemKey,
+    Expression<String>? panelRaw,
     Expression<String>? valueRaw,
     Expression<double>? valueNum,
     Expression<String>? unitRaw,
@@ -19993,6 +20037,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
       if (medicalDocumentId != null) 'medical_document_id': medicalDocumentId,
       if (itemNameRaw != null) 'item_name_raw': itemNameRaw,
       if (itemKey != null) 'item_key': itemKey,
+      if (panelRaw != null) 'panel_raw': panelRaw,
       if (valueRaw != null) 'value_raw': valueRaw,
       if (valueNum != null) 'value_num': valueNum,
       if (unitRaw != null) 'unit_raw': unitRaw,
@@ -20014,6 +20059,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     Value<String?>? medicalDocumentId,
     Value<String>? itemNameRaw,
     Value<String>? itemKey,
+    Value<String?>? panelRaw,
     Value<String>? valueRaw,
     Value<double?>? valueNum,
     Value<String?>? unitRaw,
@@ -20033,6 +20079,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
       medicalDocumentId: medicalDocumentId ?? this.medicalDocumentId,
       itemNameRaw: itemNameRaw ?? this.itemNameRaw,
       itemKey: itemKey ?? this.itemKey,
+      panelRaw: panelRaw ?? this.panelRaw,
       valueRaw: valueRaw ?? this.valueRaw,
       valueNum: valueNum ?? this.valueNum,
       unitRaw: unitRaw ?? this.unitRaw,
@@ -20067,6 +20114,9 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     }
     if (itemKey.present) {
       map['item_key'] = Variable<String>(itemKey.value);
+    }
+    if (panelRaw.present) {
+      map['panel_raw'] = Variable<String>(panelRaw.value);
     }
     if (valueRaw.present) {
       map['value_raw'] = Variable<String>(valueRaw.value);
@@ -20115,6 +20165,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
           ..write('itemKey: $itemKey, ')
+          ..write('panelRaw: $panelRaw, ')
           ..write('valueRaw: $valueRaw, ')
           ..write('valueNum: $valueNum, ')
           ..write('unitRaw: $unitRaw, ')
@@ -29728,6 +29779,7 @@ typedef $$LabResultsTableCreateCompanionBuilder =
       Value<String?> medicalDocumentId,
       required String itemNameRaw,
       required String itemKey,
+      Value<String?> panelRaw,
       required String valueRaw,
       Value<double?> valueNum,
       Value<String?> unitRaw,
@@ -29748,6 +29800,7 @@ typedef $$LabResultsTableUpdateCompanionBuilder =
       Value<String?> medicalDocumentId,
       Value<String> itemNameRaw,
       Value<String> itemKey,
+      Value<String?> panelRaw,
       Value<String> valueRaw,
       Value<double?> valueNum,
       Value<String?> unitRaw,
@@ -29797,6 +29850,11 @@ class $$LabResultsTableFilterComposer
 
   ColumnFilters<String> get itemKey => $composableBuilder(
     column: $table.itemKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get panelRaw => $composableBuilder(
+    column: $table.panelRaw,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -29891,6 +29949,11 @@ class $$LabResultsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get panelRaw => $composableBuilder(
+    column: $table.panelRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get valueRaw => $composableBuilder(
     column: $table.valueRaw,
     builder: (column) => ColumnOrderings(column),
@@ -29977,6 +30040,9 @@ class $$LabResultsTableAnnotationComposer
   GeneratedColumn<String> get itemKey =>
       $composableBuilder(column: $table.itemKey, builder: (column) => column);
 
+  GeneratedColumn<String> get panelRaw =>
+      $composableBuilder(column: $table.panelRaw, builder: (column) => column);
+
   GeneratedColumn<String> get valueRaw =>
       $composableBuilder(column: $table.valueRaw, builder: (column) => column);
 
@@ -30050,6 +30116,7 @@ class $$LabResultsTableTableManager
                 Value<String?> medicalDocumentId = const Value.absent(),
                 Value<String> itemNameRaw = const Value.absent(),
                 Value<String> itemKey = const Value.absent(),
+                Value<String?> panelRaw = const Value.absent(),
                 Value<String> valueRaw = const Value.absent(),
                 Value<double?> valueNum = const Value.absent(),
                 Value<String?> unitRaw = const Value.absent(),
@@ -30068,6 +30135,7 @@ class $$LabResultsTableTableManager
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,
                 itemKey: itemKey,
+                panelRaw: panelRaw,
                 valueRaw: valueRaw,
                 valueNum: valueNum,
                 unitRaw: unitRaw,
@@ -30088,6 +30156,7 @@ class $$LabResultsTableTableManager
                 Value<String?> medicalDocumentId = const Value.absent(),
                 required String itemNameRaw,
                 required String itemKey,
+                Value<String?> panelRaw = const Value.absent(),
                 required String valueRaw,
                 Value<double?> valueNum = const Value.absent(),
                 Value<String?> unitRaw = const Value.absent(),
@@ -30106,6 +30175,7 @@ class $$LabResultsTableTableManager
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,
                 itemKey: itemKey,
+                panelRaw: panelRaw,
                 valueRaw: valueRaw,
                 valueNum: valueNum,
                 unitRaw: unitRaw,

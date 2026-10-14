@@ -45,6 +45,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   Map<String, List<Map<String, Object?>>> _entries = {};
   bool _imageSending = false;
   bool _tidying = false;
+  bool _fillingPanels = false;
 
   @override
   void initState() {
@@ -269,6 +270,102 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     }
   }
 
+  /// 补检查大项（D-36）：旧报告的检验项目没有大项、分批提取时续表的项目
+  /// 读不到标题，尿常规的"白细胞"和血常规混在一起。只发项目名称和已有的
+  /// 大项；写成新版本，提示条上可以撤销。
+  Future<void> _fillPanels() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _fillingPanels = true);
+    try {
+      final outcome = await widget.services.medicalExtraction
+          .fillPanels(widget.documentId);
+      if (outcome.previousData == null) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('模型没有认出所属大项，未改动')));
+        return;
+      }
+      messenger.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text('已给 ${outcome.filled} 项补上所属大项，'
+            '在下面按大项分组显示，不对的可以点一项修改'),
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () async {
+            if (_record?.version != outcome.record.version) return;
+            await _writeRevision(outcome.previousData!,
+                FieldMetaMap.decode(outcome.previousFieldMeta!));
+          },
+        ),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('补大项失败：$e')));
+    } finally {
+      if (mounted) setState(() => _fillingPanels = false);
+      await _load();
+    }
+  }
+
+  /// 检验结果按大项分段（D-36）：连续同一大项的放一段，没有大项的单独一段。
+  List<Widget> _resultSections() {
+    final sections = <(String?, List<int>)>[];
+    for (var i = 0; i < _results.length; i++) {
+      final panel = _results[i].panelRaw;
+      if (sections.isEmpty || sections.last.$1 != panel) {
+        sections.add((panel, []));
+      }
+      sections.last.$2.add(i);
+    }
+    final hasPanels = sections.any((s) => s.$1 != null);
+    return [
+      for (var k = 0; k < sections.length; k++)
+        AdaptiveSection(
+          header: !hasPanels
+              ? '检验结果'
+              : '检验结果 · ${sections[k].$1 ?? '未标大项'}',
+          footer: k == sections.length - 1
+              ? '项目、数值、单位、参考范围、检查日期确认后，这条结果才参与分析。'
+              : null,
+          children: [for (final i in sections[k].$2) _resultTile(i)],
+        ),
+    ];
+  }
+
+  Widget _resultTile(int i) => AdaptiveTile(
+        dense: true,
+        title: Text(_results[i].itemNameRaw),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text([
+              _results[i].valueRaw,
+              if (_results[i].unitRaw != null) _results[i].unitRaw!,
+              if (_results[i].refRangeRaw != null)
+                '参考 ${_results[i].refRangeRaw}',
+            ].join(' ')),
+            ?_fixesText(_resultFixes(_results[i].resultIndex)),
+          ],
+        ),
+        trailing: Text(
+          [
+            if (_results[i].flagRaw != null) _results[i].flagRaw!,
+            switch (_results[i].reviewStatus) {
+              ReviewStatus.unreviewed => '未核对',
+              ReviewStatus.confirmed => '已确认',
+              ReviewStatus.edited => '已修改',
+            },
+          ].join(' '),
+          style: TextStyle(
+            fontSize: 11,
+            color: _results[i].flagRaw != null
+                ? Colors.orange
+                : (_results[i].reviewStatus == ReviewStatus.unreviewed
+                    ? Colors.grey
+                    : Colors.green),
+          ),
+        ),
+        onTap: () => _resultActions(_results[i].resultIndex, _results[i]),
+      );
+
   /// 写一版新记录（核对/修改都走这里，索引随版本自动重建 D-27）。
   Future<void> _writeRevision(String dataJson, FieldMetaMap meta) async {
     final record = _record!;
@@ -306,6 +403,8 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
 
   Future<void> _editResult(int index, LabResult row) async {
     final values = await showFieldsDialog(context, title: '修改这一项', fields: [
+      DialogField(
+          label: '所属大项', initial: row.panelRaw ?? '', hint: '如 血常规、尿常规'),
       DialogField(label: '项目', initial: row.itemNameRaw),
       DialogField(label: '数值', initial: row.valueRaw),
       DialogField(label: '单位', initial: row.unitRaw ?? ''),
@@ -317,10 +416,11 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       rev.data,
       FieldMetaMap.decode(rev.fieldMeta),
       index,
-      itemNameRaw: values[0].trim(),
-      valueRaw: values[1].trim(),
-      unitRaw: values[2].trim(),
-      refRangeRaw: values[3].trim(),
+      panelRaw: values[0].trim(),
+      itemNameRaw: values[1].trim(),
+      valueRaw: values[2].trim(),
+      unitRaw: values[3].trim(),
+      refRangeRaw: values[4].trim(),
     );
     await _writeRevision(data, meta);
   }
@@ -853,51 +953,38 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             ),
           ..._entrySection('findings', '诊断与检查文字'),
           ..._entrySection('medications', '处方药品'),
-          if (_results.isNotEmpty)
-            AdaptiveSection(
-              header: '检验结果',
-              footer: '项目、数值、单位、参考范围、检查日期确认后，这条结果才参与分析。',
-              children: [
-                for (var i = 0; i < _results.length; i++)
-                  AdaptiveTile(
-                    dense: true,
-                    title: Text(_results[i].itemNameRaw),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text([
-                          _results[i].valueRaw,
-                          if (_results[i].unitRaw != null) _results[i].unitRaw!,
-                          if (_results[i].refRangeRaw != null)
-                            '参考 ${_results[i].refRangeRaw}',
-                        ].join(' ')),
-                        ?_fixesText(_resultFixes(_results[i].resultIndex)),
-                      ],
-                    ),
-                    trailing: Text(
-                      [
-                        if (_results[i].flagRaw != null) _results[i].flagRaw!,
-                        switch (_results[i].reviewStatus) {
-                          ReviewStatus.unreviewed => '未核对',
-                          ReviewStatus.confirmed => '已确认',
-                          ReviewStatus.edited => '已修改',
-                        },
-                      ].join(' '),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _results[i].flagRaw != null
-                            ? Colors.orange
-                            : (_results[i].reviewStatus ==
-                                    ReviewStatus.unreviewed
-                                ? Colors.grey
-                                : Colors.green),
-                      ),
-                    ),
-                    onTap: () =>
-                        _resultActions(_results[i].resultIndex, _results[i]),
+          // D-36 之前提取的全没有大项；分批提取时后一页续表的常读不到标题。
+          if (!widget.readOnly && _results.any((r) => r.panelRaw == null))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                        '${_results.every((r) => r.panelRaw == null) ? '这份报告的检验项目' : '有 ${_results.where((r) => r.panelRaw == null).length} 项'}'
+                        '没有标所属大项，尿常规的白细胞、葡萄糖等会和血液里的同名项目混在一起',
+                        style: hintStyle),
                   ),
-              ],
+                  _fillingPanels
+                      ? const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator.adaptive(
+                                  strokeWidth: 2)))
+                      : cupertino
+                          ? CupertinoButton(
+                              sizeStyle: CupertinoButtonSize.small,
+                              onPressed: _fillPanels,
+                              child: const Text('用模型补大项'))
+                          : TextButton(
+                              onPressed: _fillPanels,
+                              child: const Text('用模型补大项')),
+                ],
+              ),
             ),
+          if (_results.isNotEmpty) ..._resultSections(),
           if (cupertino) const SizedBox(height: 24),
         ],
       ),

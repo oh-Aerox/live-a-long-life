@@ -546,6 +546,9 @@ class LabResults extends Table {
   TextColumn get medicalDocumentId => text().nullable()();
   TextColumn get itemNameRaw => text()();
   TextColumn get itemKey => text()();
+
+  /// 报告上的检查大项（尿常规、血常规、肝功能…），可空（D-36）。
+  TextColumn get panelRaw => text().nullable()();
   TextColumn get valueRaw => text()();
   RealColumn get valueNum => real().nullable()();
   TextColumn get unitRaw => text().nullable()();
