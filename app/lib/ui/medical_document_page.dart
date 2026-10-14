@@ -345,7 +345,14 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final entry = _entryList(list)[index];
     final action = widget.readOnly
         ? 'source'
-        : await showActionSheet<String>(context, actions: _reviewActions);
+        : await showActionSheet<String>(context, actions: [
+            ..._reviewActions,
+            const SheetAction(
+                value: 'delete',
+                label: '删除这一条',
+                icon: Icons.delete_outline,
+                isDestructiveAction: true),
+          ]);
     final rev = _rev;
     if (action == null || rev == null || !mounted) return;
     switch (action) {
@@ -376,6 +383,10 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           index,
           edited,
         );
+        await _writeRevision(data, meta);
+      case 'delete':
+        final (data, meta) = LabReview.deleteEntry(
+            rev.data, FieldMetaMap.decode(rev.fieldMeta), list, index);
         await _writeRevision(data, meta);
       case 'source':
         final locators = entry['locator'] as List? ?? const [];

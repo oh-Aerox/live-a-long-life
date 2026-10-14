@@ -80,6 +80,26 @@ class LabReview {
     return (jsonEncode(data), FieldMetaMap(fields));
   }
 
+  /// 删除 [list] 第 [index] 条（模型收进来的无意义条目，如空的备注栏）。
+  /// 后面各条前移一位，核对状态跟着移；旧内容留在记录的修改历史里。
+  static (String, FieldMetaMap) deleteEntry(
+      String dataJson, FieldMetaMap meta, String list, int index) {
+    final data = jsonDecode(dataJson) as Map<String, Object?>;
+    final entries = (data[list] as List? ?? const []).toList();
+    if (index < 0 || index >= entries.length) {
+      throw RangeError('$list 不存在第 $index 条');
+    }
+    entries.removeAt(index);
+    data[list] = entries;
+    final fields = Map<String, FieldMeta>.from(meta.fields)
+      ..remove('$list.$index');
+    for (var i = index + 1; i <= entries.length; i++) {
+      final moved = fields.remove('$list.$i');
+      if (moved != null) fields['$list.${i - 1}'] = moved;
+    }
+    return (jsonEncode(data), FieldMetaMap(fields));
+  }
+
   /// 修改第 [index] 项：只更新传入的字段，results.{i} 状态转 edited。
   /// 数值原文改动时同步重算 value_num（能解析才填，不猜）。
   static (String, FieldMetaMap) editResult(
