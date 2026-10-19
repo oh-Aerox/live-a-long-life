@@ -273,6 +273,9 @@ class BodyMapRules {
       '低回声|强回声|阳性|骨折|突出|膨出|变性|衰竭|梗|血栓|肌瘤|腺瘤|瘤|癌|'
       '出血|感染|梗阻|紊乱|不全');
   static final _negation = RegExp('未见|未发现|未探及|未显示|未触及|没有|排除|否认|无(?!回声)');
+  /// 紧挨关键词的"不"（"主胰管不扩张""不明显增大"）也是否定；不挨着的不算，
+  /// 免得"不规则低回声"被当成正常。
+  static final _negatedRight = RegExp(r'不(明显)?$');
   static final _clauseBreak = RegExp(r'[，,。；;：:]'); // 顿号不断开：否定管到整串并列
 
   /// 报告文字里提示异常的句子（按句号、分号、换行切）。同一小句里关键词
@@ -293,6 +296,7 @@ class BodyMapRules {
         final clause = s.substring(
             clauseStart, nextBreak < 0 ? s.length : m.end + nextBreak);
         if (_negation.hasMatch(head.substring(clauseStart))) continue;
+        if (_negatedRight.hasMatch(head)) continue;
         if (clause.contains('正常')) continue;
         out.add(s);
         break;

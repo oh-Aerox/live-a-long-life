@@ -67,6 +67,13 @@ void main() {
     expect(BodyMapRules.abnormalSentences('肝内未见明显占位。胆囊壁毛糙，胆囊内见强回声'),
         ['胆囊壁毛糙，胆囊内见强回声']);
     expect(BodyMapRules.abnormalSentences('双肾未见异常；膀胱充盈良好'), isEmpty);
+    // 紧挨关键词的"不"是否定（2024-10 体检报告胰腺描述被误判）。
+    expect(
+        BodyMapRules.abnormalSentences(
+            '胰腺形态大小正常，轮廓规整，实质回声均匀，主胰管不扩张'),
+        isEmpty);
+    expect(BodyMapRules.abnormalSentences('胆总管不明显增宽，肝内胆管不扩张'), isEmpty);
+    expect(BodyMapRules.abnormalSentences('肝右叶见不规则低回声区'), hasLength(1));
     expect(BodyMapRules.abnormalSentences('甲状腺右叶结节，大小约 5mm'),
         ['甲状腺右叶结节，大小约 5mm']);
     expect(BodyMapRules.abnormalSentences('否认高血压、糖尿病史'), isEmpty);
