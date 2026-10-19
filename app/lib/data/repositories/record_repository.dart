@@ -7,6 +7,7 @@ import '../change_log.dart';
 import '../db/app_database.dart';
 import '../field_meta.dart';
 import '../ids.dart';
+import '../ocr_fixes.dart';
 import '../same_item.dart';
 import '../time_value.dart';
 
@@ -557,6 +558,48 @@ class RecordRepository {
           _db.records.deletedAt.isNull());
     final rows = await query.get();
     return {for (final r in rows) r.readTable(_db.records).id};
+  }
+
+  /// 补上识别修正（2026-10-19）：此前模型只把单位幂次等修正写进
+  /// ocr_fixes、字段仍是 OCR 原文（"*1012/L"）。未核对的检验数值按修正
+  /// 说明改字段，追加一个版本（索引随之重建、走变更日志同步到电脑端）；
+  /// 用户已确认或修改过的项不动。幂等。返回修过的记录数。
+  Future<int> repairUnappliedOcrFixes() async {
+    var repaired = 0;
+    final recs = await (_db.select(_db.records)
+          ..where((t) =>
+              t.recordType.equalsValue(RecordType.labPanel) &
+              t.deletedAt.isNull()))
+        .get();
+    for (final rec in recs) {
+      final rev = await currentRevisionOf(rec.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      final results = data['results'];
+      if (results is! List) continue;
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      var changed = false;
+      for (var i = 0; i < results.length; i++) {
+        final r = results[i];
+        if (r is! Map<String, Object?>) continue;
+        final status = meta.fields['results.$i']?.reviewStatus;
+        if (status != null && status != ReviewStatus.unreviewed) continue;
+        if (OcrFixes.apply(r, OcrFixes.resultFields)) changed = true;
+      }
+      if (!changed) continue;
+      await addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: TimeValue.decode(rev.occurred),
+        occurredEnd: rev.occurredEnd == null
+            ? null
+            : TimeValue.decode(rev.occurredEnd!),
+        dataJson: jsonEncode(data),
+        fieldMeta: meta,
+        producedBy: ProducedBy.decode(rev.producedBy),
+      );
+      repaired++;
+    }
+    return repaired;
   }
 
   /// 精确去重：类型、日期、发生时间、data、来源消息集合都完全相同的记录，

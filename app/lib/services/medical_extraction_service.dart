@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
+import '../data/ocr_fixes.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/repositories/model_config_repository.dart';
@@ -93,7 +94,12 @@ const labExtractSystemPrompt = '''
   拿不准的不要改，保留原文；
 - 数值、单位、参考范围、日期、剂量里的数字不要按常识"修正"，只允许修正
   明确的字符混淆（如数字中间的 O→0、l→1、S→5），同样记进 ocr_fixes；
-  看不清的数字保留原文，数值字段留 null，不要猜。
+  看不清的数字保留原文，数值字段留 null，不要猜；
+- 单位里的幂次 OCR 常丢上标：10⁹ 识别成 109、10°、10⁰，10¹² 识别成 1012，
+  L 识别成 1.、I（如 "*10°/1."、"*1012/L"）。按项目判断后写成
+  "10^9/L"、"10^12/L" 这样的写法；
+- ocr_fixes 只是修正说明，修正后的文字必须同时写进对应字段本身（如修正了
+  单位，unit_raw 就写修正后的单位），不要字段里仍留原文。
 
 其他规则：
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
@@ -1260,6 +1266,8 @@ class MedicalExtractionService {
         'locator': locators,
         'ocr_fixes': _ocrFixes(r['ocr_fixes']),
       });
+      // 模型只写了修正说明、字段没改时补上（如单位幂次）。
+      OcrFixes.apply(results.last, OcrFixes.resultFields);
     }
 
     // 体检报告前面汇总、后面明细会把同一项写两遍，分批时还落在不同批里：

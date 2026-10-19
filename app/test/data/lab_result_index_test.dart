@@ -186,4 +186,45 @@ void main() {
     expect(rows[1].panelRaw, '尿常规');
     expect(await records.labResultHistory('尿比重'), hasLength(1));
   });
+  test('识别修正只写进 ocr_fixes 的单位：启动修复按说明改字段，已核对的不动', () async {
+    Map<String, Object?> rbc(String name) => {
+          'item_name_raw': name,
+          'value_raw': '4.86',
+          'value_num': 4.86,
+          'unit_raw': '*1012/L',
+          'ref_range_raw': '4.3-5.8',
+          'ref_low': 4.3,
+          'ref_high': 5.8,
+          'flag_raw': null,
+          'locator': [],
+          'ocr_fixes': ['*1012/L→*10^12/L'],
+        };
+    final rec = await records.create(
+      recordType: RecordType.labPanel,
+      occurred: day('2026-10-01'),
+      dataJson: jsonEncode({
+        'results': [rbc('红细胞计数'), rbc('网织红细胞计数')],
+      }),
+      fieldMeta: FieldMetaMap({
+        'results.0': const FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.unreviewed),
+        'results.1': const FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.confirmed),
+      }),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+
+    expect(await records.repairUnappliedOcrFixes(), 1);
+    expect(await records.repairUnappliedOcrFixes(), 0); // 幂等
+
+    final rows = await (env.db.select(env.db.labResults)
+          ..where((t) => t.recordId.equals(rec.id))
+          ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
+        .get();
+    expect(rows[0].unitRaw, '*10^12/L');
+    expect(rows[0].valueRaw, '4.86');
+    expect(rows[1].unitRaw, '*1012/L'); // 用户已确认，不改
+  });
 }
