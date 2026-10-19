@@ -72,6 +72,9 @@ Future<void> main() async {
 
   // 启动补整理：上次失败或没配模型时留下的"待整理"消息（A-10）。
   unawaited(services.organizeService.catchUp());
+  // 回到前台也补整理：模型恢复后不必等到下次启动或退避计时。
+  AppLifecycleListener(
+      onResume: () => unawaited(services.organizeService.catchUp()));
 
   // 变更日志埋点前的存量数据一次性回填；清理一次重复记录（修复前遗留）；
   // 再推送（V3-M3；失败静默，状态在"连接 Mac"页可见）。

@@ -182,6 +182,22 @@ class MessageRepository {
         ..orderBy([(t) => OrderingTerm.asc(t.seq)]))
       .get();
 
+  /// 某段时间内发出、仍在等待整理的用户文字消息（日视图里先列出来，
+  /// 模型不可用时用户也能看到当天说过的内容）。
+  Future<List<Message>> pendingOrganizeBetween(int startMs, int endMs) =>
+      (_db.select(_db.messages)
+            ..where((t) =>
+                t.deletedAt.isNull() &
+                t.role.equalsValue(MessageRole.user) &
+                t.body.isNotNull() &
+                t.sentAt.isBiggerOrEqualValue(startMs) &
+                t.sentAt.isSmallerThanValue(endMs) &
+                (t.organizeState.equalsValue(OrganizeState.pending) |
+                    t.organizeState
+                        .equalsValue(OrganizeState.needsReorganize)))
+            ..orderBy([(t) => OrderingTerm.asc(t.seq)]))
+          .get();
+
   /// 更新消息的整理状态（整理服务在所有相关项落定后汇总调用，schema §3.1a）。
   Future<void> setOrganizeState(String messageId, OrganizeState state) =>
       (_db.update(_db.messages)..where((t) => t.id.equals(messageId)))

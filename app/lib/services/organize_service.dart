@@ -79,6 +79,17 @@ class OrganizeService {
   Future<void>? _pumpFuture;
   Timer? _idleTimer;
 
+  /// 模型调用失败后的自动重试计时；成功一次即清零退避。
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+  static const _retryDelays = [
+    Duration(minutes: 1),
+    Duration(minutes: 2),
+    Duration(minutes: 5),
+    Duration(minutes: 10),
+    Duration(minutes: 30),
+  ];
+
   /// 每条消息因 stale 重排的次数（内存计数，见类注释）。
   final _staleCounts = <String, int>{};
 
@@ -148,7 +159,10 @@ class OrganizeService {
     _idleTimer = Timer(idleAfter, () => enqueue(OrganizeTrigger.idle));
   }
 
-  void dispose() => _idleTimer?.cancel();
+  void dispose() {
+    _idleTimer?.cancel();
+    _retryTimer?.cancel();
+  }
 
   /// 串行执行队列里的全部批次。UI 可以不等它；测试里 await 它拿最终状态。
   /// 已在执行时返回同一个在途 Future，不并行开第二个循环。
@@ -340,8 +354,13 @@ class OrganizeService {
               : OrganizeRunStatus.failed;
       await _runs.updateRunStatus(run.id, status,
           error: e.message, finishedAt: ids.nowMs());
+      await _noticeModelUnavailable(e, usable.first.sentTz);
+      if (e.retriable) _scheduleRetry();
       return;
     }
+    _retryTimer?.cancel();
+    _retryAttempt = 0;
+    await _noticeModelRecovered(usable.first.sentTz);
     await _runs.recordModelCall(
       organizeRunId: run.id,
       modelConfigId: config.id,
@@ -485,6 +504,59 @@ class OrganizeService {
       inReplyTo: firstSource.id,
       promptMeta: jsonEncode({'kind': 'date_notice', 'record_id': recordId}),
     );
+  }
+
+  /// 退避后自动补整理（网络、超时、5xx、限流这类会自己恢复的失败）。
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final delay =
+        _retryDelays[_retryAttempt.clamp(0, _retryDelays.length - 1)];
+    _retryAttempt++;
+    _retryTimer = Timer(delay, () => unawaited(catchUp()));
+  }
+
+  /// 模型调用失败时在对话流提示一次：消息已保存，模型可用后自动整理。
+  /// 上一条模型状态提示已经是"不可用"时不重复提示（跨重启也成立）。
+  Future<void> _noticeModelUnavailable(
+      ModelClientException e, String sentTz) async {
+    if (await _lastModelNoticeKind() == 'model_unavailable') return;
+    final text = e.retriable
+        ? '当前模型不可用，消息已保存，模型可用时会自动整理'
+        : '当前模型不可用（${e.message}），消息已保存。'
+            '请检查模型设置，模型可用时会自动整理';
+    await _messages.send(
+      clientMsgId: ids.newId(),
+      role: MessageRole.app,
+      kind: MessageKind.appNotice,
+      text: text,
+      sentTz: sentTz,
+      promptMeta: jsonEncode({'kind': 'model_unavailable'}),
+    );
+  }
+
+  /// 此前提示过不可用、这次调用成功：告诉用户已恢复并在整理。
+  Future<void> _noticeModelRecovered(String sentTz) async {
+    if (await _lastModelNoticeKind() != 'model_unavailable') return;
+    await _messages.send(
+      clientMsgId: ids.newId(),
+      role: MessageRole.app,
+      kind: MessageKind.appNotice,
+      text: '模型已恢复，之前的消息已开始整理',
+      sentTz: sentTz,
+      promptMeta: jsonEncode({'kind': 'model_recovered'}),
+    );
+  }
+
+  Future<String?> _lastModelNoticeKind() async {
+    final row = await (_db.select(_db.messages)
+          ..where((t) =>
+              t.kind.equalsValue(MessageKind.appNotice) &
+              t.promptMeta.like('%"kind":"model_%'))
+          ..orderBy([(t) => OrderingTerm.desc(t.seq)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (row == null) return null;
+    return (jsonDecode(row.promptMeta!) as Map)['kind'] as String?;
   }
 
   bool _matchesSnapshot(Message m, Map<String, Object?> snap) =>
