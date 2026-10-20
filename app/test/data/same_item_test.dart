@@ -61,6 +61,57 @@ void main() {
     expect(SameItem.labPercentFactor(r('E/A比值', 0.8)), 1);
   });
 
+  test('红细胞压积写成小数（L/L 或不写单位）换算成百分数，血小板压积不动', () {
+    Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
+        {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};
+    expect(SameItem.labPercentFactor(r('红细胞压积(HCT)', 0.45, high: 0.54)), 100);
+    expect(SameItem.labPercentFactor(r('★红细胞压积(HCT)', 0.47, unit: 'L/L', high: 0.5)), 100);
+    expect(SameItem.labPercentFactor(r('红细胞比容', 0.44, unit: 'l/l')), 100);
+    expect(SameItem.labPercentFactor(r('红细胞压积', 44.0, unit: '%', high: 50)), 1);
+    expect(SameItem.labPercentFactor(r('红细胞压积', 44.0)), 1);
+    expect(SameItem.labPercentFactor(r('血小板压积', 0.25, high: 0.28)), 1);
+  });
+
+  test('复测和首次测量同一个键；血压一项写的拆成收缩压、舒张压', () {
+    expect(SameItem.labKey('复测血压'), '血压');
+    expect(SameItem.labKey('收缩压（复测第1次）'), '收缩压');
+    expect(SameItem.labKey('舒张压(复测第2次)'), '舒张压');
+
+    final split = SameItem.splitBloodPressure({
+      'item_name_raw': '血压',
+      'value_raw': '139/82',
+      'unit_raw': 'mmHg',
+      'ref_range_raw': '90-139/60-89',
+      'flag_raw': null,
+    })!;
+    expect([for (final h in split) h['item_name_raw']], ['收缩压', '舒张压']);
+    expect([for (final h in split) h['value_num']], [139, 82]);
+    expect([for (final h in split) h['ref_low']], [90, 60]);
+    expect([for (final h in split) h['ref_high']], [139, 89]);
+    expect(split.every((h) => h['flag_raw'] == null), isTrue);
+    // 值里带单位、复测、没有参考范围的也拆；参考范围没分开的不套用。
+    final retest = SameItem.splitBloodPressure({
+      'item_name_raw': '复测血压',
+      'value_raw': '121/81mmhg',
+      'ref_range_raw': '<140',
+      'flag_raw': '↑',
+    })!;
+    expect([for (final h in retest) h['value_raw']], ['121', '81']);
+    expect([for (final h in retest) h['unit_raw']], ['mmHg', 'mmHg']);
+    expect([for (final h in retest) h['ref_range_raw']], [null, null]);
+    expect([for (final h in retest) h['flag_raw']], ['↑', '↑']);
+    // 不是这种写法的不拆。
+    expect(SameItem.splitBloodPressure({'item_name_raw': '血压', 'value_raw': '-'}), isNull);
+    expect(SameItem.splitBloodPressure({'item_name_raw': '收缩压', 'value_raw': '129'}), isNull);
+    expect(SameItem.splitBloodPressure({'item_name_raw': 'E/A比值', 'value_raw': '1/2'}), isNull);
+
+    expect(SameItem.isPlaceholderValue('-'), isTrue);
+    expect(SameItem.isPlaceholderValue(' — '), isTrue);
+    expect(SameItem.isPlaceholderValue('未测'), isTrue);
+    expect(SameItem.isPlaceholderValue('0'), isFalse);
+    expect(SameItem.isPlaceholderValue('阴性'), isFalse);
+  });
+
   test('同一份报告汇总与明细重复的检验结果只留信息更全的', () {
     final out = SameItem.dedupeResults([
       {'item_name_raw': '天门冬氨酸氨基转移酶', 'value_raw': '12.7U/L', 'value_num': 12.7, 'unit_raw': 'U/L', 'flag_raw': '低'},

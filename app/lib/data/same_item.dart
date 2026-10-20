@@ -26,7 +26,9 @@ class SameItem {
   /// - 白细胞分类的"比值 / 百分比 / 百分数"归百分数，"计数 / 绝对值"
   ///   归绝对值（比值是小数，建索引时换算，见 [labPercentFactor]）；
   /// - 常见别名（[_aliases]）；
-  /// - 项目名前后的互认标记（"*白细胞计数"，[itemName]）。
+  /// - 项目名前后的互认标记（"*白细胞计数"，[itemName]）；
+  /// - 复测（"复测血压""收缩压（复测第1次）"）：和首次测量画在同一条趋势
+  ///   上（D-39，用户选择），同一天数值不同就是两个点。
   ///
   /// [panel] 是报告上的检查大项（D-36）。尿常规、便常规里的项目名脱离大项
   /// 就分不清（尿"白细胞""葡萄糖""胆红素"与血里的同名），键前加标本
@@ -34,6 +36,7 @@ class SameItem {
   static String labKey(String itemNameRaw, {String? panel}) {
     final specimen = specimenOf(panel);
     var k = itemName(itemNameRaw)
+        .replaceAll(_retest, '')
         .replaceAll(_dropParen, '')
         .replaceAll(_slashAbbr, '')
         .replaceAll(RegExp(r'[（(]联[）)]'), '')
@@ -93,6 +96,7 @@ class SameItem {
   static final _slashAbbr = RegExp(
       r'(?<=[\u4e00-\u9fff])\s*(?:/\s*|\s+)[A-Za-z][\x00-\x7f]*$');
 
+  static final _retest = RegExp(r'^复测|[（(]复测[^）)]*[）)]');
   static final _methodSuffix = RegExp(r'(?:电化学发光|化学发光|电发光|发光法|酶免法)$');
   static final _testSuffix = RegExp(r'(?:测定|检测|定量|定性)$');
 
@@ -112,6 +116,8 @@ class SameItem {
     'γ-谷氨酰基转移酶': 'γ-谷氨酰转移酶',
     '血小板计数': '血小板',
     '红细胞比容': '红细胞压积',
+    '红细胞比积': '红细胞压积',
+    '血细胞比容': '红细胞压积',
     '促甲状腺激素': '促甲状腺素',
     '甘油三脂': '甘油三酯',
     '血肌酐': '肌酐',
@@ -121,17 +127,74 @@ class SameItem {
   /// 白细胞分类写成小数比值（0.481，参考 0.5-0.7）时换算成百分数的倍数：
   /// 名字是比值类、没有单位或单位是"-"、参考上限（没有时看数值）不超过 1，
   /// 才乘 100；已经是百分数的返回 1。
+  ///
+  /// 红细胞压积同理：有的报告写 0.45（单位 L/L 或不写），有的写 45%
+  /// （2026-10-20 用户数据）。血小板压积本来就按百分数写 0.25，不换算。
   static double labPercentFactor(Map<Object?, Object?> r) {
     final name = r['item_name_raw'];
     if (name is! String) return 1;
-    final raw = name.replaceAll(_dropParen, '').replaceAll(RegExp(r'\s'), '');
-    final m = _wbcDifferential.firstMatch(raw);
-    if (m == null || !RegExp(r'比值|比例').hasMatch(m[2]!)) return 1;
     final unit = '${r['unit_raw'] ?? ''}'.trim();
-    if (unit.isNotEmpty && unit != '-') return 1;
+    if (labKey(name, panel: r['panel_raw'] as String?) == '红细胞压积') {
+      if (unit.isNotEmpty && unit != '-' && unit.toLowerCase() != 'l/l') {
+        return 1;
+      }
+    } else {
+      final raw = itemName(name)
+          .replaceAll(_dropParen, '')
+          .replaceAll(RegExp(r'\s'), '');
+      final m = _wbcDifferential.firstMatch(raw);
+      if (m == null || !RegExp(r'比值|比例').hasMatch(m[2]!)) return 1;
+      if (unit.isNotEmpty && unit != '-') return 1;
+    }
     final scale = (r['ref_high'] as num?) ?? (r['value_num'] as num?);
     return scale != null && scale <= 1 ? 100 : 1;
   }
+
+  /// 血压写成一项"收缩压/舒张压"（"122/86"，参考"90-139/60-89"）时拆成
+  /// 收缩压、舒张压两项，和分开写的报告画在同一条趋势上（D-39）。只在建
+  /// 索引时拆，记录按报告原样保存。不是这种写法的返回 null。
+  static List<Map<String, Object?>>? splitBloodPressure(
+      Map<Object?, Object?> r) {
+    final name = r['item_name_raw'];
+    if (name is! String || labKey(name) != '血压') return null;
+    final unit = '${r['unit_raw'] ?? ''}';
+    final value = RegExp(r'^(\d{2,3}(?:\.\d+)?)\s*/\s*(\d{2,3}(?:\.\d+)?)$')
+        .firstMatch('${r['value_raw'] ?? ''}'
+            .replaceAll(RegExp(r'mmhg', caseSensitive: false), '')
+            .trim());
+    if (value == null) return null;
+    // 没用斜杠分开的：参考范围对不上哪一项，不要；异常标记两项都带上。
+    List<String?> halves(Object? raw, {required bool share}) {
+      if (raw is! String) return const [null, null];
+      final parts = raw.split(RegExp(r'[/／]'));
+      if (parts.length == 2) return [parts[0].trim(), parts[1].trim()];
+      return share ? [raw, raw] : const [null, null];
+    }
+
+    final refs = halves(r['ref_range_raw'], share: false);
+    final flags = halves(r['flag_raw'], share: true);
+    final range = RegExp(r'^(\d+(?:\.\d+)?)\s*[-~～—]\s*(\d+(?:\.\d+)?)$');
+    return [
+      for (final (i, label) in ['收缩压', '舒张压'].indexed)
+        {
+          'item_name_raw': label,
+          'value_raw': value[i + 1],
+          'value_num': double.parse(value[i + 1]!),
+          'unit_raw': unit.isEmpty ? 'mmHg' : unit,
+          'ref_range_raw': refs[i],
+          'ref_low': double.tryParse(
+              range.firstMatch(refs[i] ?? '')?.group(1) ?? ''),
+          'ref_high': double.tryParse(
+              range.firstMatch(refs[i] ?? '')?.group(2) ?? ''),
+          'flag_raw': (flags[i]?.isEmpty ?? true) ? null : flags[i],
+        },
+    ];
+  }
+
+  /// 没测的占位值（"-""—""未测"）：留在报告核对里，不进趋势。
+  static bool isPlaceholderValue(String valueRaw) => RegExp(
+          r'^[\s\-—–－/]*$|^未[测查做检]$')
+      .hasMatch(valueRaw);
 
   /// 检验结果的值（比较用）：有解析出的数值用数值，否则用原文去掉单位与空白。
   static String labValue(Map<Object?, Object?> r) {

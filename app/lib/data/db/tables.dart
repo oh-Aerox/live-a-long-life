@@ -546,6 +546,10 @@ class MedicalDocuments extends Table with CommonColumns {
 class LabResults extends Table {
   TextColumn get recordId => text()();
   IntColumn get resultIndex => integer()();
+
+  /// 一条结果拆成几行时的第几部分（v18）：0 不拆；血压写成"122/86"一项的，
+  /// 1 收缩压、2 舒张压（SameItem.splitBloodPressure）。
+  IntColumn get part => integer().withDefault(const Constant(0))();
   TextColumn get revisionId => text()();
   TextColumn get medicalDocumentId => text().nullable()();
   TextColumn get itemNameRaw => text()();
@@ -567,7 +571,7 @@ class LabResults extends Table {
   IntColumn get updatedAt => integer()();
 
   @override
-  Set<Column> get primaryKey => {recordId, resultIndex};
+  Set<Column> get primaryKey => {recordId, resultIndex, part};
 }
 
 /// 主动咨询的问答历史（v0.4，D-26）。咨询是问答不是录入：不进消息流、

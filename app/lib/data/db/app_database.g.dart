@@ -19276,6 +19276,16 @@ class $LabResultsTable extends LabResults
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _partMeta = const VerificationMeta('part');
+  @override
+  late final GeneratedColumn<int> part = GeneratedColumn<int>(
+    'part',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _revisionIdMeta = const VerificationMeta(
     'revisionId',
   );
@@ -19443,6 +19453,7 @@ class $LabResultsTable extends LabResults
   List<GeneratedColumn> get $columns => [
     recordId,
     resultIndex,
+    part,
     revisionId,
     medicalDocumentId,
     itemNameRaw,
@@ -19489,6 +19500,12 @@ class $LabResultsTable extends LabResults
       );
     } else if (isInserting) {
       context.missing(_resultIndexMeta);
+    }
+    if (data.containsKey('part')) {
+      context.handle(
+        _partMeta,
+        part.isAcceptableOrUnknown(data['part']!, _partMeta),
+      );
     }
     if (data.containsKey('revision_id')) {
       context.handle(
@@ -19597,7 +19614,7 @@ class $LabResultsTable extends LabResults
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {recordId, resultIndex};
+  Set<GeneratedColumn> get $primaryKey => {recordId, resultIndex, part};
   @override
   LabResult map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -19609,6 +19626,10 @@ class $LabResultsTable extends LabResults
       resultIndex: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}result_index'],
+      )!,
+      part: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}part'],
       )!,
       revisionId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -19687,6 +19708,10 @@ class $LabResultsTable extends LabResults
 class LabResult extends DataClass implements Insertable<LabResult> {
   final String recordId;
   final int resultIndex;
+
+  /// 一条结果拆成几行时的第几部分（v18）：0 不拆；血压写成"122/86"一项的，
+  /// 1 收缩压、2 舒张压（SameItem.splitBloodPressure）。
+  final int part;
   final String revisionId;
   final String? medicalDocumentId;
   final String itemNameRaw;
@@ -19707,6 +19732,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   const LabResult({
     required this.recordId,
     required this.resultIndex,
+    required this.part,
     required this.revisionId,
     this.medicalDocumentId,
     required this.itemNameRaw,
@@ -19728,6 +19754,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     final map = <String, Expression>{};
     map['record_id'] = Variable<String>(recordId);
     map['result_index'] = Variable<int>(resultIndex);
+    map['part'] = Variable<int>(part);
     map['revision_id'] = Variable<String>(revisionId);
     if (!nullToAbsent || medicalDocumentId != null) {
       map['medical_document_id'] = Variable<String>(medicalDocumentId);
@@ -19772,6 +19799,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     return LabResultsCompanion(
       recordId: Value(recordId),
       resultIndex: Value(resultIndex),
+      part: Value(part),
       revisionId: Value(revisionId),
       medicalDocumentId: medicalDocumentId == null && nullToAbsent
           ? const Value.absent()
@@ -19816,6 +19844,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     return LabResult(
       recordId: serializer.fromJson<String>(json['recordId']),
       resultIndex: serializer.fromJson<int>(json['resultIndex']),
+      part: serializer.fromJson<int>(json['part']),
       revisionId: serializer.fromJson<String>(json['revisionId']),
       medicalDocumentId: serializer.fromJson<String?>(
         json['medicalDocumentId'],
@@ -19841,6 +19870,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     return <String, dynamic>{
       'recordId': serializer.toJson<String>(recordId),
       'resultIndex': serializer.toJson<int>(resultIndex),
+      'part': serializer.toJson<int>(part),
       'revisionId': serializer.toJson<String>(revisionId),
       'medicalDocumentId': serializer.toJson<String?>(medicalDocumentId),
       'itemNameRaw': serializer.toJson<String>(itemNameRaw),
@@ -19862,6 +19892,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   LabResult copyWith({
     String? recordId,
     int? resultIndex,
+    int? part,
     String? revisionId,
     Value<String?> medicalDocumentId = const Value.absent(),
     String? itemNameRaw,
@@ -19880,6 +19911,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   }) => LabResult(
     recordId: recordId ?? this.recordId,
     resultIndex: resultIndex ?? this.resultIndex,
+    part: part ?? this.part,
     revisionId: revisionId ?? this.revisionId,
     medicalDocumentId: medicalDocumentId.present
         ? medicalDocumentId.value
@@ -19904,6 +19936,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       resultIndex: data.resultIndex.present
           ? data.resultIndex.value
           : this.resultIndex,
+      part: data.part.present ? data.part.value : this.part,
       revisionId: data.revisionId.present
           ? data.revisionId.value
           : this.revisionId,
@@ -19937,6 +19970,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     return (StringBuffer('LabResult(')
           ..write('recordId: $recordId, ')
           ..write('resultIndex: $resultIndex, ')
+          ..write('part: $part, ')
           ..write('revisionId: $revisionId, ')
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
@@ -19960,6 +19994,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   int get hashCode => Object.hash(
     recordId,
     resultIndex,
+    part,
     revisionId,
     medicalDocumentId,
     itemNameRaw,
@@ -19982,6 +20017,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       (other is LabResult &&
           other.recordId == this.recordId &&
           other.resultIndex == this.resultIndex &&
+          other.part == this.part &&
           other.revisionId == this.revisionId &&
           other.medicalDocumentId == this.medicalDocumentId &&
           other.itemNameRaw == this.itemNameRaw &&
@@ -20002,6 +20038,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
 class LabResultsCompanion extends UpdateCompanion<LabResult> {
   final Value<String> recordId;
   final Value<int> resultIndex;
+  final Value<int> part;
   final Value<String> revisionId;
   final Value<String?> medicalDocumentId;
   final Value<String> itemNameRaw;
@@ -20021,6 +20058,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   const LabResultsCompanion({
     this.recordId = const Value.absent(),
     this.resultIndex = const Value.absent(),
+    this.part = const Value.absent(),
     this.revisionId = const Value.absent(),
     this.medicalDocumentId = const Value.absent(),
     this.itemNameRaw = const Value.absent(),
@@ -20041,6 +20079,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   LabResultsCompanion.insert({
     required String recordId,
     required int resultIndex,
+    this.part = const Value.absent(),
     required String revisionId,
     this.medicalDocumentId = const Value.absent(),
     required String itemNameRaw,
@@ -20067,6 +20106,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   static Insertable<LabResult> custom({
     Expression<String>? recordId,
     Expression<int>? resultIndex,
+    Expression<int>? part,
     Expression<String>? revisionId,
     Expression<String>? medicalDocumentId,
     Expression<String>? itemNameRaw,
@@ -20087,6 +20127,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     return RawValuesInsertable({
       if (recordId != null) 'record_id': recordId,
       if (resultIndex != null) 'result_index': resultIndex,
+      if (part != null) 'part': part,
       if (revisionId != null) 'revision_id': revisionId,
       if (medicalDocumentId != null) 'medical_document_id': medicalDocumentId,
       if (itemNameRaw != null) 'item_name_raw': itemNameRaw,
@@ -20109,6 +20150,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   LabResultsCompanion copyWith({
     Value<String>? recordId,
     Value<int>? resultIndex,
+    Value<int>? part,
     Value<String>? revisionId,
     Value<String?>? medicalDocumentId,
     Value<String>? itemNameRaw,
@@ -20129,6 +20171,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     return LabResultsCompanion(
       recordId: recordId ?? this.recordId,
       resultIndex: resultIndex ?? this.resultIndex,
+      part: part ?? this.part,
       revisionId: revisionId ?? this.revisionId,
       medicalDocumentId: medicalDocumentId ?? this.medicalDocumentId,
       itemNameRaw: itemNameRaw ?? this.itemNameRaw,
@@ -20156,6 +20199,9 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     }
     if (resultIndex.present) {
       map['result_index'] = Variable<int>(resultIndex.value);
+    }
+    if (part.present) {
+      map['part'] = Variable<int>(part.value);
     }
     if (revisionId.present) {
       map['revision_id'] = Variable<String>(revisionId.value);
@@ -20215,6 +20261,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     return (StringBuffer('LabResultsCompanion(')
           ..write('recordId: $recordId, ')
           ..write('resultIndex: $resultIndex, ')
+          ..write('part: $part, ')
           ..write('revisionId: $revisionId, ')
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
@@ -29850,6 +29897,7 @@ typedef $$LabResultsTableCreateCompanionBuilder =
     LabResultsCompanion Function({
       required String recordId,
       required int resultIndex,
+      Value<int> part,
       required String revisionId,
       Value<String?> medicalDocumentId,
       required String itemNameRaw,
@@ -29871,6 +29919,7 @@ typedef $$LabResultsTableUpdateCompanionBuilder =
     LabResultsCompanion Function({
       Value<String> recordId,
       Value<int> resultIndex,
+      Value<int> part,
       Value<String> revisionId,
       Value<String?> medicalDocumentId,
       Value<String> itemNameRaw,
@@ -29905,6 +29954,11 @@ class $$LabResultsTableFilterComposer
 
   ColumnFilters<int> get resultIndex => $composableBuilder(
     column: $table.resultIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get part => $composableBuilder(
+    column: $table.part,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -30004,6 +30058,11 @@ class $$LabResultsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get part => $composableBuilder(
+    column: $table.part,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get revisionId => $composableBuilder(
     column: $table.revisionId,
     builder: (column) => ColumnOrderings(column),
@@ -30097,6 +30156,9 @@ class $$LabResultsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get part =>
+      $composableBuilder(column: $table.part, builder: (column) => column);
+
   GeneratedColumn<String> get revisionId => $composableBuilder(
     column: $table.revisionId,
     builder: (column) => column,
@@ -30187,6 +30249,7 @@ class $$LabResultsTableTableManager
               ({
                 Value<String> recordId = const Value.absent(),
                 Value<int> resultIndex = const Value.absent(),
+                Value<int> part = const Value.absent(),
                 Value<String> revisionId = const Value.absent(),
                 Value<String?> medicalDocumentId = const Value.absent(),
                 Value<String> itemNameRaw = const Value.absent(),
@@ -30206,6 +30269,7 @@ class $$LabResultsTableTableManager
               }) => LabResultsCompanion(
                 recordId: recordId,
                 resultIndex: resultIndex,
+                part: part,
                 revisionId: revisionId,
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,
@@ -30227,6 +30291,7 @@ class $$LabResultsTableTableManager
               ({
                 required String recordId,
                 required int resultIndex,
+                Value<int> part = const Value.absent(),
                 required String revisionId,
                 Value<String?> medicalDocumentId = const Value.absent(),
                 required String itemNameRaw,
@@ -30246,6 +30311,7 @@ class $$LabResultsTableTableManager
               }) => LabResultsCompanion.insert(
                 recordId: recordId,
                 resultIndex: resultIndex,
+                part: part,
                 revisionId: revisionId,
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,

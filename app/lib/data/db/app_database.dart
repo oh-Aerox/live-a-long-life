@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -126,6 +126,12 @@ class AppDatabase extends _$AppDatabase {
             // 医疗文件的就诊标题（D-37）。
             await _addColumnIfMissing(
                 m, medicalDocuments, medicalDocuments.visitTitle);
+          }
+          if (from < 18) {
+            // 检验索引加 part 并进主键（血压拆成收缩压、舒张压，D-39）。
+            // 派生表，删了重建，启动时整表重算。
+            await m.deleteTable(labResults.actualTableName);
+            await m.createTable(labResults);
           }
         },
         beforeOpen: (details) async {

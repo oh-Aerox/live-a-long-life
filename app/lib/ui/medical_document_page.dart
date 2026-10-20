@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -103,6 +104,23 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     await _load();
   }
 
+  /// 血压"122/86"在索引里拆成收缩压、舒张压两行（part 1、2，D-39）；
+  /// 核对按报告原样显示一行，确认、修改、删除都作用于这一条原文。
+  static List<LabResult> _asReported(List<LabResult> rows, List raw) => [
+        for (final r in rows)
+          if (r.part == 0)
+            r
+          else if (r.part == 1 && raw[r.resultIndex] is Map)
+            r.copyWith(
+              itemNameRaw: '${raw[r.resultIndex]['item_name_raw']}',
+              valueRaw: '${raw[r.resultIndex]['value_raw']}',
+              valueNum: const Value(null),
+              unitRaw: Value(raw[r.resultIndex]['unit_raw'] as String?),
+              refRangeRaw: Value(raw[r.resultIndex]['ref_range_raw'] as String?),
+              flagRaw: Value(raw[r.resultIndex]['flag_raw'] as String?),
+            ),
+      ];
+
   Future<void> _load() async {
     final s = widget.services;
     final doc = await s.medicalDocuments.byId(widget.documentId);
@@ -113,11 +131,11 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final entries = <String, List<Map<String, Object?>>>{};
     if (record != null) {
       rev = await s.records.currentRevisionOf(record.id);
-      results = [
+      final data = jsonDecode(rev.data) as Map;
+      results = _asReported([
         for (final r in await s.records.labResultsOfDocument(widget.documentId))
           if (r.recordId == record.id) r
-      ];
-      final data = jsonDecode(rev.data) as Map;
+      ], data['results'] as List? ?? const []);
       for (final list in LabReview.entryLists) {
         entries[list] = [
           for (final e in data[list] as List? ?? const [])

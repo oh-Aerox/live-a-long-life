@@ -273,7 +273,18 @@ class RecordRepository {
             results[i]['value_raw'] is String)
           {...(results[i] as Map).cast<String, Object?>(), '_index': i},
     ]);
-    for (final r in rows) {
+    // 血压写成一项"122/86"的拆成收缩压、舒张压两行（part 1、2，D-39）。
+    final parts = [
+      for (final r in rows)
+        ...switch (SameItem.splitBloodPressure(r)) {
+          final split? => [
+              for (final (k, half) in split.indexed)
+                {...half, '_index': r['_index'], '_part': k + 1},
+            ],
+          null => [r],
+        },
+    ];
+    for (final r in parts) {
       final i = r['_index'] as int;
       final name = r['item_name_raw'] as String;
       final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
@@ -306,6 +317,7 @@ class RecordRepository {
       await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
             recordId: recordId,
             resultIndex: i,
+            part: Value(r['_part'] as int? ?? 0),
             revisionId: revisionId,
             medicalDocumentId: Value(medicalDocumentId),
             itemNameRaw: name,
@@ -392,14 +404,18 @@ class RecordRepository {
 
   /// 一个检验项目的历史数值，按检查日期升序（趋势视图、分析取数）。
   /// [itemKey] 用 [labItemKey] 归一化后的项目名。
-  Future<List<LabResult>> labResultHistory(String itemKey) =>
-      (_db.select(_db.labResults)
-            ..where((t) => t.itemKey.equals(itemKey))
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.examDate),
-              (t) => OrderingTerm.asc(t.updatedAt),
-            ]))
-          .get();
+  /// 没测的占位值（"-"）不算。
+  Future<List<LabResult>> labResultHistory(String itemKey) async => [
+        for (final r in await (_db.select(_db.labResults)
+              ..where((t) => t.itemKey.equals(itemKey))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.examDate),
+                (t) => OrderingTerm.asc(t.updatedAt),
+                (t) => OrderingTerm.asc(t.resultIndex),
+              ]))
+            .get())
+          if (!SameItem.isPlaceholderValue(r.valueRaw)) r
+      ];
 
   /// 一份医疗文件提取出的全部检验项目（详情页展示）。
   Future<List<LabResult>> labResultsOfDocument(String medicalDocumentId) =>
@@ -436,6 +452,7 @@ class RecordRepository {
         .get();
     final latest = <String, LabResult>{};
     for (final r in all) {
+      if (SameItem.isPlaceholderValue(r.valueRaw)) continue;
       latest[r.itemKey] = r; // 升序遍历，留下的是最新
     }
     final list = latest.values.toList()
