@@ -1,9 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/same_item.dart';
+import 'adaptive.dart';
 
 /// 指标趋势（v0.4，数据源是 lab_results 索引，D-27）。
 /// 列表页：出现过的检验项目 + 最近数值，按检查大项分组（D-36）；点进去看
@@ -19,6 +21,8 @@ class LabTrendsPage extends StatefulWidget {
 
 class _LabTrendsPageState extends State<LabTrendsPage> {
   List<LabResult> _items = [];
+  Map<String, Set<String>> _names = {};
+  String _query = '';
 
   /// 分组顺序：体检报告的常见顺序在前，其余按名字，"其他"最后。
   static const _groupOrder = ['血常规', '尿常规', '便常规', '肝功能', '肾功能', '血脂', '血糖'];
@@ -43,15 +47,38 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
   @override
   void initState() {
     super.initState();
-    widget.services.records.labResultLatestPerItem().then((items) {
-      if (mounted) setState(() => _items = items);
-    });
+    _load();
+  }
+
+  Future<void> _load() async {
+    final records = widget.services.records;
+    final items = await records.labResultLatestPerItem();
+    final names = await records.labItemNames();
+    if (mounted) {
+      setState(() {
+        _items = items;
+        _names = names;
+      });
+    }
+  }
+
+  /// 搜索：项目名、各报告里出现过的写法（含括号里的英文缩写）、检查大项，
+  /// 不分大小写、忽略空白。
+  bool _matches(LabResult r) {
+    final q = _query.replaceAll(RegExp(r'\s'), '').toLowerCase();
+    if (q.isEmpty) return true;
+    return [
+      _titleOf(r),
+      r.itemKey,
+      SameItem.panelGroup(r.panelRaw),
+      ...?_names[r.itemKey],
+    ].any((t) => t.replaceAll(RegExp(r'\s'), '').toLowerCase().contains(q));
   }
 
   /// 按最近一次结果的大项分组；同一项目不同年份大项写法不同时以最近的为准。
   List<MapEntry<String, List<LabResult>>> _groups() {
     final groups = <String, List<LabResult>>{};
-    for (final r in _items) {
+    for (final r in _items.where(_matches)) {
       (groups[SameItem.panelGroup(r.panelRaw)] ??= []).add(r);
     }
     return groups.entries.toList()
@@ -60,6 +87,7 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final groups = _groups();
     return Scaffold(
       appBar: AppBar(title: const Text('指标趋势')),
       body: _items.isEmpty
@@ -70,8 +98,34 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
                 style: TextStyle(color: Colors.grey),
               ),
             )
-          : ListView(children: [
-              for (final group in _groups())
+          : ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: useCupertino(context)
+                    ? CupertinoSearchTextField(
+                        placeholder: '搜索项目、缩写或大项',
+                        onChanged: (v) => setState(() => _query = v),
+                      )
+                    : TextField(
+                        decoration: const InputDecoration(
+                          hintText: '搜索项目、缩写或大项',
+                          prefixIcon: Icon(Icons.search),
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (v) => setState(() => _query = v),
+                      ),
+              ),
+              if (groups.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text('没有找到"${_query.trim()}"',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey)),
+                ),
+              for (final group in groups)
                 ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),

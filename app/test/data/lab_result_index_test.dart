@@ -272,6 +272,10 @@ void main() {
     expect([for (final r in hct) r.valueNum], [45, 44]);
     expect(hct.first.unitRaw, '%');
 
+    // 搜索用：每个项目出现过的写法。
+    final names = await records.labItemNames();
+    expect(names['红细胞压积'], {'红细胞压积(HCT)', '红细胞压积'});
+
     final latest = await records.labResultLatestPerItem();
     expect(latest.map((r) => r.itemKey), isNot(contains('血压')));
     expect(latest.firstWhere((r) => r.itemKey == '收缩压').valueNum, 129);

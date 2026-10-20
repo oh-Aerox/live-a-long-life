@@ -460,6 +460,16 @@ class RecordRepository {
     return list;
   }
 
+  /// 每个检验项目在各份报告里出现过的名字（趋势页搜索用：搜"ALT"或旧
+  /// 写法"谷丙转氨酶"也能找到）。
+  Future<Map<String, Set<String>>> labItemNames() async {
+    final names = <String, Set<String>>{};
+    for (final r in await _db.select(_db.labResults).get()) {
+      (names[r.itemKey] ??= {}).add(r.itemNameRaw);
+    }
+    return names;
+  }
+
   Future<RecordRow?> byId(String recordId) => (_db.select(_db.records)
         ..where((t) => t.id.equals(recordId)))
       .getSingleOrNull();
