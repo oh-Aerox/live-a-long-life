@@ -1311,7 +1311,11 @@ class MedicalExtractionService {
 
     // 6. 建 lab_panel 记录：全部字段 modelInferred + unreviewed（D-04：
     //    五个关键字段确认后才作为事实参与分析）。
-    final examDate = docInfo['exam_date'] as String?;
+    // 检查日期和医疗机构一样，已有的可能是用户改过的，重新提取不覆盖。
+    final examDate = (doc.examDate == null
+            ? null
+            : TimeValue.decode(doc.examDate!).localDate) ??
+        docInfo['exam_date'] as String?;
     final occurred = TimeValue(
       localDate: examDate ?? _today(),
       precision:

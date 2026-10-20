@@ -983,6 +983,22 @@ void main() {
     await buildService(extractor).extractDocument(exam.id);
     expect((await documents.byId(exam.id))!.institutionText, '某体检中心');
 
+    // 检查日期同样：已有的不被重新提取覆盖，新记录按它归日。
+    await documents.updateInfo(exam.id,
+        examDate: TimeValue(
+            localDate: '2024-03-05',
+            precision: TimePrecision.dateOnly,
+            source: TimeValueSource.userStated));
+    model.reply(jsonEncode({
+      'doc': {'exam_date': '2025-01-01'},
+      'results': [],
+    }));
+    await buildService(extractor).extractDocument(exam.id);
+    expect(
+        TimeValue.decode((await documents.byId(exam.id))!.examDate!).localDate,
+        '2024-03-05');
+    expect((await records.labPanelOfDocument(exam.id))!.localDate, '2024-03-05');
+
     // 修复前的旧行为留下的数据：体检报告被改成了检验报告。
     await documents.updateInfo(exam.id, docType: MedicalDocType.labReport);
     expect(await documents.repairPhysicalExamType(), 1);

@@ -67,6 +67,53 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     await _load();
   }
 
+  /// 改检查日期：文件和提取记录一起改，检验趋势按新日期重建索引。
+  Future<void> _editExamDate() async {
+    final doc = _doc;
+    if (doc == null) return;
+    final current =
+        doc.examDate == null ? null : TimeValue.decode(doc.examDate!).localDate;
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current == null ? now : DateTime.parse(current),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: '检查日期',
+    );
+    if (picked == null) return;
+    final newDate =
+        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    if (newDate == current) return;
+    final s = widget.services;
+    await s.medicalDocuments.updateInfo(doc.id,
+        examDate: TimeValue(
+            localDate: newDate,
+            precision: TimePrecision.dateOnly,
+            source: TimeValueSource.userStated));
+    final record = _record;
+    final rev = _rev;
+    if (record != null && rev != null) {
+      final occurred = TimeValue.decode(rev.occurred);
+      await s.records.addRevision(
+        recordId: record.id,
+        baseVersion: record.version,
+        occurred: TimeValue(
+          localDate: newDate,
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated,
+          rawText: occurred.rawText,
+        ),
+        occurredEnd:
+            rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
+        dataJson: rev.data,
+        fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
+        producedBy: ProducedBy.userEdit(),
+      );
+    }
+    await _load();
+  }
+
   Future<void> _load() async {
     final s = widget.services;
     final doc = await s.medicalDocuments.byId(widget.documentId);
@@ -793,8 +840,16 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                 onTap: widget.readOnly ? null : _editInstitution,
               ),
             AdaptiveTile(
-                title: const Text('检查日期'),
-                subtitle: Text(_dateText(doc.examDate))),
+              title: const Text('检查日期'),
+              subtitle: Text(_dateText(doc.examDate)),
+              trailing: widget.readOnly
+                  ? null
+                  : Icon(
+                      cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
+                      size: 18,
+                      color: Colors.grey),
+              onTap: widget.readOnly ? null : _editExamDate,
+            ),
           ]),
           if (!cupertino) const Divider(),
           if (widget.readOnly)
