@@ -427,9 +427,10 @@ class BodyMapService {
         for (var i = 0; i < results.length; i++) {
           final r = results[i];
           if (r is! Map) continue;
-          final name = r['item_name_raw'];
+          final rawName = r['item_name_raw'];
           final value = r['value_raw'];
-          if (name is! String || value is! String) continue;
+          if (rawName is! String || value is! String) continue;
+          final name = SameItem.itemName(rawName);
           final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
           final key = RecordRepository.labItemKey(name, panel: panel);
           final prev = latestLab[key];

@@ -131,7 +131,7 @@ String? reviewedMedicalSummary(Map<String, Object?> data, FieldMetaMap meta) {
     final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
     abnormal.add([
       if (SameItem.specimenOf(panel) != null) SameItem.panelGroup(panel),
-      r['item_name_raw'],
+      SameItem.itemName('${r['item_name_raw']}'),
       '${r['value_raw']}${r['unit_raw'] ?? ''}',
       if (r['flag_raw'] != null) r['flag_raw'],
       if (r['ref_range_raw'] != null) '（参考 ${r['ref_range_raw']}）',

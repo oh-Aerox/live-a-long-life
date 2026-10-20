@@ -9,20 +9,31 @@ class SameItem {
   static final _dropParen = RegExp(
       r'[（(](?:[\x00-\x7fµγβα%＃#/\-\s]+|[^（()）]*法)[）)]');
 
+  /// 项目名前后的标记符号：京津冀鲁等地检验结果互认在项目名前加"*"或"★"，
+  /// 有的医院用"※""▲"。对健康记录没有意义，留着会把同一项目分成两条。
+  static final _itemMarks = RegExp(r'^[\s*＊★☆※▲△●◆]+|[\s*＊★☆※▲△●◆]+$');
+
+  /// 展示用的项目名：去掉前后的互认标记（原文仍按报告保存，供核对）。
+  static String itemName(String itemNameRaw) {
+    final name = itemNameRaw.replaceAll(_itemMarks, '');
+    return name.isEmpty ? itemNameRaw : name;
+  }
+
   /// 检验项目的归一化键：去括号里的缩写与方法、去空白，再把同一指标的
   /// 不同写法归到一个名字（D-32 补充，2026-09-30）：
   /// - 末尾的"（联）"（联合检测）、不带括号的检测方法（"……电发光"）、
   ///   "测定 / 检测 / 定量 / 定性"——同一指标，不同医院、不同写法；
   /// - 白细胞分类的"比值 / 百分比 / 百分数"归百分数，"计数 / 绝对值"
   ///   归绝对值（比值是小数，建索引时换算，见 [labPercentFactor]）；
-  /// - 常见别名（[_aliases]）。
+  /// - 常见别名（[_aliases]）；
+  /// - 项目名前后的互认标记（"*白细胞计数"，[itemName]）。
   ///
   /// [panel] 是报告上的检查大项（D-36）。尿常规、便常规里的项目名脱离大项
   /// 就分不清（尿"白细胞""葡萄糖""胆红素"与血里的同名），键前加标本
   /// （"尿白细胞""尿糖""便隐血"）；本来就带"尿/便"的名字不重复加。
   static String labKey(String itemNameRaw, {String? panel}) {
     final specimen = specimenOf(panel);
-    var k = itemNameRaw
+    var k = itemName(itemNameRaw)
         .replaceAll(_dropParen, '')
         .replaceAll(_slashAbbr, '')
         .replaceAll(RegExp(r'[（(]联[）)]'), '')

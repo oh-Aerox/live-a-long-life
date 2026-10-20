@@ -37,8 +37,8 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
   /// 趋势页的项目名：尿、便检查的项目后面带上大项，脱离大项也认得出。
   static String _titleOf(LabResult r) =>
       SameItem.specimenOf(r.panelRaw) == null
-          ? r.itemNameRaw
-          : '${r.itemNameRaw}（${SameItem.panelGroup(r.panelRaw)}）';
+          ? SameItem.itemName(r.itemNameRaw)
+          : '${SameItem.itemName(r.itemNameRaw)}（${SameItem.panelGroup(r.panelRaw)}）';
 
   @override
   void initState() {
@@ -81,7 +81,7 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
                   ),
                   for (final r in group.value) ...[
                     ListTile(
-                      title: Text(r.itemNameRaw),
+                      title: Text(SameItem.itemName(r.itemNameRaw)),
                       subtitle: Text(
                           '最近 ${r.valueRaw}${r.unitRaw ?? ''} · ${r.examDate ?? '日期未知'}'),
                       trailing: const Icon(Icons.chevron_right),

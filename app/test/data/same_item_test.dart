@@ -2,6 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/same_item.dart';
 
 void main() {
+  test('互认标记：项目名前后的"*""★"等去掉，和不带标记的同一项目合并', () {
+    expect(SameItem.labKey('*白细胞计数'), SameItem.labKey('白细胞计数'));
+    expect(SameItem.labKey('＊ 血红蛋白(HGB)'), SameItem.labKey('血红蛋白'));
+    expect(SameItem.labKey('★谷丙转氨酶'), SameItem.labKey('谷丙转氨酶'));
+    expect(SameItem.labKey('※尿酸*'), SameItem.labKey('尿酸'));
+    expect(SameItem.labKey('*白细胞', panel: '尿常规'), '尿白细胞');
+    expect(SameItem.itemName('*白细胞计数'), '白细胞计数');
+    expect(SameItem.itemName('中性粒细胞绝对值（GRA#）'), '中性粒细胞绝对值（GRA#）');
+    expect(SameItem.itemName('*'), '*');
+  });
+
   test('检验项目键：去英文缩写、检测方法、斜杠缩写，中文说明保留', () {
     expect(SameItem.labKey('天门冬氨酸氨基转移酶（AST）'), '天门冬氨酸氨基转移酶');
     expect(SameItem.labKey('中性粒细胞绝对值（GRA#）'), '中性粒细胞绝对值');
