@@ -53,6 +53,20 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     _load();
   }
 
+  Future<void> _editInstitution() async {
+    final doc = _doc;
+    if (doc == null) return;
+    final values = await showFieldsDialog(context, title: '医疗机构', fields: [
+      DialogField(initial: doc.institutionText ?? '', hint: '如 某某市人民医院'),
+    ]);
+    if (values == null) return;
+    final text = values.single.trim();
+    final value = text.isEmpty ? null : text;
+    if (value == doc.institutionText) return;
+    await widget.services.medicalDocuments.updateInstitution(doc.id, value);
+    await _load();
+  }
+
   Future<void> _load() async {
     final s = widget.services;
     final doc = await s.medicalDocuments.byId(widget.documentId);
@@ -766,10 +780,18 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       body: ListView(
         children: [
           AdaptiveSection(children: [
-            if (doc.institutionText != null)
+            if (doc.institutionText != null || !widget.readOnly)
               AdaptiveTile(
-                  title: const Text('医疗机构'),
-                  subtitle: Text(doc.institutionText!)),
+                title: const Text('医疗机构'),
+                subtitle: Text(doc.institutionText ?? '未识别，点此填写'),
+                trailing: widget.readOnly
+                    ? null
+                    : Icon(
+                        cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
+                        size: 18,
+                        color: Colors.grey),
+                onTap: widget.readOnly ? null : _editInstitution,
+              ),
             AdaptiveTile(
                 title: const Text('检查日期'),
                 subtitle: Text(_dateText(doc.examDate))),

@@ -972,6 +972,17 @@ void main() {
     expect((await documents.byId(exam.id))!.institutionText, '某体检中心');
     expect((await documents.byId(other.id))!.docType, MedicalDocType.labReport);
 
+    // 用户改过的医疗机构，重新提取不覆盖；清空后再提取由模型补上。
+    await documents.updateInstitution(exam.id, '市第一人民医院');
+    model.reply(reply);
+    await buildService(extractor).extractDocument(exam.id);
+    expect((await documents.byId(exam.id))!.institutionText, '市第一人民医院');
+    await documents.updateInstitution(exam.id, null);
+    expect((await documents.byId(exam.id))!.institutionText, isNull);
+    model.reply(reply);
+    await buildService(extractor).extractDocument(exam.id);
+    expect((await documents.byId(exam.id))!.institutionText, '某体检中心');
+
     // 修复前的旧行为留下的数据：体检报告被改成了检验报告。
     await documents.updateInfo(exam.id, docType: MedicalDocType.labReport);
     expect(await documents.repairPhysicalExamType(), 1);

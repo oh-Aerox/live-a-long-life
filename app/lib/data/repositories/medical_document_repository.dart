@@ -132,6 +132,11 @@ class MedicalDocumentRepository {
         );
       });
 
+  /// 用户手动改医疗机构；传 null 清空。
+  Future<MedicalDocument> updateInstitution(String id, String? text) =>
+      _update(id,
+          (doc) => MedicalDocumentsCompanion(institutionText: Value(text)));
+
   /// 修复（2026-09-29 联调）：提取曾用模型判断覆盖文件类型，把"我的体检"里
   /// 的文件改成了检验报告/其他，文件从体检列表消失。变更日志里保留着每个
   /// 版本的快照：曾经是体检报告、现在不是的，改回体检报告（走变更日志同步）。

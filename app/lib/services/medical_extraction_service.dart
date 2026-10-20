@@ -1376,7 +1376,10 @@ class MedicalExtractionService {
     await _documents.updateInfo(
       doc.id,
       docType: docType,
-      institutionText: docInfo['institution_text'] as String?,
+      // 医疗机构只在还没有时补上：已有的可能是用户改过的，重新提取不覆盖。
+      institutionText: doc.institutionText == null
+          ? docInfo['institution_text'] as String?
+          : null,
       examDate: examDate == null
           ? null
           : TimeValue(
