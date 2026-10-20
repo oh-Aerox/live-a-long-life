@@ -57,9 +57,11 @@ class SameItem {
 
   /// 检查大项对应的标本：尿常规/尿液分析/尿沉渣 → 尿，便常规/粪便常规 → 便；
   /// 血液类和认不出的返回 null（键不加前缀，与没有大项的旧数据一致）。
+  /// "尿酸""尿素"是血液项目，"糖尿病检测"是血糖类大项（2026-10-20：其中的
+  /// 空腹血糖被当成尿检，和别的报告的空腹血糖分成两项），都不算尿。
   static String? specimenOf(String? panel) {
     if (panel == null) return null;
-    if (RegExp(r'尿(?!酸|素)').hasMatch(panel)) return '尿';
+    if (RegExp(r'(?<!糖)尿(?!酸|素|病)').hasMatch(panel)) return '尿';
     if (RegExp('便|粪').hasMatch(panel)) return '便';
     return null;
   }

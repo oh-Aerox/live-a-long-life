@@ -61,6 +61,17 @@ void main() {
     expect(SameItem.labPercentFactor(r('E/A比值', 0.8)), 1);
   });
 
+  test('"糖尿病检测"大项不算尿检：空腹血糖和别的报告同一项', () {
+    expect(SameItem.specimenOf('糖尿病检测'), isNull);
+    expect(SameItem.labKey('空腹血糖', panel: '糖尿病检测'),
+        SameItem.labKey('★空腹血糖（FPG）', panel: '生化检验'));
+    expect(SameItem.panelGroup('糖尿病检测'), '糖尿病');
+    expect(SameItem.specimenOf('尿常规'), '尿');
+    expect(SameItem.specimenOf('尿液分析'), '尿');
+    expect(SameItem.specimenOf('尿微量白蛋白'), '尿');
+    expect(SameItem.specimenOf('肾功能（尿酸、尿素）'), isNull);
+  });
+
   test('红细胞压积写成小数（L/L 或不写单位）换算成百分数，血小板压积不动', () {
     Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
         {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};
