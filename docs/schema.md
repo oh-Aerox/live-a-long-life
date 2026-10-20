@@ -462,8 +462,9 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 |---|---|
 | `pages` | 有序列表，每项包含 `attachment_id`、`message_id`（从哪条消息来）、`page_no`（在这份文件中的第几页）。页序由用户或模型确定，用户可以调整 |
 | `doc_type` | `lab_report` 检验报告 / `imaging_report` 影像报告 / `visit_record` 门诊病历 / `prescription` 处方 / `discharge_summary` 出院小结 / `physical_exam` 体检报告 / `other` 其他 |
-| `institution_text` | 医疗机构名称，按原文 |
-| `exam_date` | 检查日期，TimeValue |
+| `institution_text` | 医疗机构名称，按原文；用户可改，重新提取只在为空时填 |
+| `visit_title` | 就诊标题，模型按单据概括这次就诊或检查的原因（如"甲状腺结节复查"），列表以它为主标题；用户可改，重新提取只在为空时填（v17 起，D-37） |
+| `exam_date` | 检查日期，TimeValue；用户改日期时，提取记录和从它建议出的身体状况一起改日（新版本），重新提取只在为空时填 |
 | `report_date` | 报告日期，TimeValue |
 | `uploaded_at` | 上传时间。与检查日期、报告日期是三个不同的时间 |
 | `review_status` | 核对状态 |

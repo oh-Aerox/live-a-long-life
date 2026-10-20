@@ -518,6 +518,10 @@ class MedicalDocuments extends Table with CommonColumns {
   TextColumn get docType =>
       text().map(const EnumConverter(MedicalDocType.values))();
   TextColumn get institutionText => text().nullable()();
+
+  /// 就诊标题（v17）：模型按单据概括这次就诊/检查的原因，如"甲状腺结节
+  /// 复查"，列表上直接看出是为什么去的；用户可改，重新提取不覆盖已有的。
+  TextColumn get visitTitle => text().nullable()();
   TextColumn get examDate => text().nullable()(); // TimeValue JSON
   TextColumn get reportDate => text().nullable()(); // TimeValue JSON
   IntColumn get uploadedAt => integer()();

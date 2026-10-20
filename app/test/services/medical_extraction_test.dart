@@ -999,6 +999,42 @@ void main() {
         '2024-03-05');
     expect((await records.labPanelOfDocument(exam.id))!.localDate, '2024-03-05');
 
+    // 就诊标题：空的由模型补上，用户改过的不覆盖。
+    await documents.updateVisitTitle(exam.id, null);
+    model.reply(jsonEncode({
+      'doc': {'visit_title': ' 年度体检 '},
+      'results': [],
+    }));
+    await buildService(extractor).extractDocument(exam.id);
+    expect((await documents.byId(exam.id))!.visitTitle, '年度体检');
+    await documents.updateVisitTitle(exam.id, '入职体检');
+    model.reply(jsonEncode({
+      'doc': {'visit_title': '年度体检'},
+      'results': [],
+    }));
+    await buildService(extractor).extractDocument(exam.id);
+    expect((await documents.byId(exam.id))!.visitTitle, '入职体检');
+
+    // 改检查日期：文件、记录、从它建议的状况一起改日。
+    await records.create(
+      recordType: RecordType.condition,
+      occurred: TimeValue(
+          localDate: '2024-03-05',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated),
+      dataJson: jsonEncode({'name': '甲状腺结节', 'medical_document_id': exam.id}),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.userEdit(),
+    );
+    await buildService(extractor).changeExamDate(exam.id, '2024-04-06');
+    expect(
+        TimeValue.decode((await documents.byId(exam.id))!.examDate!).localDate,
+        '2024-04-06');
+    expect((await records.labPanelOfDocument(exam.id))!.localDate, '2024-04-06');
+    expect([
+      for (final r in await records.byType(RecordType.condition)) r.localDate
+    ], ['2024-04-06']);
+
     // 修复前的旧行为留下的数据：体检报告被改成了检验报告。
     await documents.updateInfo(exam.id, docType: MedicalDocType.labReport);
     expect(await documents.repairPhysicalExamType(), 1);

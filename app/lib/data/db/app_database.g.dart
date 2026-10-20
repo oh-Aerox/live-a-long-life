@@ -18369,6 +18369,17 @@ class $MedicalDocumentsTable extends MedicalDocuments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _visitTitleMeta = const VerificationMeta(
+    'visitTitle',
+  );
+  @override
+  late final GeneratedColumn<String> visitTitle = GeneratedColumn<String>(
+    'visit_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _examDateMeta = const VerificationMeta(
     'examDate',
   );
@@ -18446,6 +18457,7 @@ class $MedicalDocumentsTable extends MedicalDocuments
     pages,
     docType,
     institutionText,
+    visitTitle,
     examDate,
     reportDate,
     uploadedAt,
@@ -18530,6 +18542,12 @@ class $MedicalDocumentsTable extends MedicalDocuments
           data['institution_text']!,
           _institutionTextMeta,
         ),
+      );
+    }
+    if (data.containsKey('visit_title')) {
+      context.handle(
+        _visitTitleMeta,
+        visitTitle.isAcceptableOrUnknown(data['visit_title']!, _visitTitleMeta),
       );
     }
     if (data.containsKey('exam_date')) {
@@ -18618,6 +18636,10 @@ class $MedicalDocumentsTable extends MedicalDocuments
         DriftSqlType.string,
         data['${effectivePrefix}institution_text'],
       ),
+      visitTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_title'],
+      ),
       examDate: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}exam_date'],
@@ -18671,6 +18693,10 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
   final String pages;
   final MedicalDocType docType;
   final String? institutionText;
+
+  /// 就诊标题（v17）：模型按单据概括这次就诊/检查的原因，如"甲状腺结节
+  /// 复查"，列表上直接看出是为什么去的；用户可改，重新提取不覆盖已有的。
+  final String? visitTitle;
   final String? examDate;
   final String? reportDate;
   final int uploadedAt;
@@ -18697,6 +18723,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     required this.pages,
     required this.docType,
     this.institutionText,
+    this.visitTitle,
     this.examDate,
     this.reportDate,
     required this.uploadedAt,
@@ -18726,6 +18753,9 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     }
     if (!nullToAbsent || institutionText != null) {
       map['institution_text'] = Variable<String>(institutionText);
+    }
+    if (!nullToAbsent || visitTitle != null) {
+      map['visit_title'] = Variable<String>(visitTitle);
     }
     if (!nullToAbsent || examDate != null) {
       map['exam_date'] = Variable<String>(examDate);
@@ -18766,6 +18796,9 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       institutionText: institutionText == null && nullToAbsent
           ? const Value.absent()
           : Value(institutionText),
+      visitTitle: visitTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visitTitle),
       examDate: examDate == null && nullToAbsent
           ? const Value.absent()
           : Value(examDate),
@@ -18799,6 +18832,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       pages: serializer.fromJson<String>(json['pages']),
       docType: serializer.fromJson<MedicalDocType>(json['docType']),
       institutionText: serializer.fromJson<String?>(json['institutionText']),
+      visitTitle: serializer.fromJson<String?>(json['visitTitle']),
       examDate: serializer.fromJson<String?>(json['examDate']),
       reportDate: serializer.fromJson<String?>(json['reportDate']),
       uploadedAt: serializer.fromJson<int>(json['uploadedAt']),
@@ -18821,6 +18855,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       'pages': serializer.toJson<String>(pages),
       'docType': serializer.toJson<MedicalDocType>(docType),
       'institutionText': serializer.toJson<String?>(institutionText),
+      'visitTitle': serializer.toJson<String?>(visitTitle),
       'examDate': serializer.toJson<String?>(examDate),
       'reportDate': serializer.toJson<String?>(reportDate),
       'uploadedAt': serializer.toJson<int>(uploadedAt),
@@ -18841,6 +18876,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     String? pages,
     MedicalDocType? docType,
     Value<String?> institutionText = const Value.absent(),
+    Value<String?> visitTitle = const Value.absent(),
     Value<String?> examDate = const Value.absent(),
     Value<String?> reportDate = const Value.absent(),
     int? uploadedAt,
@@ -18860,6 +18896,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     institutionText: institutionText.present
         ? institutionText.value
         : this.institutionText,
+    visitTitle: visitTitle.present ? visitTitle.value : this.visitTitle,
     examDate: examDate.present ? examDate.value : this.examDate,
     reportDate: reportDate.present ? reportDate.value : this.reportDate,
     uploadedAt: uploadedAt ?? this.uploadedAt,
@@ -18885,6 +18922,9 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
       institutionText: data.institutionText.present
           ? data.institutionText.value
           : this.institutionText,
+      visitTitle: data.visitTitle.present
+          ? data.visitTitle.value
+          : this.visitTitle,
       examDate: data.examDate.present ? data.examDate.value : this.examDate,
       reportDate: data.reportDate.present
           ? data.reportDate.value
@@ -18915,6 +18955,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
           ..write('pages: $pages, ')
           ..write('docType: $docType, ')
           ..write('institutionText: $institutionText, ')
+          ..write('visitTitle: $visitTitle, ')
           ..write('examDate: $examDate, ')
           ..write('reportDate: $reportDate, ')
           ..write('uploadedAt: $uploadedAt, ')
@@ -18937,6 +18978,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
     pages,
     docType,
     institutionText,
+    visitTitle,
     examDate,
     reportDate,
     uploadedAt,
@@ -18958,6 +19000,7 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
           other.pages == this.pages &&
           other.docType == this.docType &&
           other.institutionText == this.institutionText &&
+          other.visitTitle == this.visitTitle &&
           other.examDate == this.examDate &&
           other.reportDate == this.reportDate &&
           other.uploadedAt == this.uploadedAt &&
@@ -18977,6 +19020,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
   final Value<String> pages;
   final Value<MedicalDocType> docType;
   final Value<String?> institutionText;
+  final Value<String?> visitTitle;
   final Value<String?> examDate;
   final Value<String?> reportDate;
   final Value<int> uploadedAt;
@@ -18995,6 +19039,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     this.pages = const Value.absent(),
     this.docType = const Value.absent(),
     this.institutionText = const Value.absent(),
+    this.visitTitle = const Value.absent(),
     this.examDate = const Value.absent(),
     this.reportDate = const Value.absent(),
     this.uploadedAt = const Value.absent(),
@@ -19014,6 +19059,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     required String pages,
     required MedicalDocType docType,
     this.institutionText = const Value.absent(),
+    this.visitTitle = const Value.absent(),
     this.examDate = const Value.absent(),
     this.reportDate = const Value.absent(),
     required int uploadedAt,
@@ -19039,6 +19085,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     Expression<String>? pages,
     Expression<String>? docType,
     Expression<String>? institutionText,
+    Expression<String>? visitTitle,
     Expression<String>? examDate,
     Expression<String>? reportDate,
     Expression<int>? uploadedAt,
@@ -19058,6 +19105,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
       if (pages != null) 'pages': pages,
       if (docType != null) 'doc_type': docType,
       if (institutionText != null) 'institution_text': institutionText,
+      if (visitTitle != null) 'visit_title': visitTitle,
       if (examDate != null) 'exam_date': examDate,
       if (reportDate != null) 'report_date': reportDate,
       if (uploadedAt != null) 'uploaded_at': uploadedAt,
@@ -19079,6 +19127,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     Value<String>? pages,
     Value<MedicalDocType>? docType,
     Value<String?>? institutionText,
+    Value<String?>? visitTitle,
     Value<String?>? examDate,
     Value<String?>? reportDate,
     Value<int>? uploadedAt,
@@ -19098,6 +19147,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
       pages: pages ?? this.pages,
       docType: docType ?? this.docType,
       institutionText: institutionText ?? this.institutionText,
+      visitTitle: visitTitle ?? this.visitTitle,
       examDate: examDate ?? this.examDate,
       reportDate: reportDate ?? this.reportDate,
       uploadedAt: uploadedAt ?? this.uploadedAt,
@@ -19143,6 +19193,9 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
     if (institutionText.present) {
       map['institution_text'] = Variable<String>(institutionText.value);
     }
+    if (visitTitle.present) {
+      map['visit_title'] = Variable<String>(visitTitle.value);
+    }
     if (examDate.present) {
       map['exam_date'] = Variable<String>(examDate.value);
     }
@@ -19182,6 +19235,7 @@ class MedicalDocumentsCompanion extends UpdateCompanion<MedicalDocument> {
           ..write('pages: $pages, ')
           ..write('docType: $docType, ')
           ..write('institutionText: $institutionText, ')
+          ..write('visitTitle: $visitTitle, ')
           ..write('examDate: $examDate, ')
           ..write('reportDate: $reportDate, ')
           ..write('uploadedAt: $uploadedAt, ')
@@ -29353,6 +29407,7 @@ typedef $$MedicalDocumentsTableCreateCompanionBuilder =
       required String pages,
       required MedicalDocType docType,
       Value<String?> institutionText,
+      Value<String?> visitTitle,
       Value<String?> examDate,
       Value<String?> reportDate,
       required int uploadedAt,
@@ -29373,6 +29428,7 @@ typedef $$MedicalDocumentsTableUpdateCompanionBuilder =
       Value<String> pages,
       Value<MedicalDocType> docType,
       Value<String?> institutionText,
+      Value<String?> visitTitle,
       Value<String?> examDate,
       Value<String?> reportDate,
       Value<int> uploadedAt,
@@ -29439,6 +29495,11 @@ class $$MedicalDocumentsTableFilterComposer
 
   ColumnFilters<String> get institutionText => $composableBuilder(
     column: $table.institutionText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visitTitle => $composableBuilder(
+    column: $table.visitTitle,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -29533,6 +29594,11 @@ class $$MedicalDocumentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get visitTitle => $composableBuilder(
+    column: $table.visitTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get examDate => $composableBuilder(
     column: $table.examDate,
     builder: (column) => ColumnOrderings(column),
@@ -29604,6 +29670,11 @@ class $$MedicalDocumentsTableAnnotationComposer
 
   GeneratedColumn<String> get institutionText => $composableBuilder(
     column: $table.institutionText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visitTitle => $composableBuilder(
+    column: $table.visitTitle,
     builder: (column) => column,
   );
 
@@ -29682,6 +29753,7 @@ class $$MedicalDocumentsTableTableManager
                 Value<String> pages = const Value.absent(),
                 Value<MedicalDocType> docType = const Value.absent(),
                 Value<String?> institutionText = const Value.absent(),
+                Value<String?> visitTitle = const Value.absent(),
                 Value<String?> examDate = const Value.absent(),
                 Value<String?> reportDate = const Value.absent(),
                 Value<int> uploadedAt = const Value.absent(),
@@ -29700,6 +29772,7 @@ class $$MedicalDocumentsTableTableManager
                 pages: pages,
                 docType: docType,
                 institutionText: institutionText,
+                visitTitle: visitTitle,
                 examDate: examDate,
                 reportDate: reportDate,
                 uploadedAt: uploadedAt,
@@ -29720,6 +29793,7 @@ class $$MedicalDocumentsTableTableManager
                 required String pages,
                 required MedicalDocType docType,
                 Value<String?> institutionText = const Value.absent(),
+                Value<String?> visitTitle = const Value.absent(),
                 Value<String?> examDate = const Value.absent(),
                 Value<String?> reportDate = const Value.absent(),
                 required int uploadedAt,
@@ -29738,6 +29812,7 @@ class $$MedicalDocumentsTableTableManager
                 pages: pages,
                 docType: docType,
                 institutionText: institutionText,
+                visitTitle: visitTitle,
                 examDate: examDate,
                 reportDate: reportDate,
                 uploadedAt: uploadedAt,

@@ -116,6 +116,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
   "doc": {
     "doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
     "institution_text": "医疗机构名称" 或 null,
+    "visit_title": "这次就诊或检查的标题" 或 null,
     "exam_date": "YYYY-MM-DD" 或 null（检查/采样/就诊日期）,
     "report_date": "YYYY-MM-DD" 或 null（报告日期）
   },
@@ -205,6 +206,10 @@ data 字段（只填有依据的，缺的字段不要编造）：
   感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
   检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
 - 文本里的【姓名】【证件号】【卡号】是脱敏占位符，不是数据，忽略它们；
+- visit_title 用一个短语说明这次就诊或检查是为什么：有诊断或主诉的写诊断或
+  主诉（如"甲状腺结节复查""急性胃肠炎""腰痛"），体检写"年度体检"或报告上的
+  体检名称，单项检查写检查名和部位（如"腹部超声""血常规"）；不超过 12 个字，
+  不写医院、日期、人名；看不出就留 null；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ```
 
@@ -230,7 +235,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
 只输出一个 JSON 对象，不要输出其他文字，结构如下（各字段含义同检验报告提取）：
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
-          "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
+          "institution_text": 医疗机构名称 或 null, "visit_title": 这次就诊或检查的标题 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
   "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
@@ -248,6 +253,8 @@ data 字段（只填有依据的，缺的字段不要编造）：
   没有标题时按项目名称判断，判断不出才留 null），
   文字内容按栏目分条放 findings，开具的药品放 medications，
   conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
+- visit_title 规则同检验报告提取（诊断/主诉，或检查名和部位，不超过 12 个字），
+  图片只是局部、看不出时留 null；
 - 没有的部分给空数组。
 ```
 

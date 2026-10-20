@@ -67,7 +67,21 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     await _load();
   }
 
-  /// 改检查日期：文件和提取记录一起改，检验趋势按新日期重建索引。
+  /// 改检查日期：文件、提取记录和身体状况一起改（[MedicalExtractionService.changeExamDate]）。
+  Future<void> _editVisitTitle() async {
+    final doc = _doc;
+    if (doc == null) return;
+    final values = await showFieldsDialog(context, title: '就诊标题', fields: [
+      DialogField(initial: doc.visitTitle ?? '', hint: '如 甲状腺结节复查'),
+    ]);
+    if (values == null) return;
+    final text = values.single.trim();
+    final value = text.isEmpty ? null : text;
+    if (value == doc.visitTitle) return;
+    await widget.services.medicalDocuments.updateVisitTitle(doc.id, value);
+    await _load();
+  }
+
   Future<void> _editExamDate() async {
     final doc = _doc;
     if (doc == null) return;
@@ -85,32 +99,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final newDate =
         '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
     if (newDate == current) return;
-    final s = widget.services;
-    await s.medicalDocuments.updateInfo(doc.id,
-        examDate: TimeValue(
-            localDate: newDate,
-            precision: TimePrecision.dateOnly,
-            source: TimeValueSource.userStated));
-    final record = _record;
-    final rev = _rev;
-    if (record != null && rev != null) {
-      final occurred = TimeValue.decode(rev.occurred);
-      await s.records.addRevision(
-        recordId: record.id,
-        baseVersion: record.version,
-        occurred: TimeValue(
-          localDate: newDate,
-          precision: TimePrecision.dateOnly,
-          source: TimeValueSource.userStated,
-          rawText: occurred.rawText,
-        ),
-        occurredEnd:
-            rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
-        dataJson: rev.data,
-        fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
-        producedBy: ProducedBy.userEdit(),
-      );
-    }
+    await widget.services.medicalExtraction.changeExamDate(doc.id, newDate);
     await _load();
   }
 
@@ -827,6 +816,18 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       body: ListView(
         children: [
           AdaptiveSection(children: [
+            if (doc.visitTitle != null || !widget.readOnly)
+              AdaptiveTile(
+                title: const Text('就诊标题'),
+                subtitle: Text(doc.visitTitle ?? '提取后自动生成，也可以点此填写'),
+                trailing: widget.readOnly
+                    ? null
+                    : Icon(
+                        cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
+                        size: 18,
+                        color: Colors.grey),
+                onTap: widget.readOnly ? null : _editVisitTitle,
+              ),
             if (doc.institutionText != null || !widget.readOnly)
               AdaptiveTile(
                 title: const Text('医疗机构'),
