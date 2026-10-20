@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../data/field_meta.dart';
+import '../data/same_item.dart';
 
 /// 逐项核对的纯数据变换（D-04：项目、数值、单位、参考范围、检查日期
 /// 五个关键字段 confirmed/edited 后，该项才作为事实参与分析）。
@@ -98,6 +99,29 @@ class LabReview {
       if (moved != null) fields['$list.${i - 1}'] = moved;
     }
     return (jsonEncode(data), FieldMetaMap(fields));
+  }
+
+  /// 删除检验结果第 [index] 项（体检报告里不需要的行，如身高、备注）。
+  /// 同一份报告汇总与明细重复的同项目同数值在列表里只显示一行
+  /// （[SameItem.dedupeResults]），一起删掉，免得删了一条又露出另一条。
+  static (String, FieldMetaMap) deleteResult(
+      String dataJson, FieldMetaMap meta, int index) {
+    _requireIndex(dataJson, index);
+    final results = _results(dataJson);
+    String? keyOf(Object? r) {
+      if (r is! Map || r['item_name_raw'] is! String) return null;
+      return '${SameItem.labKey(r['item_name_raw'] as String, panel: r['panel_raw'] as String?)}'
+          '|${SameItem.labValue(r)}';
+    }
+
+    final target = keyOf(results[index]);
+    var out = (dataJson, meta);
+    for (var i = results.length - 1; i >= 0; i--) {
+      if (i == index || (target != null && keyOf(results[i]) == target)) {
+        out = deleteEntry(out.$1, out.$2, 'results', i);
+      }
+    }
+    return out;
   }
 
   /// 修改第 [index] 项：只更新传入的字段，results.{i} 状态转 edited。

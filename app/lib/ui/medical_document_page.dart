@@ -504,12 +504,24 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     // 只读：点一项直接看原件位置。
     final action = widget.readOnly
         ? 'source'
-        : await showActionSheet<String>(context, actions: _reviewActions);
+        : await showActionSheet<String>(context, actions: [
+            ..._reviewActions,
+            const SheetAction(
+                value: 'delete',
+                label: '删除这一项',
+                icon: Icons.delete_outline,
+                isDestructiveAction: true),
+          ]);
     switch (action) {
       case 'confirm':
         await _confirmResult(index);
       case 'edit':
         await _editResult(index, row);
+      case 'delete':
+        final rev = _rev!;
+        final (data, meta) = LabReview.deleteResult(
+            rev.data, FieldMetaMap.decode(rev.fieldMeta), index);
+        await _writeRevision(data, meta);
       case 'source':
         await _viewSource(index, row);
     }
