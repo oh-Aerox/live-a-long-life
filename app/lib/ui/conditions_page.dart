@@ -336,14 +336,14 @@ class _ConditionsPageState extends State<ConditionsPage> {
                 if (longTerm.isNotEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('长期状况（参与所有分析）'),
+                    child: Text('长期状况（参与分析；已痊愈的只作既往病史参考）'),
                   ),
                   for (final e in longTerm) _tile(e),
                 ],
                 if (temporary.isNotEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('临时疾病（只影响近期建议）'),
+                    child: Text('临时疾病（只影响近期建议；已痊愈的不再参与）'),
                   ),
                   for (final e in temporary) _tile(e),
                 ],

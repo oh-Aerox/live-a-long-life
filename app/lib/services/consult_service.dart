@@ -21,11 +21,13 @@ import '../data/record_summary.dart';
 const consultSystemPrompt = '''
 你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
 profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
-recent_temporary_conditions 是近期疾病，recent_records 是最近 7 天的记录
-（用户勾选了才有），conversation 是本次咨询的对话历史，最后一条是当前问题。
+recent_temporary_conditions 是近期疾病，past_conditions 是用户标记已痊愈
+或已解除的既往病史，recent_records 是最近 7 天的记录（用户勾选了才有），
+conversation 是本次咨询的对话历史，最后一条是当前问题。
 
 要求：
 - 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
+- 既往病史只作背景（比如问到相关话题时可以提一句预防复发），不要当作现在的疾病；
 - 不做医疗诊断，不给具体用药和剂量；情况可能需要就医时，明确建议就医并说明原因；
 - 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
 - 用中文回答，简洁、分点，不说空泛的养生套话；
@@ -112,6 +114,8 @@ class ConsultService {
 
     final longTerm = <Map<String, Object?>>[];
     final temporary = <Map<String, Object?>>[];
+    // 已痊愈的长期状况单列为既往病史，只作背景（D-41）。
+    final past = <Map<String, Object?>>[];
     final recent30 = _daysAgo(30);
     // 同一问题各年份的报告各有一条：归成一组，按最新那条算，首次发现取
     // 最早的日期，既往写法附在 earlier 里（D-32）。
@@ -137,7 +141,7 @@ class ConsultService {
           ],
       };
       if (latest.longTerm) {
-        longTerm.add(entry);
+        (latest.resolved ? past : longTerm).add(entry);
       } else if ((latest.date ?? '').compareTo(recent30) >= 0 &&
           !latest.resolved) {
         temporary.add(entry);
@@ -193,6 +197,7 @@ class ConsultService {
       'profile': profile,
       'long_term_conditions': longTerm,
       'recent_temporary_conditions': temporary,
+      'past_conditions': past,
       'recent_records': ?recentRecords,
       'conversation': [
         for (final m in history.takeLast(20)) {'role': m.role, 'text': m.body},

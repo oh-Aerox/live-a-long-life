@@ -62,7 +62,8 @@ void main() {
     return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
   }
 
-  Future<void> addCondition(String name, ReviewStatus status) async {
+  Future<void> addCondition(String name, ReviewStatus status,
+      {String state = 'active'}) async {
     await records.create(
       recordType: RecordType.condition,
       occurred: TimeValue(
@@ -72,7 +73,7 @@ void main() {
       dataJson: jsonEncode({
         'name': name,
         'persistence': 'long_term',
-        'status': 'active',
+        'status': state,
         'development_text': null,
       }),
       fieldMeta: FieldMetaMap({
@@ -89,6 +90,7 @@ void main() {
     await profile.setField('sex_at_birth', value: 'male');
     await addCondition('胆囊结石', ReviewStatus.confirmed);
     await addCondition('甲状腺结节', ReviewStatus.unreviewed);
+    await addCondition('肾结石', ReviewStatus.edited, state: 'resolved');
     await records.create(
       recordType: RecordType.meal,
       occurred: TimeValue(
@@ -110,7 +112,9 @@ void main() {
     final names = (sent['long_term_conditions'] as List)
         .map((e) => (e as Map)['name'])
         .toList();
-    expect(names, ['胆囊结石']); // 未核对的不进（D-04）
+    expect(names, ['胆囊结石']); // 未核对的不进（D-04），已痊愈的单列
+    expect([for (final e in sent['past_conditions'] as List) e['name']],
+        ['肾结石']);
     expect(sent.containsKey('recent_records'), isFalse); // 默认不带
     expect((sent['conversation'] as List).length, 1);
 

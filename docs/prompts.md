@@ -93,12 +93,14 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 输入里的 long_term_conditions 是用户已确认的长期身体状况档案
   （结石、慢性病、过敏等），下周建议要把它们考虑进去（比如结石注意
   饮食和饮水、过敏避开过敏原）；recent_temporary_conditions 是近期
-  临时疾病，只影响近期建议。两者都可能为空；
+  临时疾病，只影响近期建议；past_conditions 是用户标记已痊愈或已解除的
+  既往病史，只作背景参考（比如曾有结石，可以温和提一句预防复发），
+  不要当作现在的疾病给建议。三者都可能为空；
 - 不做医疗诊断，不给用药建议；可以温和提示值得留意的模式；
 - 用户手动修改过的值以记录为准，不要质疑。
 ```
 
-状况输入（D-25，2026-09-28 加入）：`long_term_conditions` = 全部已核对（confirmed/edited）的长期状况；`recent_temporary_conditions` = 近 30 天内、active、已核对的临时疾病。未核对的一律不进（D-04）。
+状况输入（D-25，2026-09-28 加入）：`long_term_conditions` = 已核对（confirmed/edited）、未痊愈的长期状况；`past_conditions` = 已核对、标记已痊愈/解除的长期状况（D-41，2026-10-20，此前混在 long_term_conditions 里）；`recent_temporary_conditions` = 近 30 天内、active、已核对的临时疾病。未核对的一律不进（D-04）。
 
 ## 3. 医疗文件结构化提取
 
@@ -327,17 +329,19 @@ data 字段（只填有依据的，缺的字段不要编造）：
 ## 4. 主动咨询
 
 - **系统提示词：** `consultSystemPrompt`（consult_service.dart）
-- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对长期状况）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有；每条 date/type/summary 一行摘要。医疗类只发已核对内容：未核对的状况不发，报告提取只发已核对的诊断/结论文字、异常检验值、处方药名，没有已核对要点的报告整条不发——2026-09-29 联调修订）、`conversation`（本会话历史，最多 20 条 + 当前问题）
+- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对、未痊愈的长期状况）、`past_conditions`（已核对、已痊愈的长期状况，D-41）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有；每条 date/type/summary 一行摘要。医疗类只发已核对内容：未核对的状况不发，报告提取只发已核对的诊断/结论文字、异常检验值、处方药名，没有已核对要点的报告整条不发——2026-09-29 联调修订）、`conversation`（本会话历史，最多 20 条 + 当前问题）
 - **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）
 
 ```
 你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
 profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
-recent_temporary_conditions 是近期疾病，recent_records 是最近 7 天的记录
-（用户勾选了才有），conversation 是本次咨询的对话历史，最后一条是当前问题。
+recent_temporary_conditions 是近期疾病，past_conditions 是用户标记已痊愈
+或已解除的既往病史，recent_records 是最近 7 天的记录（用户勾选了才有），
+conversation 是本次咨询的对话历史，最后一条是当前问题。
 
 要求：
 - 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
+- 既往病史只作背景（比如问到相关话题时可以提一句预防复发），不要当作现在的疾病；
 - 不做医疗诊断，不给具体用药和剂量；情况可能需要就医时，明确建议就医并说明原因；
 - 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
 - 用中文回答，简洁、分点，不说空泛的养生套话；
