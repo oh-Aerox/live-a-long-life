@@ -16,14 +16,11 @@ import '../services/notification_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
 import 'body_map_page.dart';
-import 'conditions_page.dart';
 import 'consult_page.dart';
 import 'day_view_page.dart';
-import 'lab_trends_page.dart';
-import 'medical_folder_page.dart';
+import 'health_records_page.dart';
 import 'record_detail_page.dart';
 import 'settings_page.dart';
-import 'visit_timeline_page.dart';
 
 /// 对话页（product-spec §3 v0.1 页面）。
 /// 消息按 seq 排列、按天分组；发送即保存并显示"已保存"；
@@ -94,46 +91,30 @@ class _ChatPageState extends State<ChatPage> {
     await _s.organizeService.enqueue(OrganizeTrigger.doneMarker);
   }
 
-  /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
-  /// 医疗入口（D-27）：病例夹 / 体检 / 长期状况档案 / 指标趋势 / 时间线。
-  Future<void> _openMedicalFolders() async {
-    final choice = await showActionSheet<String>(context, actions: const [
-      SheetAction(
-          value: 'records',
-          label: '我的病例夹',
-          subtitle: '病历、检查检验报告、处方',
-          icon: Icons.folder_shared_outlined),
-      SheetAction(
-          value: 'exams',
-          label: '我的体检',
-          subtitle: '体检报告',
-          icon: Icons.monitor_heart_outlined),
-      SheetAction(
-          value: 'conditions',
-          label: '长期状况档案',
-          subtitle: '结石、过敏等长期状况与近期疾病',
-          icon: Icons.medical_services_outlined),
-      SheetAction(
-          value: 'trends',
-          label: '指标趋势',
-          subtitle: '每项检验指标的历史变化',
-          icon: Icons.show_chart),
-      SheetAction(
-          value: 'timeline',
-          label: '就诊时间线',
-          icon: Icons.timeline_outlined),
-    ]);
-    if (choice == null || !mounted) return;
-    final Widget page = switch (choice) {
-      'records' => MedicalFolderPage(services: _s, physicalExam: false),
-      'exams' => MedicalFolderPage(services: _s, physicalExam: true),
-      'conditions' => ConditionsPage(services: _s),
-      'trends' => LabTrendsPage(services: _s),
-      _ => VisitTimelinePage(services: _s),
-    };
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  @override
+  void initState() {
+    super.initState();
+    _loadBadge();
   }
 
+  /// 健康档案（D-27 医疗入口）：回来后刷新底栏角标。
+  Future<void> _openHealthRecords() async {
+    await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => HealthRecordsPage(services: _s)));
+    await _loadBadge();
+  }
+
+  /// 底栏"健康档案"的角标：待处理的修正建议数（原来只在设置里，没有提示）。
+  int _pendingSuggestions = 0;
+
+  Future<void> _loadBadge() async {
+    final n = (await _s.suggestionService.pending()).length;
+    if (mounted && n != _pendingSuggestions) {
+      setState(() => _pendingSuggestions = n);
+    }
+  }
+
+  /// 每次录入后重置"短暂无输入预整理"计时（R-08）。
   Future<void> _resetIdleTimer() async {
     final sec =
         await _s.settings.get('idle_preorganize_sec') as int? ?? 180;
@@ -339,7 +320,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  /// 底栏入口：按日查看、病例夹与体检、咨询、设置（原在顶栏，移到输入框下面）。
+  /// 底栏入口：按日查看、健康档案、咨询、设置（原在顶栏，移到输入框下面）。
   List<NavAction> _navActions() => [
         NavAction(
           icon: Icons.calendar_today_outlined,
@@ -354,9 +335,10 @@ class _ChatPageState extends State<ChatPage> {
         NavAction(
           icon: Icons.medical_information_outlined,
           cupertinoIcon: CupertinoIcons.folder,
-          tooltip: '病例夹与体检',
+          tooltip: '健康档案',
           color: const Color(0xFF3FB984),
-          onPressed: _openMedicalFolders,
+          badge: _pendingSuggestions,
+          onPressed: _openHealthRecords,
         ),
         NavAction(
           icon: Icons.psychology_alt_outlined,
@@ -373,12 +355,15 @@ class _ChatPageState extends State<ChatPage> {
           cupertinoIcon: CupertinoIcons.gear,
           tooltip: '设置',
           color: const Color(0xFF9A86E8),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => SettingsPage(
-                    services: _s, notifications: widget.notifications)),
-          ),
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => SettingsPage(
+                      services: _s, notifications: widget.notifications)),
+            );
+            await _loadBadge();
+          },
         ),
       ];
 
@@ -804,8 +789,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-/// 输入框下面的一排入口：只有彩色图标，等分；[center] 插在正中间。
-/// 名称在长按提示和读屏里。
+/// 输入框下面的一排入口：彩色图标下面带名称，等分；[center] 插在正中间。
 class _BottomNavRow extends StatelessWidget {
   const _BottomNavRow({required this.actions, this.center});
 
@@ -823,8 +807,13 @@ class _BottomNavRow extends StatelessWidget {
         _NavItem(
           label: a.tooltip,
           onTap: a.onPressed,
-          icon: Icon(cupertino ? a.cupertinoIcon : a.icon,
-              size: 26, color: a.color ?? fallback),
+          icon: Badge(
+            isLabelVisible: a.badge > 0,
+            label: Text(a.badge > 99 ? '99+' : '${a.badge}'),
+            backgroundColor: Colors.orange,
+            child: Icon(cupertino ? a.cupertinoIcon : a.icon,
+                size: 24, color: a.color ?? fallback),
+          ),
         ),
     ];
     final c = center;
@@ -852,6 +841,9 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cupertino = useCupertino(context);
+    final labelColor = cupertino
+        ? CupertinoColors.secondaryLabel.resolveFrom(context)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
     return Tooltip(
       message: label,
       excludeFromSemantics: true,
@@ -867,8 +859,18 @@ class _NavItem extends StatelessWidget {
           highlightShape: BoxShape.rectangle,
           highlightColor: cupertino ? Colors.transparent : null,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Center(child: icon),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 28, child: Center(child: icon)),
+                const SizedBox(height: 2),
+                Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: labelColor)),
+              ],
+            ),
           ),
         ),
       ),
@@ -894,7 +896,7 @@ class _BodyMapButton extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [Color(0xFF5B9BF0), Color(0xFF4CC38A), Color(0xFFF2B33D)],
         ).createShader(bounds),
-        child: const Icon(Icons.accessibility_new, size: 30),
+        child: const Icon(Icons.accessibility_new, size: 28),
       ),
     );
   }

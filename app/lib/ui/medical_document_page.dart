@@ -10,6 +10,7 @@ import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/time_value.dart';
+import '../services/body_map.dart';
 import '../services/lab_review.dart';
 import '../services/medical_extraction_service.dart';
 import 'adaptive.dart';
@@ -47,6 +48,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   bool _imageSending = false;
   bool _tidying = false;
   bool _fillingPanels = false;
+
+  /// 核对时的筛选：全部 / 只看未核对 / 只看异常。
+  _ReviewFilter _filter = _ReviewFilter.all;
 
   @override
   void initState() {
@@ -377,6 +381,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   List<Widget> _resultSections() {
     final sections = <(String?, List<int>)>[];
     for (var i = 0; i < _results.length; i++) {
+      if (!_resultVisible(_results[i])) continue;
       final panel = _results[i].panelRaw;
       if (sections.isEmpty || sections.last.$1 != panel) {
         sections.add((panel, []));
@@ -390,7 +395,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           header: !hasPanels
               ? '检验结果'
               : '检验结果 · ${sections[k].$1 ?? '未标大项'}',
-          footer: k == sections.length - 1
+          footer: k == sections.length - 1 && _filter == _ReviewFilter.all
               ? '项目、数值、单位、参考范围、检查日期确认后，这条结果才参与分析。'
               : null,
           children: [for (final i in sections[k].$2) _resultTile(i)],
@@ -398,18 +403,43 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     ];
   }
 
+  /// 异常：有异常标记，或数值超出参考范围（与人体图同一口径）。
+  static bool _abnormal(LabResult r) => BodyMapRules.isAbnormalLab(
+        flagRaw: r.flagRaw,
+        valueRaw: r.valueRaw,
+        valueNum: r.valueNum,
+        refLow: r.refLow,
+        refHigh: r.refHigh,
+        refRangeRaw: r.refRangeRaw,
+      );
+
+  bool _resultVisible(LabResult r) => switch (_filter) {
+        _ReviewFilter.all => true,
+        _ReviewFilter.unreviewed => r.reviewStatus == ReviewStatus.unreviewed,
+        _ReviewFilter.abnormal => _abnormal(r),
+      };
+
   Widget _resultTile(int i) => AdaptiveTile(
         dense: true,
         title: Text(_results[i].itemNameRaw),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text([
-              _results[i].valueRaw,
-              if (_results[i].unitRaw != null) _results[i].unitRaw!,
+            Text.rich(TextSpan(children: [
+              // 异常的数值加粗标红，一眼能扫到。
+              TextSpan(
+                text: [
+                  _results[i].valueRaw,
+                  if (_results[i].unitRaw != null) _results[i].unitRaw!,
+                ].join(' '),
+                style: _abnormal(_results[i])
+                    ? const TextStyle(
+                        fontWeight: FontWeight.bold, color: _abnormalColor)
+                    : null,
+              ),
               if (_results[i].refRangeRaw != null)
-                '参考 ${_results[i].refRangeRaw}',
-            ].join(' ')),
+                TextSpan(text: '  参考 ${_results[i].refRangeRaw}'),
+            ])),
             ?_fixesText(_resultFixes(_results[i].resultIndex)),
           ],
         ),
@@ -425,7 +455,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           style: TextStyle(
             fontSize: 11,
             color: _results[i].flagRaw != null
-                ? Colors.orange
+                ? _abnormalColor
                 : (_results[i].reviewStatus == ReviewStatus.unreviewed
                     ? Colors.grey
                     : Colors.green),
@@ -458,15 +488,35 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     await _writeRevision(data, meta);
   }
 
+  /// 写新版本并在提示条上给"撤销"：删除、全部确认这类一步生效的操作用。
+  /// 之后又改过（版本变了）就不撤，免得把后来的核对一起退回去。
+  Future<void> _writeWithUndo(
+      String dataJson, FieldMetaMap meta, String message) async {
+    final previous = _rev!;
+    final messenger = ScaffoldMessenger.of(context);
+    await _writeRevision(dataJson, meta);
+    final version = _record?.version;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Text(message),
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () async {
+            if (_record?.version != version) return;
+            await _writeRevision(
+                previous.data, FieldMetaMap.decode(previous.fieldMeta));
+          },
+        ),
+      ));
+  }
+
   Future<void> _confirmAll() async {
     final rev = _rev!;
     final (data, meta) =
         LabReview.confirmAll(rev.data, FieldMetaMap.decode(rev.fieldMeta));
-    await _writeRevision(data, meta);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已全部确认，这份报告的数据开始参与分析')));
-    }
+    await _writeWithUndo(data, meta, '已全部确认，这份报告的数据开始参与分析');
   }
 
   Future<void> _editResult(int index, LabResult row) async {
@@ -539,7 +589,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         final rev = _rev!;
         final (data, meta) = LabReview.deleteResult(
             rev.data, FieldMetaMap.decode(rev.fieldMeta), index);
-        await _writeRevision(data, meta);
+        await _writeWithUndo(data, meta, '已删除「${row.itemNameRaw}」');
       case 'source':
         await _viewSource(index, row);
     }
@@ -622,7 +672,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       case 'delete':
         final (data, meta) = LabReview.deleteEntry(
             rev.data, FieldMetaMap.decode(rev.fieldMeta), list, index);
-        await _writeRevision(data, meta);
+        await _writeWithUndo(data, meta, '已删除这一条');
       case 'source':
         final locators = entry['locator'] as List? ?? const [];
         if (locators.isEmpty) {
@@ -677,10 +727,21 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
 
   List<Widget> _entrySection(String list, String title) {
     final entries = _entryList(list);
-    if (entries.isEmpty) return const [];
+    // 文字和药品没有"异常"之分，只看异常时不显示。
+    final shown = [
+      for (var i = 0; i < entries.length; i++)
+        if (switch (_filter) {
+          _ReviewFilter.all => true,
+          _ReviewFilter.unreviewed =>
+            _entryStatus(list, i) == ReviewStatus.unreviewed,
+          _ReviewFilter.abnormal => false,
+        })
+          i
+    ];
+    if (shown.isEmpty) return const [];
     return [
       AdaptiveSection(header: title, children: [
-        for (var i = 0; i < entries.length; i++)
+        for (final i in shown)
           AdaptiveTile(
             dense: true,
             title: Text(list == 'findings'
@@ -790,6 +851,159 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     await _load();
   }
 
+  /// 模型在跑时的进度说明，没有在跑为 null。
+  String? get _busyText => _imageSending
+      ? '模型识图中（最长 3 分钟）…'
+      : _tidying
+          ? '模型整理文字中…'
+          : _fillingPanels
+              ? '模型补大项中…'
+              : null;
+
+  /// 主操作随状态变：还没提取是"识别并预览"，有未核对的是"全部确认"；
+  /// 用模型的几种做法收进"更多"（原来四个按钮并排，要读说明才分得清）。
+  Widget _actionRow(bool cupertino, int unreviewed) {
+    final (String? label, IconData icon, VoidCallback? onPressed) =
+        _record == null
+            ? ('识别并预览', Icons.document_scanner_outlined, _extract)
+            : unreviewed > 0
+                ? ('全部确认（$unreviewed 项）', Icons.done_all, _confirmAll)
+                : (null, Icons.check_circle_outline, null);
+    final busy = _busyText != null;
+    final Widget primary = label == null
+        ? const Row(children: [
+            Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+            SizedBox(width: 6),
+            Text('已全部核对'),
+          ])
+        : cupertino
+            ? CupertinoButton.filled(
+                onPressed: busy ? null : onPressed,
+                child: Text(label),
+              )
+            : FilledButton.icon(
+                onPressed: busy ? null : onPressed,
+                icon: Icon(icon),
+                label: Text(label),
+              );
+    final more = cupertino
+        ? CupertinoButton.tinted(
+            onPressed: busy ? null : _moreActions,
+            child: const Text('更多'),
+          )
+        : OutlinedButton.icon(
+            onPressed: busy ? null : _moreActions,
+            icon: const Icon(Icons.more_horiz),
+            label: const Text('更多'),
+          );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(children: [
+        Expanded(child: primary),
+        const SizedBox(width: 8),
+        more,
+      ]),
+    );
+  }
+
+  /// "更多"：重新提取和三种用模型的做法，各带一句什么时候用。
+  Future<void> _moreActions() async {
+    final action = await showActionSheet<String>(context, actions: [
+      if (_record != null)
+        const SheetAction(
+            value: 'extract',
+            label: '重新提取',
+            subtitle: '重新识别文字、发送前确认后交给模型；核对状态会清零',
+            icon: Icons.document_scanner_outlined),
+      const SheetAction(
+          value: 'image',
+          label: '用模型识图',
+          subtitle: '本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
+          icon: Icons.image_search_outlined),
+      if (_entryList('findings').length >= 2)
+        const SheetAction(
+            value: 'tidy',
+            label: '用模型整理文字',
+            subtitle: '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
+            icon: Icons.auto_fix_high_outlined),
+      if (_results.any((r) => r.panelRaw == null))
+        const SheetAction(
+            value: 'panels',
+            label: '用模型补大项',
+            subtitle: '检验项目没有标血常规、尿常规等大项时用：只发项目名称，不发数值',
+            icon: Icons.category_outlined),
+    ]);
+    switch (action) {
+      case 'extract':
+        await _extract();
+      case 'image':
+        await _extractByImage();
+      case 'tidy':
+        await _tidyFindings();
+      case 'panels':
+        await _fillPanels();
+    }
+  }
+
+  /// 核对进度与筛选：已核对 x/y · 异常 n。
+  Widget _summaryBar(bool cupertino, int total, int unreviewed, int abnormal) {
+    final reviewed = total - unreviewed;
+    const labels = {
+      _ReviewFilter.all: '全部',
+      _ReviewFilter.unreviewed: '未核对',
+      _ReviewFilter.abnormal: '异常',
+    };
+    void select(_ReviewFilter? f) {
+      if (f != null) setState(() => _filter = f);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text.rich(TextSpan(children: [
+            TextSpan(
+              text: '已核对 $reviewed/$total',
+              style: TextStyle(
+                  color: unreviewed == 0 ? Colors.green : null,
+                  fontWeight: FontWeight.w600),
+            ),
+            if (abnormal > 0)
+              TextSpan(
+                text: '  ·  异常 $abnormal',
+                style: const TextStyle(
+                    color: _abnormalColor, fontWeight: FontWeight.w600),
+              ),
+            if (unreviewed > 0 && !widget.readOnly)
+              const TextSpan(
+                text: '  点一条核对，未核对的不参与分析',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+          ])),
+          const SizedBox(height: 8),
+          cupertino
+              ? CupertinoSlidingSegmentedControl<_ReviewFilter>(
+                  groupValue: _filter,
+                  onValueChanged: select,
+                  children: {
+                    for (final e in labels.entries) e.key: Text(e.value),
+                  },
+                )
+              : SegmentedButton<_ReviewFilter>(
+                  showSelectedIcon: false,
+                  segments: [
+                    for (final e in labels.entries)
+                      ButtonSegment(value: e.key, label: Text(e.value)),
+                  ],
+                  selected: {_filter},
+                  onSelectionChanged: (v) => select(v.first),
+                ),
+        ],
+      ),
+    );
+  }
+
   String _dateText(String? encoded) {
     if (encoded == null) return '未知';
     return TimeValue.decode(encoded).localDate ?? '未知';
@@ -810,16 +1024,19 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           body: const Center(child: CircularProgressIndicator.adaptive()));
     }
     final pageRefs = MedicalPageRef.decodeList(doc.pages);
-    final hasUnreviewed =
-        _results.any((r) => r.reviewStatus == ReviewStatus.unreviewed) ||
-            [
-              for (final list in LabReview.entryLists)
-                for (var i = 0; i < _entryList(list).length; i++)
-                  _entryStatus(list, i)
-            ].contains(ReviewStatus.unreviewed);
     final hasEntries =
         LabReview.entryLists.any((l) => _entryList(l).isNotEmpty);
     const hintStyle = TextStyle(fontSize: 12, color: Colors.grey);
+    // 核对进度：检验结果按列表显示的行数算（汇总与明细重复的只算一次）。
+    final statuses = [
+      for (final r in _results) r.reviewStatus,
+      for (final list in LabReview.entryLists)
+        for (var i = 0; i < _entryList(list).length; i++) _entryStatus(list, i),
+    ];
+    final total = statuses.length;
+    final unreviewed =
+        statuses.where((st) => st == ReviewStatus.unreviewed).length;
+    final abnormal = _results.where(_abnormal).length;
 
     return Scaffold(
       backgroundColor: background,
@@ -893,141 +1110,26 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                 style: hintStyle,
               ),
             ),
-          if (!widget.readOnly)
+          if (!widget.readOnly) _actionRow(cupertino, unreviewed),
+          if (_busyText != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: cupertino
-                  ? CupertinoButton.filled(
-                      onPressed: _extract,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(CupertinoIcons.doc_text_viewfinder,
-                              size: 20),
-                          const SizedBox(width: 6),
-                          Text(_record == null ? '识别并预览' : '重新提取'),
-                        ],
-                      ),
-                    )
-                  : FilledButton.icon(
-                      onPressed: _extract,
-                      icon: const Icon(Icons.document_scanner_outlined),
-                      label: Text(_record == null ? '识别并预览' : '重新提取'),
-                    ),
-            ),
-          if (!widget.readOnly)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-              child: cupertino
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        CupertinoButton.tinted(
-                          onPressed: _imageSending ? null : _extractByImage,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _imageSending
-                                  ? const CupertinoActivityIndicator()
-                                  : const Icon(CupertinoIcons.photo, size: 20),
-                              const SizedBox(width: 6),
-                              Text(_imageSending
-                                  ? '模型识图中（最长 3 分钟）…'
-                                  : '用模型识图'),
-                            ],
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6),
-                          child: Text(
-                              '本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
-                              style: hintStyle),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _imageSending ? null : _extractByImage,
-                          icon: _imageSending
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator.adaptive(
-                                      strokeWidth: 2))
-                              : const Icon(Icons.image_search_outlined),
-                          label: Text(_imageSending
-                              ? '模型识图中（最长 3 分钟）…'
-                              : '用模型识图'),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                              '本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
-                        ),
-                      ],
-                    ),
-            ),
-          if (!widget.readOnly && _entryList('findings').length >= 2)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: cupertino
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        CupertinoButton.tinted(
-                          onPressed: _tidying ? null : _tidyFindings,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _tidying
-                                  ? const CupertinoActivityIndicator()
-                                  : const Icon(CupertinoIcons.wand_stars,
-                                      size: 20),
-                              const SizedBox(width: 6),
-                              Text(_tidying ? '模型整理中…' : '用模型整理'),
-                            ],
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6),
-                          child: Text(
-                              '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
-                              style: hintStyle),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _tidying ? null : _tidyFindings,
-                          icon: _tidying
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator.adaptive(
-                                      strokeWidth: 2))
-                              : const Icon(Icons.auto_fix_high_outlined),
-                          label: Text(_tidying ? '模型整理中…' : '用模型整理'),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                              '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
-                        ),
-                      ],
-                    ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(children: [
+                const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
+                const SizedBox(width: 8),
+                Expanded(child: Text(_busyText!, style: hintStyle)),
+              ]),
             ),
           if (_record == null && !widget.readOnly)
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: Text(
                 '先在本机识别文字并自动遮蔽姓名、证件号和门诊卡号，展示给你检查、修改，'
-                '确认后才发给模型。原图不发送；体检册的导读、宣教等无关页默认不发。',
+                '确认后才发给模型。原图不发送；体检册的导读、宣教等无关页默认不发。'
+                '本机识别不准（手写、拍歪、版式复杂）时，在"更多"里用模型识图。',
                 style: hintStyle,
               ),
             ),
@@ -1037,65 +1139,47 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               !widget.readOnly)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('这份文件没有提取到检验数值或文字内容，可以重新提取。',
+              child: Text('这份文件没有提取到检验数值或文字内容，可以在"更多"里重新提取。',
                   style: hintStyle),
             ),
-          if (_record != null && hasUnreviewed && !widget.readOnly)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text('点一条可核对；未核对的内容不参与分析',
-                        style: hintStyle),
-                  ),
-                  cupertino
-                      ? CupertinoButton(
-                          sizeStyle: CupertinoButtonSize.small,
-                          onPressed: _confirmAll,
-                          child: const Text('全部确认'))
-                      : TextButton(
-                          onPressed: _confirmAll, child: const Text('全部确认')),
-                ],
-              ),
-            ),
+          if (_record != null && (_results.isNotEmpty || hasEntries))
+            _summaryBar(cupertino, total, unreviewed, abnormal),
           ..._entrySection('findings', '诊断与检查文字'),
           ..._entrySection('medications', '处方药品'),
           // D-36 之前提取的全没有大项；分批提取时后一页续表的常读不到标题。
-          if (!widget.readOnly && _results.any((r) => r.panelRaw == null))
+          if (!widget.readOnly &&
+              _filter == _ReviewFilter.all &&
+              _results.any((r) => r.panelRaw == null))
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                        '${_results.every((r) => r.panelRaw == null) ? '这份报告的检验项目' : '有 ${_results.where((r) => r.panelRaw == null).length} 项'}'
-                        '没有标所属大项，尿常规的白细胞、葡萄糖等会和血液里的同名项目混在一起',
-                        style: hintStyle),
-                  ),
-                  _fillingPanels
-                      ? const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator.adaptive(
-                                  strokeWidth: 2)))
-                      : cupertino
-                          ? CupertinoButton(
-                              sizeStyle: CupertinoButtonSize.small,
-                              onPressed: _fillPanels,
-                              child: const Text('用模型补大项'))
-                          : TextButton(
-                              onPressed: _fillPanels,
-                              child: const Text('用模型补大项')),
-                ],
-              ),
+              child: Text(
+                  '${_results.every((r) => r.panelRaw == null) ? '这份报告的检验项目' : '有 ${_results.where((r) => r.panelRaw == null).length} 项'}'
+                  '没有标所属大项，尿常规的白细胞、葡萄糖等会和血液里的同名项目混在一起，'
+                  '可以在"更多"里用模型补大项',
+                  style: hintStyle),
             ),
           if (_results.isNotEmpty) ..._resultSections(),
+          if (_filter != _ReviewFilter.all &&
+              !_results.any(_resultVisible) &&
+              (_filter == _ReviewFilter.abnormal ||
+                  unreviewed == 0))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                  _filter == _ReviewFilter.abnormal
+                      ? '没有异常的检验结果'
+                      : '没有未核对的内容',
+                  textAlign: TextAlign.center,
+                  style: hintStyle),
+            ),
           if (cupertino) const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
+
+enum _ReviewFilter { all, unreviewed, abnormal }
+
+/// 异常数值的颜色，与人体图"需关注"一致。
+const _abnormalColor = Color(0xFFD32F2F);
