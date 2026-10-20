@@ -120,6 +120,11 @@ class SameItem {
     '红细胞比容': '红细胞压积',
     '红细胞比积': '红细胞压积',
     '血细胞比容': '红细胞压积',
+    '血小板比积': '血小板压积',
+    '血小板比容': '血小板压积',
+    '血小板平均体积': '平均血小板体积',
+    '血小板体积分布宽度': '血小板分布宽度',
+    '血小板容积分布宽度': '血小板分布宽度',
     '促甲状腺激素': '促甲状腺素',
     '甘油三脂': '甘油三酯',
     '血肌酐': '肌酐',
@@ -131,12 +136,23 @@ class SameItem {
   /// 才乘 100；已经是百分数的返回 1。
   ///
   /// 红细胞压积同理：有的报告写 0.45（单位 L/L 或不写），有的写 45%
-  /// （2026-10-20 用户数据）。血小板压积本来就按百分数写 0.25，不换算。
+  /// （2026-10-20 用户数据）。
+  ///
+  /// 血小板压积按百分数是 0.1–0.3（"0.25"），写成小数是 0.001–0.003
+  /// （"0.0022"，参考 0.0011-0.0028），两种都不带 %；按量级判断，参考上限
+  /// （没有时看数值）小于 0.05 的乘 100。单位只看是不是 %：有报告把它的
+  /// 单位印成了 fL。
   static double labPercentFactor(Map<Object?, Object?> r) {
     final name = r['item_name_raw'];
     if (name is! String) return 1;
     final unit = '${r['unit_raw'] ?? ''}'.trim();
-    if (labKey(name, panel: r['panel_raw'] as String?) == '红细胞压积') {
+    final key = labKey(name, panel: r['panel_raw'] as String?);
+    if (key == '血小板压积') {
+      if (unit == '%') return 1;
+      final scale = (r['ref_high'] as num?) ?? (r['value_num'] as num?);
+      return scale != null && scale < 0.05 ? 100 : 1;
+    }
+    if (key == '红细胞压积') {
       if (unit.isNotEmpty && unit != '-' && unit.toLowerCase() != 'l/l') {
         return 1;
       }

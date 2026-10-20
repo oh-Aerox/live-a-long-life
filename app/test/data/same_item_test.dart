@@ -83,6 +83,19 @@ void main() {
     expect(SameItem.labPercentFactor(r('血小板压积', 0.25, high: 0.28)), 1);
   });
 
+  test('血小板压积/比积/比容同一项，写成小数的换算成百分数；MPV、PDW 的两种叫法同一项', () {
+    Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
+        {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};
+    expect(SameItem.labKey('血小板比积'), '血小板压积');
+    expect(SameItem.labKey('血小板比容（PCT）'), '血小板压积');
+    expect(SameItem.labPercentFactor(r('血小板比容（PCT）', 0.0022, high: 0.0028)), 100);
+    expect(SameItem.labPercentFactor(r('血小板比容（PCT）', 0.0025, unit: 'fL', high: 0.0028)), 100);
+    expect(SameItem.labPercentFactor(r('血小板比积', 0.23, high: 0.22)), 1);
+    expect(SameItem.labPercentFactor(r('血小板压积', 0.25, unit: '%')), 1);
+    expect(SameItem.labKey('血小板平均体积'), SameItem.labKey('平均血小板体积（MPV）'));
+    expect(SameItem.labKey('血小板体积分布宽度'), SameItem.labKey('血小板容积分布宽度（PDW）'));
+  });
+
   test('复测和首次测量同一个键；血压一项写的拆成收缩压、舒张压', () {
     expect(SameItem.labKey('复测血压'), '血压');
     expect(SameItem.labKey('收缩压（复测第1次）'), '收缩压');
