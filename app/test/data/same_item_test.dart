@@ -72,6 +72,36 @@ void main() {
     expect(SameItem.specimenOf('肾功能（尿酸、尿素）'), isNull);
   });
 
+  test('红细胞参数的不同叫法：MCH、MCHC、MCV、RDW 各归一项，含量和浓度不合', () {
+    final mch = SameItem.labKey('平均红细胞血红蛋白含量（MCH）');
+    expect(SameItem.labKey('平均血红蛋白含量'), mch);
+    expect(SameItem.labKey('平均血红蛋白量'), mch);
+    final mchc = SameItem.labKey('平均红细胞血红蛋白浓度（MCHC）');
+    expect(SameItem.labKey('平均血红蛋白浓度'), mchc);
+    expect(mchc, isNot(mch));
+    expect(SameItem.labKey('红细胞平均体积'), SameItem.labKey('平均红细胞体积（MCV）'));
+    final cv = SameItem.labKey('红细胞体积分布宽度变异系数（RDW-CV）');
+    expect(SameItem.labKey('红细胞体积分布宽度-CV'), cv);
+    expect(SameItem.labKey('红细胞分布宽度-变异系数'), cv);
+    final sd = SameItem.labKey('红细胞体积分布宽度标准差（RDW-SD）');
+    expect(SameItem.labKey('红细胞体积分布宽度-SD'), sd);
+    expect(SameItem.labKey('红细胞分布宽度-标准差'), sd);
+    expect(cv, isNot(sd));
+  });
+
+  test('2026 年白细胞分类的"相对值""嗜酸细胞"、肿瘤标志物"（定量）"、尿胆素原', () {
+    expect(SameItem.labKey('中性粒细胞相对值'), '中性粒细胞百分数');
+    expect(SameItem.labKey('嗜酸细胞相对值'), '嗜酸性粒细胞百分数');
+    expect(SameItem.labKey('嗜碱细胞绝对值'), SameItem.labKey('嗜碱性粒细胞绝对值(BASO#)'));
+    expect(SameItem.labKey('淋巴细胞相对值'), SameItem.labKey('淋巴细胞比值（LYM）'));
+    // 相对值本来就是百分数，不换算。
+    expect(SameItem.labPercentFactor(
+        {'item_name_raw': '嗜碱细胞相对值', 'value_num': 0.2, 'ref_high': 1}), 1);
+    expect(SameItem.labKey('甲胎蛋白（定量）'), SameItem.labKey('甲胎蛋白(AFP)（酶免法）'));
+    expect(SameItem.labKey('癌胚抗原（定量）'), SameItem.labKey('癌胚抗原（联）'));
+    expect(SameItem.labKey('尿胆素原'), SameItem.labKey('尿胆原(UBG)', panel: '尿常规'));
+  });
+
   test('红细胞压积写成小数（L/L 或不写单位）换算成百分数，血小板压积不动', () {
     Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
         {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};

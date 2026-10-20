@@ -39,14 +39,23 @@ class SameItem {
         .replaceAll(_retest, '')
         .replaceAll(_dropParen, '')
         .replaceAll(_slashAbbr, '')
-        .replaceAll(RegExp(r'[（(]联[）)]'), '')
+        .replaceAll(RegExp(r'[（(](?:联|定量|定性)[）)]'), '')
         .replaceAll(RegExp(r'\s'), '');
     k = k.replaceFirst(_methodSuffix, '');
     final stripped = k.replaceFirst(_testSuffix, '');
     if (stripped.length >= 2) k = stripped;
+    final rdw = _rdw.firstMatch(k);
+    if (rdw != null) {
+      k = '红细胞体积分布宽度${RegExp('cv|变异', caseSensitive: false).hasMatch(rdw[1]!) ? '变异系数' : '标准差'}';
+    }
     final wbc = _wbcDifferential.firstMatch(k);
     if (wbc != null) {
-      k = '${wbc[1]}${_wbcAbsolute.hasMatch(wbc[2]!) ? '绝对值' : '百分数'}';
+      final cell = switch (wbc[1]!) {
+        '嗜酸细胞' => '嗜酸性粒细胞',
+        '嗜碱细胞' => '嗜碱性粒细胞',
+        final c => c,
+      };
+      k = '$cell${_wbcAbsolute.hasMatch(wbc[2]!) ? '绝对值' : '百分数'}';
     }
     if (specimen != null) {
       final base = k.startsWith(specimen) ? k.substring(1) : k;
@@ -102,9 +111,16 @@ class SameItem {
   static final _methodSuffix = RegExp(r'(?:电化学发光|化学发光|电发光|发光法|酶免法)$');
   static final _testSuffix = RegExp(r'(?:测定|检测|定量|定性)$');
 
+  /// "嗜酸细胞""嗜碱细胞"是嗜酸性、嗜碱性粒细胞的简称；"相对值"即百分数
+  /// （2026 年的报告这样写，数值本身是百分数，不用换算）。
   static final _wbcDifferential = RegExp(
-      r'^(中性粒细胞|淋巴细胞|单核细胞|嗜酸性粒细胞|嗜碱性粒细胞)'
-      r'(比值|比例|百分比|百分率|百分数|%|计数|绝对值|数目)$');
+      r'^(中性粒细胞|淋巴细胞|单核细胞|嗜酸性粒细胞|嗜碱性粒细胞|嗜酸细胞|嗜碱细胞)'
+      r'(比值|比例|百分比|百分率|百分数|相对值|%|计数|绝对值|数目)$');
+  /// 红细胞分布宽度：RDW-CV / RDW-SD 的各种写法（"红细胞体积分布宽度-CV"
+  /// "红细胞分布宽度-变异系数""红细胞体积分布宽度标准差"）。
+  static final _rdw = RegExp(
+      r'^红细胞(?:体积)?分布宽度[-－]?(CV|SD|变异系数|标准差)$',
+      caseSensitive: false);
   static final _wbcAbsolute = RegExp(r'计数|绝对值|数目');
 
   /// 常见别名 → 本应用用的名字。只收同一指标、同一标本的叫法，
@@ -123,12 +139,21 @@ class SameItem {
     '血小板比积': '血小板压积',
     '血小板比容': '血小板压积',
     '血小板平均体积': '平均血小板体积',
+    // 红细胞参数（2026-10-20 用户数据：同一指标三家医院三种叫法）。
+    // 含量（MCH，pg）和浓度（MCHC，g/L）是两个指标，不合。
+    '平均血红蛋白含量': '平均红细胞血红蛋白含量',
+    '平均血红蛋白量': '平均红细胞血红蛋白含量',
+    '平均红细胞血红蛋白量': '平均红细胞血红蛋白含量',
+    '平均血红蛋白浓度': '平均红细胞血红蛋白浓度',
+    '红细胞平均体积': '平均红细胞体积',
     '血小板体积分布宽度': '血小板分布宽度',
     '血小板容积分布宽度': '血小板分布宽度',
     '促甲状腺激素': '促甲状腺素',
     '甘油三脂': '甘油三酯',
     '血肌酐': '肌酐',
     '血尿酸': '尿酸',
+    // 尿胆素原只在尿里查，大项没识别出来时也归尿胆原。
+    '尿胆素原': '尿胆原',
   };
 
   /// 白细胞分类写成小数比值（0.481，参考 0.5-0.7）时换算成百分数的倍数：
