@@ -29,7 +29,16 @@ class _HealthKitSpikePageState extends State<HealthKitSpikePage> {
       await health.configure();
       _add('1. HealthKit 插件初始化完成');
 
-      const types = [HealthDataType.SLEEP_ASLEEP, HealthDataType.SLEEP_IN_BED];
+      // 插件按分期值过滤：SLEEP_ASLEEP 只是"未分期"，Apple Watch 写的是
+      // 核心/深度/快速眼动，只查前两种会漏掉手表数据。
+      const types = [
+        HealthDataType.SLEEP_IN_BED,
+        HealthDataType.SLEEP_ASLEEP,
+        HealthDataType.SLEEP_AWAKE,
+        HealthDataType.SLEEP_LIGHT, // iOS 的 asleepCore
+        HealthDataType.SLEEP_DEEP,
+        HealthDataType.SLEEP_REM,
+      ];
       final granted = await health.requestAuthorization(types);
       _add('2. 申请睡眠读取权限：${granted ? '弹窗已处理' : '被拒绝或不可用'}');
 
@@ -40,6 +49,15 @@ class _HealthKitSpikePageState extends State<HealthKitSpikePage> {
         endTime: now,
       );
       _add('3. 近 30 天睡眠样本：${samples.length} 条');
+      for (final t in types) {
+        final n = samples.where((s) => s.type == t).length;
+        if (n > 0) _add('   ${t.name}：$n 条');
+      }
+      if (samples.isEmpty) {
+        // iOS 不告诉应用读取权限是否被拒，拒绝时同样返回空结果。
+        _add('   0 条有两种可能：健康 App 里本就没有睡眠数据，或读取权限被关。'
+            '可在 设置 → 健康 → 数据访问与设备 里查看本应用的睡眠开关。');
+      }
       if (samples.isNotEmpty) {
         final s = samples.first;
         _add('   最早一条：${s.typeString} '
