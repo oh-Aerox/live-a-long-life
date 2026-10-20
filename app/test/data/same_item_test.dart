@@ -102,6 +102,19 @@ void main() {
     expect(SameItem.labKey('尿胆素原'), SameItem.labKey('尿胆原(UBG)', panel: '尿常规'));
   });
 
+  test('尿镜检：高倍视野与镜检同一项，干化学白细胞与白细胞酯酶同一项，镜检和干化学分开', () {
+    expect(SameItem.labKey('白细胞（高倍视野）'), '尿白细胞（镜检）');
+    expect(SameItem.labKey('尿白细胞（镜检）', panel: '尿常规'), '尿白细胞（镜检）');
+    expect(SameItem.labKey('红细胞（高倍视野）'), SameItem.labKey('尿红细胞（镜检）', panel: '尿常规'));
+    expect(SameItem.labKey('上皮细胞(HPF)'), '尿上皮细胞（镜检）');
+    expect(SameItem.labKey('白细胞（高倍视野）', panel: '便常规'), '便白细胞（镜检）');
+    expect(SameItem.labKey('尿白细胞酯酶', panel: '尿常规'), SameItem.labKey('白细胞(LEU)', panel: '尿常规'));
+    expect(SameItem.labKey('尿白细胞酯酶'), '尿白细胞');
+    expect(SameItem.labKey('白细胞(LEU)', panel: '尿常规'), isNot('尿白细胞（镜检）'));
+    // 血常规的白细胞不受影响。
+    expect(SameItem.labKey('白细胞计数（WBC）', panel: '血常规'), '白细胞计数');
+  });
+
   test('红细胞压积写成小数（L/L 或不写单位）换算成百分数，血小板压积不动', () {
     Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
         {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};

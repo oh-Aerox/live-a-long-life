@@ -35,8 +35,14 @@ class SameItem {
   /// （"尿白细胞""尿糖""便隐血"）；本来就带"尿/便"的名字不重复加。
   static String labKey(String itemNameRaw, {String? panel}) {
     final specimen = specimenOf(panel);
-    var k = itemName(itemNameRaw)
-        .replaceAll(_retest, '')
+    final named = itemName(itemNameRaw).replaceAll(_retest, '');
+    // 镜检要在去括号之前认：括号里的"HPF"是英文，去掉后"白细胞(HPF)"
+    // 就和血白细胞同名了。
+    final micro = _microscopy.firstMatch(named.replaceAll(RegExp(r'\s'), ''));
+    if (micro != null) {
+      return '${micro[1] ?? specimen ?? '尿'}${micro[2]}（镜检）';
+    }
+    var k = named
         .replaceAll(_dropParen, '')
         .replaceAll(_slashAbbr, '')
         .replaceAll(RegExp(r'[（(](?:联|定量|定性)[）)]'), '')
@@ -86,6 +92,8 @@ class SameItem {
     '潜血': '隐血',
     '蛋白质': '蛋白',
     '葡萄糖': '糖',
+    // 干化学的"白细胞(LEU)"测的就是白细胞酯酶（2026-10-20 用户确认同一项）。
+    '白细胞酯酶': '白细胞',
   };
 
   /// 趋势列表的分组名（D-36）：尿液分析、尿沉渣、粪便常规等归成"尿常规"
@@ -106,6 +114,14 @@ class SameItem {
   /// 纯英文的比值（"F-PSA/T-PSA"）不动。
   static final _slashAbbr = RegExp(
       r'(?<=[\u4e00-\u9fff])\s*(?:/\s*|\s+)[A-Za-z][\x00-\x7f]*$');
+
+  /// 尿沉渣、粪便镜检的有形成分："白细胞（高倍视野）""尿红细胞（镜检）"
+  /// "上皮细胞(HPF)"统一成"尿白细胞（镜检）"这样的键。没有大项的按尿
+  /// （2026-10-20 用户确认：2023 年那份不带大项的高倍视野几项是尿常规）。
+  static final _microscopy = RegExp(
+      r'^(尿|便)?(白细胞|红细胞|上皮细胞|脓细胞|管型|结晶)'
+      r'[（(](?:高倍视野|低倍视野|HPF|LPF|镜检)[）)]$',
+      caseSensitive: false);
 
   static final _retest = RegExp(r'^复测|[（(]复测[^）)]*[）)]');
   static final _methodSuffix = RegExp(r'(?:电化学发光|化学发光|电发光|发光法|酶免法)$');
@@ -154,6 +170,7 @@ class SameItem {
     '血尿酸': '尿酸',
     // 尿胆素原只在尿里查，大项没识别出来时也归尿胆原。
     '尿胆素原': '尿胆原',
+    '尿白细胞酯酶': '尿白细胞',
   };
 
   /// 白细胞分类写成小数比值（0.481，参考 0.5-0.7）时换算成百分数的倍数：
