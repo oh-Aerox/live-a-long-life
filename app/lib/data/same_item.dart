@@ -7,7 +7,7 @@ class SameItem {
   /// 检验项目名里可以去掉的括号：英文缩写（ALT、HDL-CHO、GRA#）和检测
   /// 方法（酶免法、发光法）。中文说明（尿沉渣）不去，免得不同标本混在一起。
   static final _dropParen = RegExp(
-      r'[（(](?:[\x00-\x7fµγβα%＃#/\-\s]+|[^（()）]*法)[）)]');
+      r'[（(](?:[\x00-\x7fµγβα%＃#/\-—–\s]+|[^（()）]*法)[）)]');
 
   /// 项目名前后的标记符号：京津冀鲁等地检验结果互认在项目名前加"*"或"★"，
   /// 有的医院用"※""▲"。对健康记录没有意义，留着会把同一项目分成两条。
@@ -50,6 +50,11 @@ class SameItem {
     k = k.replaceFirst(_methodSuffix, '');
     final stripped = k.replaceFirst(_testSuffix, '');
     if (stripped.length >= 2) k = stripped;
+    // "血清肌酐""血清尿酸"：有的医院生化项目前都写"血清"（2026-10-20 用户
+    // 数据）。去掉后太短的不去（"血清铁"）。
+    if (specimen == null && k.startsWith('血清') && k.length >= 4) {
+      k = k.substring(2);
+    }
     final rdw = _rdw.firstMatch(k);
     if (rdw != null) {
       k = '红细胞体积分布宽度${RegExp('cv|变异', caseSensitive: false).hasMatch(rdw[1]!) ? '变异系数' : '标准差'}';
@@ -97,8 +102,9 @@ class SameItem {
   };
 
   /// 趋势列表的分组名（D-36）：尿液分析、尿沉渣、粪便常规等归成"尿常规"
-  /// "便常规"（尿微量白蛋白这类单项保留原名），其他大项去空白和
-  /// "检查/检测/测定"后缀；没有大项的归"其他"。
+  /// "便常规"（尿微量白蛋白这类单项保留原名）；同一类检查各医院叫法不同的
+  /// 按关键词归一（[_panelGroups]，D-42：生化检测/生化检验、肿瘤检测/肿瘤
+  /// 标志物）；其他大项去空白和"检查/检测/检验/测定"后缀；没有大项的归"其他"。
   static String panelGroup(String? panel) {
     final specimen = specimenOf(panel);
     if (specimen != null &&
@@ -106,9 +112,63 @@ class SameItem {
       return '$specimen常规';
     }
     final p = (panel ?? '').replaceAll(RegExp(r'\s'), '');
-    final stripped = p.replaceFirst(RegExp(r'(?:检查|检测|测定)$'), '');
+    for (final (pattern, group) in _panelGroups) {
+      if (pattern.hasMatch(p)) return group;
+    }
+    final stripped = p.replaceFirst(RegExp(r'(?:检查|检测|检验|测定)$'), '');
     return stripped.isEmpty ? '其他' : stripped;
   }
+
+  /// 指标趋势里一个项目归哪一组（D-42）：先按项目认（血压、过敏原、乙肝
+  /// 这些不管报告怎么标大项、标没标，都归同一组），再按大项，没有大项的
+  /// 尿、便项目按键前的标本归组，都认不出的归"其他"。
+  static String trendGroup(String? panel, String itemKey) {
+    for (final (pattern, group) in _itemGroups) {
+      if (pattern.hasMatch(itemKey)) return group;
+    }
+    final group = panelGroup(panel);
+    if (group != '其他') return group;
+    if (RegExp(r'^尿(?!酸|素)').hasMatch(itemKey)) return '尿常规';
+    if (itemKey.startsWith('便')) return '便常规';
+    return '其他';
+  }
+
+  /// 大项标题的关键词 → 分组。按顺序匹配，靠前的更具体。
+  static final _panelGroups = <(RegExp, String)>[
+    (RegExp('过敏|变应原|IgE', caseSensitive: false), '过敏原检测'),
+    (RegExp('肿瘤'), '肿瘤标志物'),
+    (RegExp('生化'), '生化'),
+    (RegExp('肝功'), '肝功能'),
+    (RegExp('肾功'), '肾功能'),
+    (RegExp('血脂'), '血脂'),
+    (RegExp('血糖|糖尿病|糖化|糖耐量'), '血糖'),
+    (RegExp('甲状腺|甲功'), '甲状腺功能'),
+    (RegExp('凝血'), '凝血功能'),
+    (RegExp('幽门|呼气试验'), '幽门螺杆菌'),
+    (RegExp('肺功能'), '肺功能'),
+    (RegExp('风湿'), '风湿'),
+    (RegExp('视力|色觉|眼科'), '眼科'),
+    (RegExp('血型'), '血型'),
+    (RegExp('传染|感染|乙肝|肝炎|术前'), '传染病筛查'),
+    (RegExp('一般|体格|生命体征'), '一般检查'),
+  ];
+
+  /// 按项目认的分组（键是 [labKey] 的结果）。只收不会认错的：过敏原按
+  /// 常见食物、吸入物的名字（2026 年过敏原报告第二页的食物没读到大项）。
+  static final _itemGroups = <(RegExp, String)>[
+    (RegExp(r'^(?:收缩压|舒张压|血压|身高|体重|体重指数|理想体重|心率|脉搏|腰围|臀围|腰臀比|体温)$'),
+        '一般检查'),
+    (RegExp(r'左室|右室|左房|右房|主动脉|室间隔|射血分数|缩短分数|心排血量|^E/A'),
+        '心脏超声'),
+    (RegExp(r'^(?:ABO血型|RH血型|Rh血型)$', caseSensitive: false), '血型'),
+    (RegExp(r'^乙肝|^丙肝|丙型肝炎|^TRUST$|梅毒|艾滋|^HIV', caseSensitive: false),
+        '传染病筛查'),
+    (RegExp(r'MTHFR|基因'), '基因检测'),
+    (RegExp(r'尘螨|粉尘螨|屋尘|花粉|豚草|艾蒿|葎草|混合草|条树|皮屑|霉菌|链格孢|蟑螂|'
+            r'^(?:牛肉|羊肉|猪肉|鸡肉|鳕鱼|虾|螃蟹|蟹|贝|鸡蛋.*|蛋清|蛋黄|牛奶|大米|小麦|'
+            r'玉米|大豆|花生|芝麻|西红柿|番茄|蘑菇|芒果|菠萝|桃|腰果|坚果)$'),
+        '过敏原检测'),
+  ];
 
   /// 中文名后面用斜杠或空格跟的英文缩写（"体重指数/BMI""升主动脉内径 AOD"）。
   /// 纯英文的比值（"F-PSA/T-PSA"）不动。

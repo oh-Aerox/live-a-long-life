@@ -65,7 +65,7 @@ void main() {
     expect(SameItem.specimenOf('糖尿病检测'), isNull);
     expect(SameItem.labKey('空腹血糖', panel: '糖尿病检测'),
         SameItem.labKey('★空腹血糖（FPG）', panel: '生化检验'));
-    expect(SameItem.panelGroup('糖尿病检测'), '糖尿病');
+    expect(SameItem.panelGroup('糖尿病检测'), '血糖');
     expect(SameItem.specimenOf('尿常规'), '尿');
     expect(SameItem.specimenOf('尿液分析'), '尿');
     expect(SameItem.specimenOf('尿微量白蛋白'), '尿');
@@ -113,6 +113,43 @@ void main() {
     expect(SameItem.labKey('白细胞(LEU)', panel: '尿常规'), isNot('尿白细胞（镜检）'));
     // 血常规的白细胞不受影响。
     expect(SameItem.labKey('白细胞计数（WBC）', panel: '血常规'), '白细胞计数');
+  });
+
+  test('趋势分组（D-42）：同类大项归一，没有大项的按项目认，认不出的归其他', () {
+    expect(SameItem.panelGroup('生化检测'), '生化');
+    expect(SameItem.panelGroup('生化检验'), '生化');
+    expect(SameItem.panelGroup('肿瘤检测'), '肿瘤标志物');
+    expect(SameItem.panelGroup('肿瘤标志物'), '肿瘤标志物');
+    expect(SameItem.panelGroup('过敏原IgE28项检测（回）'), '过敏原检测');
+    expect(SameItem.panelGroup('糖尿病检测'), '血糖');
+    expect(SameItem.panelGroup('甲状腺功能检测'), '甲状腺功能');
+    expect(SameItem.panelGroup('幽门螺杆菌检测'), '幽门螺杆菌');
+    expect(SameItem.panelGroup('视力+色觉检查'), '眼科');
+    expect(SameItem.panelGroup('尿常规'), '尿常规');
+    expect(SameItem.panelGroup('血常规'), '血常规');
+    expect(SameItem.panelGroup(null), '其他');
+    // 以后的报告换个叫法也归到同一组。
+    expect(SameItem.panelGroup('生化全项'), '生化');
+    expect(SameItem.panelGroup('食物过敏原筛查'), '过敏原检测');
+
+    expect(SameItem.trendGroup(null, '牛肉'), '过敏原检测');
+    expect(SameItem.trendGroup(null, '屋尘螨／粉尘螨'), '过敏原检测');
+    expect(SameItem.trendGroup(null, '收缩压'), '一般检查');
+    expect(SameItem.trendGroup('测量', '左室射血分数'), '心脏超声');
+    expect(SameItem.trendGroup(null, 'ABO血型'), '血型');
+    expect(SameItem.trendGroup(null, '乙肝表面抗原'), '传染病筛查');
+    expect(SameItem.trendGroup(null, 'TRUST'), '传染病筛查');
+    expect(SameItem.trendGroup(null, '尿比重'), '尿常规');
+    expect(SameItem.trendGroup(null, '尿酸'), '其他'); // 血尿酸不归尿常规
+    expect(SameItem.trendGroup('生化检验', '尿酸'), '生化');
+    expect(SameItem.trendGroup(null, 'PH值'), '其他'); // 分不出尿还是血
+  });
+
+  test('"血清"前缀和全角破折号缩写：和不带的同一项', () {
+    expect(SameItem.labKey('血清肌酐'), SameItem.labKey('肌酐（Cr）'));
+    expect(SameItem.labKey('血清γ-谷氨酰基转移酶'), SameItem.labKey('γ-谷氨酰转移酶（GGT）'));
+    expect(SameItem.labKey('血清铁'), '血清铁'); // 去掉后太短的不去
+    expect(SameItem.labKey('超敏C反应蛋白（hs—CRP）'), '超敏C反应蛋白');
   });
 
   test('红细胞压积写成小数（L/L 或不写单位）换算成百分数，血小板压积不动', () {

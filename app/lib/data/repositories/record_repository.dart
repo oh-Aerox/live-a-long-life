@@ -460,6 +460,19 @@ class RecordRepository {
     return list;
   }
 
+  /// 每个检验项目在趋势里归哪一组（D-42）：按检查日期取最近一次能认出
+  /// 分组的；最近那份报告没标大项时不会掉进"其他"。
+  Future<Map<String, String>> labItemGroups() async {
+    final groups = <String, String>{};
+    for (final r in await (_db.select(_db.labResults)
+          ..orderBy([(t) => OrderingTerm.asc(t.examDate)]))
+        .get()) {
+      final g = SameItem.trendGroup(r.panelRaw, r.itemKey);
+      if (g != '其他' || !groups.containsKey(r.itemKey)) groups[r.itemKey] = g;
+    }
+    return groups;
+  }
+
   /// 每个检验项目在各份报告里出现过的名字（趋势页搜索用：搜"ALT"或旧
   /// 写法"谷丙转氨酶"也能找到）。
   Future<Map<String, Set<String>>> labItemNames() async {

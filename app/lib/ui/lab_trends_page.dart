@@ -22,10 +22,15 @@ class LabTrendsPage extends StatefulWidget {
 class _LabTrendsPageState extends State<LabTrendsPage> {
   List<LabResult> _items = [];
   Map<String, Set<String>> _names = {};
+  Map<String, String> _itemGroups = {};
   String _query = '';
 
   /// 分组顺序：体检报告的常见顺序在前，其余按名字，"其他"最后。
-  static const _groupOrder = ['血常规', '尿常规', '便常规', '肝功能', '肾功能', '血脂', '血糖'];
+  static const _groupOrder = [
+    '一般检查', '血常规', '尿常规', '便常规', '生化', '肝功能', '肾功能', //
+    '血脂', '血糖', '甲状腺功能', '肿瘤标志物', '凝血功能', '传染病筛查',
+    '血型', '过敏原检测',
+  ];
 
   static int _compareGroups(String a, String b) {
     int rank(String g) {
@@ -54,10 +59,12 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
     final records = widget.services.records;
     final items = await records.labResultLatestPerItem();
     final names = await records.labItemNames();
+    final groups = await records.labItemGroups();
     if (mounted) {
       setState(() {
         _items = items;
         _names = names;
+        _itemGroups = groups;
       });
     }
   }
@@ -70,16 +77,19 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
     return [
       _titleOf(r),
       r.itemKey,
-      SameItem.panelGroup(r.panelRaw),
+      _groupOf(r),
       ...?_names[r.itemKey],
     ].any((t) => t.replaceAll(RegExp(r'\s'), '').toLowerCase().contains(q));
   }
 
-  /// 按最近一次结果的大项分组；同一项目不同年份大项写法不同时以最近的为准。
+  String _groupOf(LabResult r) =>
+      _itemGroups[r.itemKey] ?? SameItem.trendGroup(r.panelRaw, r.itemKey);
+
+  /// 按项目分组（[RecordRepository.labItemGroups]）：最近一次能认出分组的为准。
   List<MapEntry<String, List<LabResult>>> _groups() {
     final groups = <String, List<LabResult>>{};
     for (final r in _items.where(_matches)) {
-      (groups[SameItem.panelGroup(r.panelRaw)] ??= []).add(r);
+      (groups[_groupOf(r)] ??= []).add(r);
     }
     return groups.entries.toList()
       ..sort((a, b) => _compareGroups(a.key, b.key));
