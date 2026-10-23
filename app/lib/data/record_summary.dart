@@ -1,5 +1,6 @@
 import 'db/app_database.dart';
 import 'field_meta.dart';
+import 'lab_abnormal.dart';
 import 'same_item.dart';
 
 /// 记录数据的纯文本摘要与取值展示（UI 列表和咨询上下文共用，无 UI 依赖）。
@@ -22,13 +23,15 @@ String fieldValueText(Object? value) {
   if (value is bool) return value ? '是' : '否';
   if (value is String) return _valueLabels[value] ?? value;
   if (value is List) {
-    return value.map((e) {
-      if (e is Map && e['name'] != null) {
-        final amount = e['amount_text'];
-        return amount == null ? '${e['name']}' : '${e['name']}（$amount）';
-      }
-      return fieldValueText(e);
-    }).join('、');
+    return value
+        .map((e) {
+          if (e is Map && e['name'] != null) {
+            final amount = e['amount_text'];
+            return amount == null ? '${e['name']}' : '${e['name']}（$amount）';
+          }
+          return fieldValueText(e);
+        })
+        .join('、');
   }
   return value.toString();
 }
@@ -60,14 +63,16 @@ String recordSummary(RecordType type, Map<String, Object?> data) {
       return '${data['description'] ?? '心情记录'}';
     case RecordType.symptom:
       if (data['status'] == 'explicitly_none') return '明确没有不适';
-      return [data['body_site'], data['description']]
-          .whereType<Object>()
-          .join('：');
+      return [
+        data['body_site'],
+        data['description'],
+      ].whereType<Object>().join('：');
     case RecordType.exercise:
       if (data['status'] == 'explicitly_none') return '明确没有运动';
-      return [data['activity'], data['duration_text']]
-          .whereType<Object>()
-          .join(' ');
+      return [
+        data['activity'],
+        data['duration_text'],
+      ].whereType<Object>().join(' ');
     case RecordType.note:
       return '${data['text'] ?? ''}';
     case RecordType.labPanel:
@@ -109,8 +114,9 @@ String? reviewedMedicalSummary(Map<String, Object?> data, FieldMetaMap meta) {
     if (!reviewed('findings.$i')) continue;
     // 用模型整理合并过的条目（D-35）栏目是部位名，结论在内容里带标签。
     if (!RegExp('诊断|结论|提示|印象').hasMatch(section) &&
-        !RegExp(r'(^|\n)(诊断|结论|提示|印象)[：:]')
-            .hasMatch('${f['text_raw'] ?? ''}')) {
+        !RegExp(
+          r'(^|\n)(诊断|结论|提示|印象)[：:]',
+        ).hasMatch('${f['text_raw'] ?? ''}')) {
       continue;
     }
     parts.add('$section：${f['text_raw']}');
@@ -121,21 +127,27 @@ String? reviewedMedicalSummary(Map<String, Object?> data, FieldMetaMap meta) {
   for (var i = 0; i < results.length; i++) {
     final r = results[i] as Map;
     if (!reviewed('results.$i')) continue;
-    final v = r['value_num'] as num?;
-    final low = r['ref_low'] as num?;
-    final high = r['ref_high'] as num?;
-    final outOfRange =
-        v != null && ((low != null && v < low) || (high != null && v > high));
-    if (r['flag_raw'] == null && !outOfRange) continue;
+    if (!isAbnormalLab(
+      flagRaw: r['flag_raw'] as String?,
+      valueRaw: '${r['value_raw']}',
+      valueNum: (r['value_num'] as num?)?.toDouble(),
+      refLow: (r['ref_low'] as num?)?.toDouble(),
+      refHigh: (r['ref_high'] as num?)?.toDouble(),
+      refRangeRaw: r['ref_range_raw'] as String?,
+    )) {
+      continue;
+    }
     // 尿常规的"白细胞"给模型看时带上大项，免得当成血白细胞（D-36）。
     final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
-    abnormal.add([
-      if (SameItem.specimenOf(panel) != null) SameItem.panelGroup(panel),
-      SameItem.itemName('${r['item_name_raw']}'),
-      '${r['value_raw']}${r['unit_raw'] ?? ''}',
-      if (r['flag_raw'] != null) r['flag_raw'],
-      if (r['ref_range_raw'] != null) '（参考 ${r['ref_range_raw']}）',
-    ].join(' '));
+    abnormal.add(
+      [
+        if (SameItem.specimenOf(panel) != null) SameItem.panelGroup(panel),
+        SameItem.itemName('${r['item_name_raw']}'),
+        '${r['value_raw']}${r['unit_raw'] ?? ''}',
+        if (r['flag_raw'] != null) r['flag_raw'],
+        if (r['ref_range_raw'] != null) '（参考 ${r['ref_range_raw']}）',
+      ].join(' '),
+    );
   }
   if (abnormal.isNotEmpty) parts.add('异常指标：${abnormal.join('、')}');
 

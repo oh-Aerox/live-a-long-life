@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
+import '../data/lab_abnormal.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/same_item.dart';
@@ -241,31 +242,6 @@ class BodyMapRules {
     return found;
   }
 
-  /// 数值异常：报告上有异常标记，或数值超出参考范围，或定性结果阳性而参考为阴性。
-  static bool isAbnormalLab({
-    String? flagRaw,
-    String? valueRaw,
-    double? valueNum,
-    double? refLow,
-    double? refHigh,
-    String? refRangeRaw,
-  }) {
-    final flag = flagRaw?.trim() ?? '';
-    if (flag.isNotEmpty && !_normalFlag.hasMatch(flag)) return true;
-    if (valueNum != null) {
-      if (refLow != null && valueNum < refLow) return true;
-      if (refHigh != null && valueNum > refHigh) return true;
-    }
-    final v = valueRaw ?? '';
-    if ((refRangeRaw ?? '').contains('阴性') &&
-        (v.contains('阳性') || RegExp(r'^\s*\++').hasMatch(v))) {
-      return true;
-    }
-    return false;
-  }
-
-  static final _normalFlag = RegExp(r'^(-|—|N|正常|阴性|/)$', caseSensitive: false);
-
   static final _abnormalWord = RegExp(
       '结节|囊肿|结石|息肉|增生|肥大|增大|肿大|增厚|钙化|占位|肿物|肿块|积液|狭窄|'
       '扩张|硬化|脂肪肝|炎|溃疡|糜烂|反流|异常|偏高|偏低|升高|降低|减退|亢进|'
@@ -438,7 +414,7 @@ class BodyMapService {
           if (prev != null && (prev.$1 ?? '').compareTo(date ?? '') > 0) {
             continue;
           }
-          final abnormal = BodyMapRules.isAbnormalLab(
+          final abnormal = isAbnormalLab(
             flagRaw: r['flag_raw'] as String?,
             valueRaw: value,
             valueNum: (r['value_num'] as num?)?.toDouble(),

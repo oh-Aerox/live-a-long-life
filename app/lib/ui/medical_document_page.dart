@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
+import '../data/lab_abnormal.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/time_value.dart';
-import '../services/body_map.dart';
 import '../services/lab_review.dart';
 import '../services/medical_extraction_service.dart';
 import 'adaptive.dart';
@@ -24,11 +24,12 @@ import 'source_viewer_page.dart';
 /// Mac 端 [readOnly]：只看提取结果、核对状态和原件位置，不提取、不核对、
 /// 不修改、不删除（D-12 只有手机写入）。
 class MedicalDocumentPage extends StatefulWidget {
-  const MedicalDocumentPage(
-      {super.key,
-      required this.services,
-      required this.documentId,
-      this.readOnly = false});
+  const MedicalDocumentPage({
+    super.key,
+    required this.services,
+    required this.documentId,
+    this.readOnly = false,
+  });
 
   final AppServices services;
   final String documentId;
@@ -43,6 +44,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   List<LabResult> _results = [];
   RecordRow? _record;
   RecordRevision? _rev;
+
   /// 逐条核对的列表（D-28）：findings 文字内容、medications 处方药品。
   Map<String, List<Map<String, Object?>>> _entries = {};
   bool _imageSending = false;
@@ -61,9 +63,13 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   Future<void> _editInstitution() async {
     final doc = _doc;
     if (doc == null) return;
-    final values = await showFieldsDialog(context, title: '医疗机构', fields: [
-      DialogField(initial: doc.institutionText ?? '', hint: '如 某某市人民医院'),
-    ]);
+    final values = await showFieldsDialog(
+      context,
+      title: '医疗机构',
+      fields: [
+        DialogField(initial: doc.institutionText ?? '', hint: '如 某某市人民医院'),
+      ],
+    );
     if (values == null) return;
     final text = values.single.trim();
     final value = text.isEmpty ? null : text;
@@ -76,9 +82,11 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   Future<void> _editVisitTitle() async {
     final doc = _doc;
     if (doc == null) return;
-    final values = await showFieldsDialog(context, title: '就诊标题', fields: [
-      DialogField(initial: doc.visitTitle ?? '', hint: '如 甲状腺结节复查'),
-    ]);
+    final values = await showFieldsDialog(
+      context,
+      title: '就诊标题',
+      fields: [DialogField(initial: doc.visitTitle ?? '', hint: '如 甲状腺结节复查')],
+    );
     if (values == null) return;
     final text = values.single.trim();
     final value = text.isEmpty ? null : text;
@@ -90,8 +98,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   Future<void> _editExamDate() async {
     final doc = _doc;
     if (doc == null) return;
-    final current =
-        doc.examDate == null ? null : TimeValue.decode(doc.examDate!).localDate;
+    final current = doc.examDate == null
+        ? null
+        : TimeValue.decode(doc.examDate!).localDate;
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -111,19 +120,19 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   /// 血压"122/86"在索引里拆成收缩压、舒张压两行（part 1、2，D-39）；
   /// 核对按报告原样显示一行，确认、修改、删除都作用于这一条原文。
   static List<LabResult> _asReported(List<LabResult> rows, List raw) => [
-        for (final r in rows)
-          if (r.part == 0)
-            r
-          else if (r.part == 1 && raw[r.resultIndex] is Map)
-            r.copyWith(
-              itemNameRaw: '${raw[r.resultIndex]['item_name_raw']}',
-              valueRaw: '${raw[r.resultIndex]['value_raw']}',
-              valueNum: const Value(null),
-              unitRaw: Value(raw[r.resultIndex]['unit_raw'] as String?),
-              refRangeRaw: Value(raw[r.resultIndex]['ref_range_raw'] as String?),
-              flagRaw: Value(raw[r.resultIndex]['flag_raw'] as String?),
-            ),
-      ];
+    for (final r in rows)
+      if (r.part == 0)
+        r
+      else if (r.part == 1 && raw[r.resultIndex] is Map)
+        r.copyWith(
+          itemNameRaw: '${raw[r.resultIndex]['item_name_raw']}',
+          valueRaw: '${raw[r.resultIndex]['value_raw']}',
+          valueNum: const Value(null),
+          unitRaw: Value(raw[r.resultIndex]['unit_raw'] as String?),
+          refRangeRaw: Value(raw[r.resultIndex]['ref_range_raw'] as String?),
+          flagRaw: Value(raw[r.resultIndex]['flag_raw'] as String?),
+        ),
+  ];
 
   Future<void> _load() async {
     final s = widget.services;
@@ -138,12 +147,12 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       final data = jsonDecode(rev.data) as Map;
       results = _asReported([
         for (final r in await s.records.labResultsOfDocument(widget.documentId))
-          if (r.recordId == record.id) r
+          if (r.recordId == record.id) r,
       ], data['results'] as List? ?? const []);
       for (final list in LabReview.entryLists) {
         entries[list] = [
           for (final e in data[list] as List? ?? const [])
-            (e as Map).cast<String, Object?>()
+            (e as Map).cast<String, Object?>(),
         ];
       }
     }
@@ -165,35 +174,44 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       context,
       MaterialPageRoute(
         builder: (_) => MedicalSendPreviewPage(
-            services: widget.services, documentId: widget.documentId),
+          services: widget.services,
+          documentId: widget.documentId,
+        ),
       ),
     );
     if (outcome == null || !mounted) return;
     try {
       final skipped = outcome.pageDecisions.where((d) => !d.included).length;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        duration: outcome.failedPages.isEmpty
-            ? const Duration(seconds: 4)
-            : const Duration(seconds: 10),
-        content: Text('提取完成，已遮蔽 ${outcome.redactedCount} 处隐私信息'
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: outcome.failedPages.isEmpty
+              ? const Duration(seconds: 4)
+              : const Duration(seconds: 10),
+          content: Text(
+            '提取完成，已遮蔽 ${outcome.redactedCount} 处隐私信息'
             '${skipped > 0 ? '，$skipped 页未发送' : ''}'
             '${outcome.failedPages.isEmpty ? '' : '。第 ${outcome.failedPages.join('、')} 页没有提取成功（其余已保存），可以稍后重新提取'}'
             '${outcome.conditionRecords.isNotEmpty ? '，发现 ${outcome.conditionRecords.length} 条身体状况建议（在长期状况档案里核对）' : ''}。'
-            '结果未核对，确认后才参与分析'),
-      ));
+            '结果未核对，确认后才参与分析',
+          ),
+        ),
+      );
       if (outcome.possibleDuplicateRecordIds.isNotEmpty) {
         await showAdaptiveDialog<void>(
           context: context,
           builder: (context) => AlertDialog.adaptive(
             title: const Text('可能重复'),
-            content: Text('同一检查日期已有 '
-                '${outcome.possibleDuplicateRecordIds.length} 条包含相同项目的'
-                '检验记录（可能是同一份报告拍了两次）。两份都会保留，'
-                '核对时注意别重复确认。'),
+            content: Text(
+              '同一检查日期已有 '
+              '${outcome.possibleDuplicateRecordIds.length} 条包含相同项目的'
+              '检验记录（可能是同一份报告拍了两次）。两份都会保留，'
+              '核对时注意别重复确认。',
+            ),
             actions: [
               DialogAction(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('知道了')),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('知道了'),
+              ),
             ],
           ),
         );
@@ -214,13 +232,16 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         context: context,
         builder: (context) => AlertDialog.adaptive(
           title: const Text('当前模型不能识图'),
-          content: const Text('默认模型在测试连接时没有检测到图片能力。可以在'
-              '"设置 → 模型配置"里换一个支持图片的模型设为默认，或对它重新测试连接。'
-              '\n\n也可以继续用"识别并预览"，在本机识别文字后发送。'),
+          content: const Text(
+            '默认模型在测试连接时没有检测到图片能力。可以在'
+            '"设置 → 模型配置"里换一个支持图片的模型设为默认，或对它重新测试连接。'
+            '\n\n也可以继续用"识别并预览"，在本机识别文字后发送。',
+          ),
           actions: [
             DialogAction(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('知道了')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
           ],
         ),
       );
@@ -236,12 +257,14 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     if (pages.isEmpty || !mounted) return;
     var page = pages.first;
     if (pages.length > 1) {
-      final picked = await showActionSheet<ImagePageChoice>(context,
-          title: '识别哪一页？',
-          actions: [
-            for (final p in pages)
-              SheetAction(value: p, label: '第 ${p.pageNo} 页'),
-          ]);
+      final picked = await showActionSheet<ImagePageChoice>(
+        context,
+        title: '识别哪一页？',
+        actions: [
+          for (final p in pages)
+            SheetAction(value: p, label: '第 ${p.pageNo} 页'),
+        ],
+      );
       if (picked == null) return;
       page = picked;
     }
@@ -275,11 +298,15 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           cropBox: crop.cropBox,
         ),
       );
-      messenger.showSnackBar(SnackBar(
-        content: Text('识图完成'
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '识图完成'
             '${outcome.conditionRecords.isNotEmpty ? '，发现 ${outcome.conditionRecords.length} 条身体状况建议' : ''}。'
-            '结果未核对，确认后才参与分析；点一条可看它在原件上的区域'),
-      ));
+            '结果未核对，确认后才参与分析；点一条可看它在原件上的区域',
+          ),
+        ),
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('识图失败：$e')));
     } finally {
@@ -296,44 +323,54 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       context: context,
       builder: (context) => AlertDialog.adaptive(
         title: const Text('用模型整理文字？'),
-        content: Text('把下面 ${_entryList('findings').length} 段诊断与检查文字发给默认模型，'
-            '同一部位的所见和结论合并成一条，重复的去掉，原文不改写。'
-            '\n\n只发这些已提取的文字，不发图片。合并出来的条目要重新核对，'
-            '整理前的版本保留在修改历史里。'),
+        content: Text(
+          '把下面 ${_entryList('findings').length} 段诊断与检查文字发给默认模型，'
+          '同一部位的所见和结论合并成一条，重复的去掉，原文不改写。'
+          '\n\n只发这些已提取的文字，不发图片。合并出来的条目要重新核对，'
+          '整理前的版本保留在修改历史里。',
+        ),
         actions: [
           DialogAction(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
           DialogAction(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('整理')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('整理'),
+          ),
         ],
       ),
     );
     if (ok != true || !mounted) return;
     setState(() => _tidying = true);
     try {
-      final outcome = await widget.services.medicalExtraction
-          .tidyFindings(widget.documentId);
+      final outcome = await widget.services.medicalExtraction.tidyFindings(
+        widget.documentId,
+      );
       if (!outcome.changed) {
-        messenger.showSnackBar(
-            const SnackBar(content: Text('没有需要合并的条目，未改动')));
+        messenger.showSnackBar(const SnackBar(content: Text('没有需要合并的条目，未改动')));
         return;
       }
-      messenger.showSnackBar(SnackBar(
-        duration: const Duration(seconds: 8),
-        content: Text('已整理：${outcome.before} 段合并为 ${outcome.after} 段，'
-            '合并的条目需要重新核对'),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () async {
-            // 整理后又改过就不撤，免得把后来的核对一起退回去。
-            if (_record?.version != outcome.record.version) return;
-            await _writeRevision(outcome.previousData!,
-                FieldMetaMap.decode(outcome.previousFieldMeta!));
-          },
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          content: Text(
+            '已整理：${outcome.before} 段合并为 ${outcome.after} 段，'
+            '合并的条目需要重新核对',
+          ),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              // 整理后又改过就不撤，免得把后来的核对一起退回去。
+              if (_record?.version != outcome.record.version) return;
+              await _writeRevision(
+                outcome.previousData!,
+                FieldMetaMap.decode(outcome.previousFieldMeta!),
+              );
+            },
+          ),
         ),
-      ));
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('整理失败：$e')));
     } finally {
@@ -349,26 +386,32 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _fillingPanels = true);
     try {
-      final outcome = await widget.services.medicalExtraction
-          .fillPanels(widget.documentId);
+      final outcome = await widget.services.medicalExtraction.fillPanels(
+        widget.documentId,
+      );
       if (outcome.previousData == null) {
-        messenger.showSnackBar(
-            const SnackBar(content: Text('模型没有认出所属大项，未改动')));
+        messenger.showSnackBar(const SnackBar(content: Text('模型没有认出所属大项，未改动')));
         return;
       }
-      messenger.showSnackBar(SnackBar(
-        duration: const Duration(seconds: 8),
-        content: Text('已给 ${outcome.filled} 项补上所属大项，'
-            '在下面按大项分组显示，不对的可以点一项修改'),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () async {
-            if (_record?.version != outcome.record.version) return;
-            await _writeRevision(outcome.previousData!,
-                FieldMetaMap.decode(outcome.previousFieldMeta!));
-          },
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          content: Text(
+            '已给 ${outcome.filled} 项补上所属大项，'
+            '在下面按大项分组显示，不对的可以点一项修改',
+          ),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              if (_record?.version != outcome.record.version) return;
+              await _writeRevision(
+                outcome.previousData!,
+                FieldMetaMap.decode(outcome.previousFieldMeta!),
+              );
+            },
+          ),
         ),
-      ));
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('补大项失败：$e')));
     } finally {
@@ -392,9 +435,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     return [
       for (var k = 0; k < sections.length; k++)
         AdaptiveSection(
-          header: !hasPanels
-              ? '检验结果'
-              : '检验结果 · ${sections[k].$1 ?? '未标大项'}',
+          header: !hasPanels ? '检验结果' : '检验结果 · ${sections[k].$1 ?? '未标大项'}',
           footer: k == sections.length - 1 && _filter == _ReviewFilter.all
               ? '项目、数值、单位、参考范围、检查日期确认后，这条结果才参与分析。'
               : null,
@@ -404,28 +445,30 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   }
 
   /// 异常：有异常标记，或数值超出参考范围（与人体图同一口径）。
-  static bool _abnormal(LabResult r) => BodyMapRules.isAbnormalLab(
-        flagRaw: r.flagRaw,
-        valueRaw: r.valueRaw,
-        valueNum: r.valueNum,
-        refLow: r.refLow,
-        refHigh: r.refHigh,
-        refRangeRaw: r.refRangeRaw,
-      );
+  static bool _abnormal(LabResult r) => isAbnormalLab(
+    flagRaw: r.flagRaw,
+    valueRaw: r.valueRaw,
+    valueNum: r.valueNum,
+    refLow: r.refLow,
+    refHigh: r.refHigh,
+    refRangeRaw: r.refRangeRaw,
+  );
 
   bool _resultVisible(LabResult r) => switch (_filter) {
-        _ReviewFilter.all => true,
-        _ReviewFilter.unreviewed => r.reviewStatus == ReviewStatus.unreviewed,
-        _ReviewFilter.abnormal => _abnormal(r),
-      };
+    _ReviewFilter.all => true,
+    _ReviewFilter.unreviewed => r.reviewStatus == ReviewStatus.unreviewed,
+    _ReviewFilter.abnormal => _abnormal(r),
+  };
 
   Widget _resultTile(int i) => AdaptiveTile(
-        dense: true,
-        title: Text(_results[i].itemNameRaw),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(TextSpan(children: [
+    dense: true,
+    title: Text(_results[i].itemNameRaw),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
               // 异常的数值加粗标红，一眼能扫到。
               TextSpan(
                 text: [
@@ -434,35 +477,39 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                 ].join(' '),
                 style: _abnormal(_results[i])
                     ? const TextStyle(
-                        fontWeight: FontWeight.bold, color: _abnormalColor)
+                        fontWeight: FontWeight.bold,
+                        color: _abnormalColor,
+                      )
                     : null,
               ),
               if (_results[i].refRangeRaw != null)
                 TextSpan(text: '  参考 ${_results[i].refRangeRaw}'),
-            ])),
-            ?_fixesText(_resultFixes(_results[i].resultIndex)),
-          ],
-        ),
-        trailing: Text(
-          [
-            if (_results[i].flagRaw != null) _results[i].flagRaw!,
-            switch (_results[i].reviewStatus) {
-              ReviewStatus.unreviewed => '未核对',
-              ReviewStatus.confirmed => '已确认',
-              ReviewStatus.edited => '已修改',
-            },
-          ].join(' '),
-          style: TextStyle(
-            fontSize: 11,
-            color: _results[i].flagRaw != null
-                ? _abnormalColor
-                : (_results[i].reviewStatus == ReviewStatus.unreviewed
-                    ? Colors.grey
-                    : Colors.green),
+            ],
           ),
         ),
-        onTap: () => _resultActions(_results[i].resultIndex, _results[i]),
-      );
+        ?_fixesText(_resultFixes(_results[i].resultIndex)),
+      ],
+    ),
+    trailing: Text(
+      [
+        if (_results[i].flagRaw != null) _results[i].flagRaw!,
+        switch (_results[i].reviewStatus) {
+          ReviewStatus.unreviewed => '未核对',
+          ReviewStatus.confirmed => '已确认',
+          ReviewStatus.edited => '已修改',
+        },
+      ].join(' '),
+      style: TextStyle(
+        fontSize: 11,
+        color: _results[i].flagRaw != null
+            ? _abnormalColor
+            : (_results[i].reviewStatus == ReviewStatus.unreviewed
+                  ? Colors.grey
+                  : Colors.green),
+      ),
+    ),
+    onTap: () => _resultActions(_results[i].resultIndex, _results[i]),
+  );
 
   /// 写一版新记录（核对/修改都走这里，索引随版本自动重建 D-27）。
   Future<void> _writeRevision(String dataJson, FieldMetaMap meta) async {
@@ -472,8 +519,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       recordId: record.id,
       baseVersion: record.version,
       occurred: TimeValue.decode(rev.occurred),
-      occurredEnd:
-          rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
+      occurredEnd: rev.occurredEnd == null
+          ? null
+          : TimeValue.decode(rev.occurredEnd!),
       dataJson: dataJson,
       fieldMeta: meta,
       producedBy: ProducedBy.userEdit(),
@@ -484,50 +532,69 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   Future<void> _confirmResult(int index) async {
     final rev = _rev!;
     final (data, meta) = LabReview.confirmResult(
-        rev.data, FieldMetaMap.decode(rev.fieldMeta), index);
+      rev.data,
+      FieldMetaMap.decode(rev.fieldMeta),
+      index,
+    );
     await _writeRevision(data, meta);
   }
 
   /// 写新版本并在提示条上给"撤销"：删除、全部确认这类一步生效的操作用。
   /// 之后又改过（版本变了）就不撤，免得把后来的核对一起退回去。
   Future<void> _writeWithUndo(
-      String dataJson, FieldMetaMap meta, String message) async {
+    String dataJson,
+    FieldMetaMap meta,
+    String message,
+  ) async {
     final previous = _rev!;
     final messenger = ScaffoldMessenger.of(context);
     await _writeRevision(dataJson, meta);
     final version = _record?.version;
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        duration: const Duration(seconds: 6),
-        content: Text(message),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () async {
-            if (_record?.version != version) return;
-            await _writeRevision(
-                previous.data, FieldMetaMap.decode(previous.fieldMeta));
-          },
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          content: Text(message),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              if (_record?.version != version) return;
+              await _writeRevision(
+                previous.data,
+                FieldMetaMap.decode(previous.fieldMeta),
+              );
+            },
+          ),
         ),
-      ));
+      );
   }
 
   Future<void> _confirmAll() async {
     final rev = _rev!;
-    final (data, meta) =
-        LabReview.confirmAll(rev.data, FieldMetaMap.decode(rev.fieldMeta));
+    final (data, meta) = LabReview.confirmAll(
+      rev.data,
+      FieldMetaMap.decode(rev.fieldMeta),
+    );
     await _writeWithUndo(data, meta, '已全部确认，这份报告的数据开始参与分析');
   }
 
   Future<void> _editResult(int index, LabResult row) async {
-    final values = await showFieldsDialog(context, title: '修改这一项', fields: [
-      DialogField(
-          label: '所属大项', initial: row.panelRaw ?? '', hint: '如 血常规、尿常规'),
-      DialogField(label: '项目', initial: row.itemNameRaw),
-      DialogField(label: '数值', initial: row.valueRaw),
-      DialogField(label: '单位', initial: row.unitRaw ?? ''),
-      DialogField(label: '参考范围', initial: row.refRangeRaw ?? ''),
-    ]);
+    final values = await showFieldsDialog(
+      context,
+      title: '修改这一项',
+      fields: [
+        DialogField(
+          label: '所属大项',
+          initial: row.panelRaw ?? '',
+          hint: '如 血常规、尿常规',
+        ),
+        DialogField(label: '项目', initial: row.itemNameRaw),
+        DialogField(label: '数值', initial: row.valueRaw),
+        DialogField(label: '单位', initial: row.unitRaw ?? ''),
+        DialogField(label: '参考范围', initial: row.refRangeRaw ?? ''),
+      ],
+    );
     if (values == null) return;
     final rev = _rev!;
     final (data, meta) = LabReview.editResult(
@@ -552,8 +619,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     if (index >= results.length) return;
     final locators = (results[index] as Map)['locator'] as List? ?? const [];
     if (locators.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('这一项没有原件定位信息')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('这一项没有原件定位信息')));
       return;
     }
     await Navigator.push(
@@ -572,14 +640,18 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     // 只读：点一项直接看原件位置。
     final action = widget.readOnly
         ? 'source'
-        : await showActionSheet<String>(context, actions: [
-            ..._reviewActions,
-            const SheetAction(
+        : await showActionSheet<String>(
+            context,
+            actions: [
+              ..._reviewActions,
+              const SheetAction(
                 value: 'delete',
                 label: '删除这一项',
                 icon: Icons.delete_outline,
-                isDestructiveAction: true),
-          ]);
+                isDestructiveAction: true,
+              ),
+            ],
+          );
     switch (action) {
       case 'confirm':
         await _confirmResult(index);
@@ -588,7 +660,10 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       case 'delete':
         final rev = _rev!;
         final (data, meta) = LabReview.deleteResult(
-            rev.data, FieldMetaMap.decode(rev.fieldMeta), index);
+          rev.data,
+          FieldMetaMap.decode(rev.fieldMeta),
+          index,
+        );
         await _writeWithUndo(data, meta, '已删除「${row.itemNameRaw}」');
       case 'source':
         await _viewSource(index, row);
@@ -598,12 +673,16 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   /// 点一条检验结果或文字内容时的操作菜单。
   static const _reviewActions = [
     SheetAction(
-        value: 'confirm', label: '确认无误', icon: Icons.check_circle_outline),
+      value: 'confirm',
+      label: '确认无误',
+      icon: Icons.check_circle_outline,
+    ),
     SheetAction(value: 'edit', label: '修改', icon: Icons.edit_outlined),
     SheetAction(
-        value: 'source',
-        label: '查看原件位置',
-        icon: Icons.image_search_outlined),
+      value: 'source',
+      label: '查看原件位置',
+      icon: Icons.image_search_outlined,
+    ),
   ];
 
   /// 各列表修改对话框里的字段（键 → 标签）。
@@ -620,7 +699,8 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     },
   };
 
-  List<Map<String, Object?>> _entryList(String list) => _entries[list] ?? const [];
+  List<Map<String, Object?>> _entryList(String list) =>
+      _entries[list] ?? const [];
 
   ReviewStatus _entryStatus(String list, int index) =>
       FieldMetaMap.decode(_rev!.fieldMeta)['$list.$index']?.reviewStatus ??
@@ -630,33 +710,46 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final entry = _entryList(list)[index];
     final action = widget.readOnly
         ? 'source'
-        : await showActionSheet<String>(context, actions: [
-            ..._reviewActions,
-            const SheetAction(
+        : await showActionSheet<String>(
+            context,
+            actions: [
+              ..._reviewActions,
+              const SheetAction(
                 value: 'delete',
                 label: '删除这一条',
                 icon: Icons.delete_outline,
-                isDestructiveAction: true),
-          ]);
+                isDestructiveAction: true,
+              ),
+            ],
+          );
     final rev = _rev;
     if (action == null || rev == null || !mounted) return;
     switch (action) {
       case 'confirm':
         final (data, meta) = LabReview.confirmEntry(
-            rev.data, FieldMetaMap.decode(rev.fieldMeta), list, index);
+          rev.data,
+          FieldMetaMap.decode(rev.fieldMeta),
+          list,
+          index,
+        );
         await _writeRevision(data, meta);
       case 'edit':
         final labels = _entryFields[list]!;
-        final values = await showFieldsDialog(context, title: '修改', fields: [
-          for (final e in labels.entries)
-            DialogField(
+        final values = await showFieldsDialog(
+          context,
+          title: '修改',
+          fields: [
+            for (final e in labels.entries)
+              DialogField(
                 label: e.value,
                 initial: entry[e.key] as String? ?? '',
-                maxLines: null),
-        ]);
+                maxLines: null,
+              ),
+          ],
+        );
         if (values == null || !mounted) return;
         final edited = {
-          for (final (i, k) in labels.keys.indexed) k: values[i].trim()
+          for (final (i, k) in labels.keys.indexed) k: values[i].trim(),
         };
         // 主字段（文字内容 / 药品名）不能改空。
         final mainKey = list == 'findings' ? 'text_raw' : 'name';
@@ -671,13 +764,18 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         await _writeRevision(data, meta);
       case 'delete':
         final (data, meta) = LabReview.deleteEntry(
-            rev.data, FieldMetaMap.decode(rev.fieldMeta), list, index);
+          rev.data,
+          FieldMetaMap.decode(rev.fieldMeta),
+          list,
+          index,
+        );
         await _writeWithUndo(data, meta, '已删除这一条');
       case 'source':
         final locators = entry['locator'] as List? ?? const [];
         if (locators.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('这一条没有原件定位信息')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('这一条没有原件定位信息')));
           return;
         }
         await Navigator.push(
@@ -694,28 +792,30 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   }
 
   static Widget _statusText(ReviewStatus status, {bool warn = false}) => Text(
-        switch (status) {
-          ReviewStatus.unreviewed => '未核对',
-          ReviewStatus.confirmed => '已确认',
-          ReviewStatus.edited => '已修改',
-        },
-        style: TextStyle(
-          fontSize: 11,
-          color: warn
-              ? Colors.orange
-              : (status == ReviewStatus.unreviewed ? Colors.grey : Colors.green),
-        ),
-      );
+    switch (status) {
+      ReviewStatus.unreviewed => '未核对',
+      ReviewStatus.confirmed => '已确认',
+      ReviewStatus.edited => '已修改',
+    },
+    style: TextStyle(
+      fontSize: 11,
+      color: warn
+          ? Colors.orange
+          : (status == ReviewStatus.unreviewed ? Colors.grey : Colors.green),
+    ),
+  );
 
   /// 模型对识别错误的修正，核对时对照原件看（D-28）。
   static Widget? _fixesText(Object? fixes) {
     final list = [
       for (final f in fixes as List? ?? const [])
-        if (f is String) f
+        if (f is String) f,
     ];
     if (list.isEmpty) return null;
-    return Text('已修正识别错误：${list.join('；')}',
-        style: const TextStyle(fontSize: 11, color: Colors.orange));
+    return Text(
+      '已修正识别错误：${list.join('；')}',
+      style: const TextStyle(fontSize: 11, color: Colors.orange),
+    );
   }
 
   /// 检验数值的修正记录不进索引表，从记录数据取。
@@ -736,40 +836,48 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             _entryStatus(list, i) == ReviewStatus.unreviewed,
           _ReviewFilter.abnormal => false,
         })
-          i
+          i,
     ];
     if (shown.isEmpty) return const [];
     return [
-      AdaptiveSection(header: title, children: [
-        for (final i in shown)
-          AdaptiveTile(
-            dense: true,
-            title: Text(list == 'findings'
-                ? (entries[i]['section_raw'] as String? ?? '文字内容')
-                : entries[i]['name'] as String),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(list == 'findings'
-                    ? entries[i]['text_raw'] as String
-                    : [
-                        for (final k in const [
-                          'dose',
-                          'route',
-                          'frequency',
-                          'duration',
-                          'spec',
-                          'quantity'
-                        ])
-                          if (entries[i][k] is String) entries[i][k] as String
-                      ].join('  ')),
-                ?_fixesText(entries[i]['ocr_fixes']),
-              ],
+      AdaptiveSection(
+        header: title,
+        children: [
+          for (final i in shown)
+            AdaptiveTile(
+              dense: true,
+              title: Text(
+                list == 'findings'
+                    ? (entries[i]['section_raw'] as String? ?? '文字内容')
+                    : entries[i]['name'] as String,
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    list == 'findings'
+                        ? entries[i]['text_raw'] as String
+                        : [
+                            for (final k in const [
+                              'dose',
+                              'route',
+                              'frequency',
+                              'duration',
+                              'spec',
+                              'quantity',
+                            ])
+                              if (entries[i][k] is String)
+                                entries[i][k] as String,
+                          ].join('  '),
+                  ),
+                  ?_fixesText(entries[i]['ocr_fixes']),
+                ],
+              ),
+              trailing: _statusText(_entryStatus(list, i)),
+              onTap: () => _entryActions(list, i),
             ),
-            trailing: _statusText(_entryStatus(list, i)),
-            onTap: () => _entryActions(list, i),
-          ),
-      ]),
+        ],
+      ),
     ];
   }
 
@@ -778,17 +886,21 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       context: context,
       builder: (context) => AlertDialog.adaptive(
         title: const Text('删除这份医疗文件？'),
-        content: const Text('从病例夹移除，提取出的检验数值、文字和药品一起删除，'
-            '不再参与分析；还没核对的身体状况建议也一起删掉，已确认的状况档案保留。'
-            '\n\n原始照片或 PDF 仍在对话记录里。'),
+        content: const Text(
+          '从病例夹移除，提取出的检验数值、文字和药品一起删除，'
+          '不再参与分析；还没核对的身体状况建议也一起删掉，已确认的状况档案保留。'
+          '\n\n原始照片或 PDF 仍在对话记录里。',
+        ),
         actions: [
           DialogAction(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
           DialogAction(
-              onPressed: () => Navigator.pop(context, true),
-              isDestructiveAction: true,
-              child: const Text('删除')),
+            onPressed: () => Navigator.pop(context, true),
+            isDestructiveAction: true,
+            child: const Text('删除'),
+          ),
         ],
       ),
     );
@@ -823,18 +935,22 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
                     key: ValueKey(refs[i].attachmentId),
                     leading: const Icon(Icons.drag_handle),
                     title: Text('第 ${i + 1} 页'),
-                    subtitle: Text('附件 ${refs[i].attachmentId.substring(0, 8)}…'),
+                    subtitle: Text(
+                      '附件 ${refs[i].attachmentId.substring(0, 8)}…',
+                    ),
                   ),
               ],
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
             TextButton(
-                onPressed: () => Navigator.pop(context, refs),
-                child: const Text('保存')),
+              onPressed: () => Navigator.pop(context, refs),
+              child: const Text('保存'),
+            ),
           ],
         ),
       ),
@@ -855,37 +971,42 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
   String? get _busyText => _imageSending
       ? '模型识图中（最长 3 分钟）…'
       : _tidying
-          ? '模型整理文字中…'
-          : _fillingPanels
-              ? '模型补大项中…'
-              : null;
+      ? '模型整理文字中…'
+      : _fillingPanels
+      ? '模型补大项中…'
+      : null;
 
   /// 主操作随状态变：还没提取是"识别并预览"，有未核对的是"全部确认"；
   /// 用模型的几种做法收进"更多"（原来四个按钮并排，要读说明才分得清）。
   Widget _actionRow(bool cupertino, int unreviewed) {
-    final (String? label, IconData icon, VoidCallback? onPressed) =
-        _record == null
-            ? ('识别并预览', Icons.document_scanner_outlined, _extract)
-            : unreviewed > 0
-                ? ('全部确认（$unreviewed 项）', Icons.done_all, _confirmAll)
-                : (null, Icons.check_circle_outline, null);
+    final (
+      String? label,
+      IconData icon,
+      VoidCallback? onPressed,
+    ) = _record == null
+        ? ('识别并预览', Icons.document_scanner_outlined, _extract)
+        : unreviewed > 0
+        ? ('全部确认（$unreviewed 项）', Icons.done_all, _confirmAll)
+        : (null, Icons.check_circle_outline, null);
     final busy = _busyText != null;
     final Widget primary = label == null
-        ? const Row(children: [
-            Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
-            SizedBox(width: 6),
-            Text('已全部核对'),
-          ])
+        ? const Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+              SizedBox(width: 6),
+              Text('已全部核对'),
+            ],
+          )
         : cupertino
-            ? CupertinoButton.filled(
-                onPressed: busy ? null : onPressed,
-                child: Text(label),
-              )
-            : FilledButton.icon(
-                onPressed: busy ? null : onPressed,
-                icon: Icon(icon),
-                label: Text(label),
-              );
+        ? CupertinoButton.filled(
+            onPressed: busy ? null : onPressed,
+            child: Text(label),
+          )
+        : FilledButton.icon(
+            onPressed: busy ? null : onPressed,
+            icon: Icon(icon),
+            label: Text(label),
+          );
     final more = cupertino
         ? CupertinoButton.tinted(
             onPressed: busy ? null : _moreActions,
@@ -898,41 +1019,50 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(children: [
-        Expanded(child: primary),
-        const SizedBox(width: 8),
-        more,
-      ]),
+      child: Row(
+        children: [
+          Expanded(child: primary),
+          const SizedBox(width: 8),
+          more,
+        ],
+      ),
     );
   }
 
   /// "更多"：重新提取和三种用模型的做法，各带一句什么时候用。
   Future<void> _moreActions() async {
-    final action = await showActionSheet<String>(context, actions: [
-      if (_record != null)
-        const SheetAction(
+    final action = await showActionSheet<String>(
+      context,
+      actions: [
+        if (_record != null)
+          const SheetAction(
             value: 'extract',
             label: '重新提取',
             subtitle: '重新识别文字、发送前确认后交给模型；核对状态会清零',
-            icon: Icons.document_scanner_outlined),
-      const SheetAction(
+            icon: Icons.document_scanner_outlined,
+          ),
+        const SheetAction(
           value: 'image',
           label: '用模型识图',
           subtitle: '本机识别不准时用（手写、拍歪、版式复杂）：裁剪后把图片发给模型',
-          icon: Icons.image_search_outlined),
-      if (_entryList('findings').length >= 2)
-        const SheetAction(
+          icon: Icons.image_search_outlined,
+        ),
+        if (_entryList('findings').length >= 2)
+          const SheetAction(
             value: 'tidy',
             label: '用模型整理文字',
             subtitle: '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
-            icon: Icons.auto_fix_high_outlined),
-      if (_results.any((r) => r.panelRaw == null))
-        const SheetAction(
+            icon: Icons.auto_fix_high_outlined,
+          ),
+        if (_results.any((r) => r.panelRaw == null))
+          const SheetAction(
             value: 'panels',
             label: '用模型补大项',
             subtitle: '检验项目没有标血常规、尿常规等大项时用：只发项目名称，不发数值',
-            icon: Icons.category_outlined),
-    ]);
+            icon: Icons.category_outlined,
+          ),
+      ],
+    );
     switch (action) {
       case 'extract':
         await _extract();
@@ -962,25 +1092,32 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text.rich(TextSpan(children: [
+          Text.rich(
             TextSpan(
-              text: '已核对 $reviewed/$total',
-              style: TextStyle(
-                  color: unreviewed == 0 ? Colors.green : null,
-                  fontWeight: FontWeight.w600),
+              children: [
+                TextSpan(
+                  text: '已核对 $reviewed/$total',
+                  style: TextStyle(
+                    color: unreviewed == 0 ? Colors.green : null,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (abnormal > 0)
+                  TextSpan(
+                    text: '  ·  异常 $abnormal',
+                    style: const TextStyle(
+                      color: _abnormalColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (unreviewed > 0 && !widget.readOnly)
+                  const TextSpan(
+                    text: '  点一条核对，未核对的不参与分析',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+              ],
             ),
-            if (abnormal > 0)
-              TextSpan(
-                text: '  ·  异常 $abnormal',
-                style: const TextStyle(
-                    color: _abnormalColor, fontWeight: FontWeight.w600),
-              ),
-            if (unreviewed > 0 && !widget.readOnly)
-              const TextSpan(
-                text: '  点一条核对，未核对的不参与分析',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-          ])),
+          ),
           const SizedBox(height: 8),
           cupertino
               ? CupertinoSlidingSegmentedControl<_ReviewFilter>(
@@ -1019,13 +1156,15 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final doc = _doc;
     if (doc == null) {
       return Scaffold(
-          backgroundColor: background,
-          appBar: adaptiveAppBar(context),
-          body: const Center(child: CircularProgressIndicator.adaptive()));
+        backgroundColor: background,
+        appBar: adaptiveAppBar(context),
+        body: const Center(child: CircularProgressIndicator.adaptive()),
+      );
     }
     final pageRefs = MedicalPageRef.decodeList(doc.pages);
-    final hasEntries =
-        LabReview.entryLists.any((l) => _entryList(l).isNotEmpty);
+    final hasEntries = LabReview.entryLists.any(
+      (l) => _entryList(l).isNotEmpty,
+    );
     const hintStyle = TextStyle(fontSize: 12, color: Colors.grey);
     // 核对进度：检验结果按列表显示的行数算（汇总与明细重复的只算一次）。
     final statuses = [
@@ -1034,8 +1173,9 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         for (var i = 0; i < _entryList(list).length; i++) _entryStatus(list, i),
     ];
     final total = statuses.length;
-    final unreviewed =
-        statuses.where((st) => st == ReviewStatus.unreviewed).length;
+    final unreviewed = statuses
+        .where((st) => st == ReviewStatus.unreviewed)
+        .length;
     final abnormal = _results.where(_abnormal).length;
 
     return Scaffold(
@@ -1062,43 +1202,52 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
       ),
       body: ListView(
         children: [
-          AdaptiveSection(children: [
-            if (doc.visitTitle != null || !widget.readOnly)
+          AdaptiveSection(
+            children: [
+              if (doc.visitTitle != null || !widget.readOnly)
+                AdaptiveTile(
+                  title: const Text('就诊标题'),
+                  subtitle: Text(doc.visitTitle ?? '提取后自动生成，也可以点此填写'),
+                  trailing: widget.readOnly
+                      ? null
+                      : Icon(
+                          cupertino
+                              ? CupertinoIcons.pencil
+                              : Icons.edit_outlined,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                  onTap: widget.readOnly ? null : _editVisitTitle,
+                ),
+              if (doc.institutionText != null || !widget.readOnly)
+                AdaptiveTile(
+                  title: const Text('医疗机构'),
+                  subtitle: Text(doc.institutionText ?? '未识别，点此填写'),
+                  trailing: widget.readOnly
+                      ? null
+                      : Icon(
+                          cupertino
+                              ? CupertinoIcons.pencil
+                              : Icons.edit_outlined,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                  onTap: widget.readOnly ? null : _editInstitution,
+                ),
               AdaptiveTile(
-                title: const Text('就诊标题'),
-                subtitle: Text(doc.visitTitle ?? '提取后自动生成，也可以点此填写'),
+                title: const Text('检查日期'),
+                subtitle: Text(_dateText(doc.examDate)),
                 trailing: widget.readOnly
                     ? null
                     : Icon(
                         cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
                         size: 18,
-                        color: Colors.grey),
-                onTap: widget.readOnly ? null : _editVisitTitle,
+                        color: Colors.grey,
+                      ),
+                onTap: widget.readOnly ? null : _editExamDate,
               ),
-            if (doc.institutionText != null || !widget.readOnly)
-              AdaptiveTile(
-                title: const Text('医疗机构'),
-                subtitle: Text(doc.institutionText ?? '未识别，点此填写'),
-                trailing: widget.readOnly
-                    ? null
-                    : Icon(
-                        cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
-                        size: 18,
-                        color: Colors.grey),
-                onTap: widget.readOnly ? null : _editInstitution,
-              ),
-            AdaptiveTile(
-              title: const Text('检查日期'),
-              subtitle: Text(_dateText(doc.examDate)),
-              trailing: widget.readOnly
-                  ? null
-                  : Icon(
-                      cupertino ? CupertinoIcons.pencil : Icons.edit_outlined,
-                      size: 18,
-                      color: Colors.grey),
-              onTap: widget.readOnly ? null : _editExamDate,
-            ),
-          ]),
+            ],
+          ),
           if (!cupertino) const Divider(),
           if (widget.readOnly)
             Padding(
@@ -1114,14 +1263,17 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           if (_busyText != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(children: [
-                const SizedBox(
+              child: Row(
+                children: [
+                  const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
-                const SizedBox(width: 8),
-                Expanded(child: Text(_busyText!, style: hintStyle)),
-              ]),
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_busyText!, style: hintStyle)),
+                ],
+              ),
             ),
           if (_record == null && !widget.readOnly)
             const Padding(
@@ -1139,8 +1291,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
               !widget.readOnly)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('这份文件没有提取到检验数值或文字内容，可以在"更多"里重新提取。',
-                  style: hintStyle),
+              child: Text('这份文件没有提取到检验数值或文字内容，可以在"更多"里重新提取。', style: hintStyle),
             ),
           if (_record != null && (_results.isNotEmpty || hasEntries))
             _summaryBar(cupertino, total, unreviewed, abnormal),
@@ -1153,24 +1304,23 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Text(
-                  '${_results.every((r) => r.panelRaw == null) ? '这份报告的检验项目' : '有 ${_results.where((r) => r.panelRaw == null).length} 项'}'
-                  '没有标所属大项，尿常规的白细胞、葡萄糖等会和血液里的同名项目混在一起，'
-                  '可以在"更多"里用模型补大项',
-                  style: hintStyle),
+                '${_results.every((r) => r.panelRaw == null) ? '这份报告的检验项目' : '有 ${_results.where((r) => r.panelRaw == null).length} 项'}'
+                '没有标所属大项，尿常规的白细胞、葡萄糖等会和血液里的同名项目混在一起，'
+                '可以在"更多"里用模型补大项',
+                style: hintStyle,
+              ),
             ),
           if (_results.isNotEmpty) ..._resultSections(),
           if (_filter != _ReviewFilter.all &&
               !_results.any(_resultVisible) &&
-              (_filter == _ReviewFilter.abnormal ||
-                  unreviewed == 0))
+              (_filter == _ReviewFilter.abnormal || unreviewed == 0))
             Padding(
               padding: const EdgeInsets.all(32),
               child: Text(
-                  _filter == _ReviewFilter.abnormal
-                      ? '没有异常的检验结果'
-                      : '没有未核对的内容',
-                  textAlign: TextAlign.center,
-                  style: hintStyle),
+                _filter == _ReviewFilter.abnormal ? '没有异常的检验结果' : '没有未核对的内容',
+                textAlign: TextAlign.center,
+                style: hintStyle,
+              ),
             ),
           if (cupertino) const SizedBox(height: 24),
         ],

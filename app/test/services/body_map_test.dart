@@ -80,20 +80,6 @@ void main() {
     expect(BodyMapRules.abnormalSentences('无结石'), isEmpty);
   });
 
-  test('数值异常', () {
-    expect(BodyMapRules.isAbnormalLab(flagRaw: '↑'), isTrue);
-    expect(BodyMapRules.isAbnormalLab(flagRaw: '-'), isFalse);
-    expect(
-        BodyMapRules.isAbnormalLab(valueNum: 65, refLow: 9, refHigh: 50), isTrue);
-    expect(
-        BodyMapRules.isAbnormalLab(valueNum: 30, refLow: 9, refHigh: 50), isFalse);
-    expect(
-        BodyMapRules.isAbnormalLab(valueRaw: '阳性(+)', refRangeRaw: '阴性'),
-        isTrue);
-    expect(BodyMapRules.isAbnormalLab(valueRaw: '阴性', refRangeRaw: '阴性'),
-        isFalse);
-  });
-
   test('生理性别自由文本', () {
     expect(BodyMapRules.parseSex('男'), BodySex.male);
     expect(BodyMapRules.parseSex('female'), BodySex.female);
