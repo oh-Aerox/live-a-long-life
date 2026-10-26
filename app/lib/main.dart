@@ -24,6 +24,12 @@ Future<void> main() async {
     AppLog.I.e('flutter', details.summary.toString(), details.exception,
         details.stack);
   };
+  // 未等待的 Future 抛出的异常不走 FlutterError.onError，也要进日志
+  // （2026-10-26：健康数据同步连续失败，app.log 里一条都没有）。
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    AppLog.I.e('app', '未捕获的异步异常', error, stack);
+    return true;
+  };
   final services = await AppServices.init();
 
   // 检验项目索引是派生数据、不同步也不导出（D-27）：启动时按记录整表重建。
@@ -91,16 +97,15 @@ Future<void> main() async {
     await services.syncService.syncNow();
   }());
 
-  // 健康数据（V2-M4）：用户在设置里开启后，每次启动增量同步。
+  // 健康数据（V2-M4）：用户在设置里开启后，启动和回到前台时增量同步。
   services.healthService = HealthService(
     repository: services.health,
     settings: services.settings,
     tz: tz,
   );
-  if (await services.settings.get('healthkit_sync_enabled') as bool? ??
-      false) {
-    unawaited(services.healthService.syncNow());
-  }
+  unawaited(services.healthService.autoSync());
+  AppLifecycleListener(
+      onResume: () => unawaited(services.healthService.autoSync()));
 
   // 每日回顾（V2-M5）：点开通知进入带提问的对话流，只问缺的。
   services.reviewService = ReviewService(
