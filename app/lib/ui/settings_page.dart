@@ -15,7 +15,6 @@ import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
 import 'android_background_page.dart';
-import 'healthkit_spike_page.dart';
 import 'log_page.dart';
 import 'medical_space_page.dart';
 import 'model_config_page.dart';
@@ -248,13 +247,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: chevron,
                 onTap: () => open(const LogPage()),
               ),
-              if (Platform.isIOS)
-                AdaptiveTile(
-                  title: const Text('HealthKit 试验（T1）'),
-                  subtitle: const Text('技术验证用，之后的版本会移除'),
-                  trailing: chevron,
-                  onTap: () => open(const HealthKitSpikePage()),
-                ),
             ],
           ),
         ],
