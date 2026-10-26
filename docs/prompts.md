@@ -14,7 +14,7 @@
 | 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
 | 医疗文件文字整理 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 当前版本已提取的文字内容（栏目 + 内容，来自脱敏后的文本）。**不发图片、行号和原始识别文本** | 医疗文件详情"用模型整理"（文字内容两段以上，确认后发送） |
 | 医疗文件补检查大项 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 已提取的检验项目名称与已有大项（按报告顺序）。**不发数值、图片** | 医疗文件详情"用模型补大项"（有检验项目没有大项时出现） |
-| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
+| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart`、`consult_tools.dart` | 用户问题 + 今天日期 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"允许模型查阅我的记录"打开时（默认开）模型可多轮调用只读工具按需查记录、健康数据、检验和报告结论（D-43），每轮一条调用记录。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
 `ModelCaller.externalAgent` 只有枚举定义，无调用路径（D-20 外部 agent 入口默认关闭，未实现）。
@@ -328,16 +328,17 @@ data 字段（只填有依据的，缺的字段不要编造）：
 
 ## 4. 主动咨询
 
-- **系统提示词：** `consultSystemPrompt`（consult_service.dart）
-- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对、未痊愈的长期状况）、`past_conditions`（已核对、已痊愈的长期状况，D-41）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有；每条 date/type/summary 一行摘要。医疗类只发已核对内容：未核对的状况不发，报告提取只发已核对的诊断/结论文字、异常检验值、处方药名，没有已核对要点的报告整条不发——2026-09-29 联调修订）、`conversation`（本会话历史，最多 20 条 + 当前问题）
-- **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）
+- **系统提示词：** `consultSystemPrompt`；允许查阅时追加 `consultLookupPrompt`（consult_service.dart）
+- **用户侧输入：** JSON——`today`（今天日期，模型按它算查询的日期范围）、`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对、未痊愈的长期状况）、`past_conditions`（已核对、已痊愈的长期状况，D-41）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`conversation`（本会话历史，最多 20 条 + 当前问题）。原"最近 7 天记录摘要"勾选项已由查阅工具取代（D-43）
+- **工具（允许查阅时，`ConsultTools.specs`，consult_tools.dart）：** `get_records`（日期范围内的记录摘要，可按类型筛；医疗类只发已核对的诊断/结论、异常值、药名）、`get_device_data`（睡眠时长与入睡醒来、步数、活动能量、体能训练；没数据的日期单列）、`list_lab_items`（已核对检验项目的最近一次数值、是否异常、次数，可按关键词、只看异常）、`get_lab_history`（某项历次数值、参考范围、是否异常，同名不同标本分开）、`search_medical_documents`（报告里已核对的文字、异常指标、开药，按关键词和日期筛，最多 15 份）。日期范围单次最多 31 天；参数有误时把错误发回模型
+- **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）、D-43（agent 与只读工具）、D-04（医疗类只发已核对内容）
 
 ```
 你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
-profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
-recent_temporary_conditions 是近期疾病，past_conditions 是用户标记已痊愈
-或已解除的既往病史，recent_records 是最近 7 天的记录（用户勾选了才有），
-conversation 是本次咨询的对话历史，最后一条是当前问题。
+today 是今天的日期，profile 是基本资料，long_term_conditions 是已确认的
+长期身体状况，recent_temporary_conditions 是近期疾病，past_conditions 是
+用户标记已痊愈或已解除的既往病史，conversation 是本次咨询的对话历史，
+最后一条是当前问题。
 
 要求：
 - 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
@@ -346,6 +347,19 @@ conversation 是本次咨询的对话历史，最后一条是当前问题。
 - 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
 - 用中文回答，简洁、分点，不说空泛的养生套话；
 - 直接输出回答正文，不要输出 JSON。
+```
+
+允许查阅时追加：
+
+```
+你可以用工具查用户的数据：日常记录、手机/手表健康数据、检验指标及其历史、
+病历和报告里已核对的文字结论。工具只读，查到的都是用户本人的数据。
+- 问题和具体数据有关时（最近睡得怎样、某项指标的变化、以前查出过什么），
+  先查再答，不要凭空推测；和个人数据无关的常识问题不必查；
+- 只查回答需要的范围：日期从近到远，够用就停，不要为了"全面"把能查的都查一遍；
+- 检验项目先用 list_lab_items 找到项目名，再查历史；
+- 查不到数据就直说没有记录（没有记录不等于没有发生），不要编造；
+- 回答里用到具体数据时注明日期，让用户知道依据是什么。
 ```
 
 ## 5. 测试连接

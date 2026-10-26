@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../data/db/app_database.dart';
 import 'app_log.dart';
+import 'tool_chat.dart';
 
 /// 一次模型调用的结果。
 class ModelResponse {
@@ -84,6 +85,213 @@ class ModelClient {
             maxTokens: maxTokens,
             imagePngBase64: imagePngBase64);
     }
+  }
+
+  /// 带工具的一轮对话（D-43 咨询 agent）。[messages] 是到目前为止的全部
+  /// 往来；[allowTools] 为假时仍带上工具定义（历史里有工具调用时部分服务
+  /// 要求），但禁止再调用，逼模型给出最终回答。
+  Future<ToolChatResponse> chatWithTools({
+    required ModelConfig config,
+    required String apiKey,
+    String? system,
+    required List<ToolChatMessage> messages,
+    required List<ToolSpec> tools,
+    bool allowTools = true,
+    int maxTokens = 4096,
+  }) {
+    switch (config.protocol) {
+      case ModelProtocol.openaiCompatible:
+        return _openaiToolChat(config, apiKey,
+            system: system,
+            messages: messages,
+            tools: tools,
+            allowTools: allowTools,
+            maxTokens: maxTokens);
+      case ModelProtocol.anthropic:
+        return _anthropicToolChat(config, apiKey,
+            system: system,
+            messages: messages,
+            tools: tools,
+            allowTools: allowTools,
+            maxTokens: maxTokens);
+    }
+  }
+
+  Future<ToolChatResponse> _openaiToolChat(
+    ModelConfig config,
+    String apiKey, {
+    String? system,
+    required List<ToolChatMessage> messages,
+    required List<ToolSpec> tools,
+    required bool allowTools,
+    required int maxTokens,
+  }) async {
+    final body = {
+      ..._extraBody(config),
+      'model': config.model,
+      'max_tokens': maxTokens,
+      'messages': [
+        if (system != null) {'role': 'system', 'content': system},
+        for (final m in messages)
+          ...switch (m) {
+            UserText(:final text) => [
+                {'role': 'user', 'content': text}
+              ],
+            AssistantTurn(:final raw) => [raw],
+            ToolResults(:final results) => [
+                for (final r in results)
+                  {'role': 'tool', 'tool_call_id': r.callId, 'content': r.content}
+              ],
+          },
+      ],
+      'tools': [
+        for (final t in tools)
+          {
+            'type': 'function',
+            'function': {
+              'name': t.name,
+              'description': t.description,
+              'parameters': t.parameters,
+            },
+          },
+      ],
+      'tool_choice': allowTools ? 'auto' : 'none',
+    };
+    final json = await _post(
+      _join(config.baseUrl, '/chat/completions'),
+      headers: {'Authorization': 'Bearer $apiKey'},
+      body: body,
+    );
+    final choices = json['choices'] as List?;
+    final message = choices == null || choices.isEmpty
+        ? null
+        : (choices.first as Map)['message'] as Map?;
+    if (message == null) {
+      throw ModelClientException('响应里没有消息内容');
+    }
+    final calls = <ToolCall>[];
+    for (final c in (message['tool_calls'] as List?) ?? const []) {
+      final fn = (c as Map)['function'] as Map? ?? const {};
+      final (args, error) = _decodeArguments(fn['arguments']);
+      calls.add(ToolCall(
+        id: '${c['id']}',
+        name: '${fn['name']}',
+        arguments: args,
+        argumentsError: error,
+      ));
+    }
+    final text = message['content'] as String? ?? '';
+    if (calls.isEmpty && text.trim().isEmpty) {
+      throw ModelClientException('响应里没有消息内容');
+    }
+    final usage = json['usage'] as Map?;
+    return ToolChatResponse(
+      text: text,
+      toolCalls: calls,
+      // 只回传协议需要的字段；思考型模型（Kimi 等）要求带回 reasoning_content。
+      assistant: AssistantTurn({
+        'role': 'assistant',
+        'content': message['content'],
+        if (message['tool_calls'] != null) 'tool_calls': message['tool_calls'],
+        if (message['reasoning_content'] != null)
+          'reasoning_content': message['reasoning_content'],
+      }),
+      tokensIn: usage?['prompt_tokens'] as int?,
+      tokensOut: usage?['completion_tokens'] as int?,
+    );
+  }
+
+  /// OpenAI 兼容协议的参数是 JSON 字符串，个别服务直接给对象。
+  static (Map<String, Object?>, String?) _decodeArguments(Object? raw) {
+    if (raw is Map) return (raw.cast<String, Object?>(), null);
+    if (raw == null || (raw is String && raw.trim().isEmpty)) {
+      return (const {}, null);
+    }
+    try {
+      final v = jsonDecode('$raw');
+      if (v is Map) return (v.cast<String, Object?>(), null);
+    } on FormatException {
+      // 落到下面
+    }
+    return (const {}, '参数不是合法的 JSON 对象：$raw');
+  }
+
+  Future<ToolChatResponse> _anthropicToolChat(
+    ModelConfig config,
+    String apiKey, {
+    String? system,
+    required List<ToolChatMessage> messages,
+    required List<ToolSpec> tools,
+    required bool allowTools,
+    required int maxTokens,
+  }) async {
+    final body = {
+      'model': config.model,
+      'max_tokens': maxTokens,
+      'system': ?system,
+      'messages': [
+        for (final m in messages)
+          switch (m) {
+            UserText(:final text) => {'role': 'user', 'content': text},
+            AssistantTurn(:final raw) => {'role': 'assistant', 'content': raw},
+            ToolResults(:final results) => {
+                'role': 'user',
+                'content': [
+                  for (final r in results)
+                    {
+                      'type': 'tool_result',
+                      'tool_use_id': r.callId,
+                      'content': r.content,
+                    },
+                ],
+              },
+          },
+      ],
+      'tools': [
+        for (final t in tools)
+          {
+            'name': t.name,
+            'description': t.description,
+            'input_schema': t.parameters,
+          },
+      ],
+      'tool_choice': {'type': allowTools ? 'auto' : 'none'},
+    };
+    final json = await _post(
+      _join(config.baseUrl, '/v1/messages'),
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': anthropicVersion,
+      },
+      body: body,
+    );
+    final content = (json['content'] as List?)?.cast<Map>() ?? const [];
+    final text = content
+        .where((b) => b['type'] == 'text')
+        .map((b) => b['text'] as String)
+        .join();
+    final calls = [
+      for (final b in content)
+        if (b['type'] == 'tool_use')
+          ToolCall(
+            id: '${b['id']}',
+            name: '${b['name']}',
+            arguments:
+                (b['input'] as Map?)?.cast<String, Object?>() ?? const {},
+          ),
+    ];
+    if (calls.isEmpty && text.trim().isEmpty) {
+      throw ModelClientException('响应里没有文本内容');
+    }
+    final usage = json['usage'] as Map?;
+    return ToolChatResponse(
+      text: text,
+      toolCalls: calls,
+      // 内容块原样回传（含 thinking 块，开了扩展思考时必须带回）。
+      assistant: AssistantTurn(json['content'] ?? const []),
+      tokensIn: usage?['input_tokens'] as int?,
+      tokensOut: usage?['output_tokens'] as int?,
+    );
   }
 
   /// 1×1 透明 PNG，用于探测图片能力。

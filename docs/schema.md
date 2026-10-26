@@ -420,6 +420,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 | `home_tz` | 自动检测 | 常用时区 |
 | `idle_preorganize_sec` | `180` | 无输入多少秒后在后台预整理。只触发预整理，不代表结束或确认（R-08） |
 | `healthkit_enabled_types` | `["sleep","steps","workout","active_energy"]` | 读取哪些健康数据（R-17） |
+| `consult_allow_lookup` | `true` | 咨询时是否允许模型用只读工具查阅记录（D-43） |
 
 ### 4.3 `model_configs` 模型配置
 

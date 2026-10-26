@@ -13,17 +13,18 @@ import '../data/repositories/record_repository.dart';
 import 'app_log.dart';
 import 'key_store.dart';
 import 'model_client.dart';
+import 'consult_tools.dart';
 import 'organize_service.dart' show OrganizeModelCall;
-import '../data/record_summary.dart';
+import 'tool_chat.dart';
 
 /// 主动咨询提示词（D-26：不诊断不开药，需要就医时明确说）。
 /// 改动本提示词时同步更新 docs/prompts.md。
-const consultSystemPrompt = '''
+const consultSystemPrompt = """
 你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
-profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
-recent_temporary_conditions 是近期疾病，past_conditions 是用户标记已痊愈
-或已解除的既往病史，recent_records 是最近 7 天的记录（用户勾选了才有），
-conversation 是本次咨询的对话历史，最后一条是当前问题。
+today 是今天的日期，profile 是基本资料，long_term_conditions 是已确认的
+长期身体状况，recent_temporary_conditions 是近期疾病，past_conditions 是
+用户标记已痊愈或已解除的既往病史，conversation 是本次咨询的对话历史，
+最后一条是当前问题。
 
 要求：
 - 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
@@ -32,10 +33,38 @@ conversation 是本次咨询的对话历史，最后一条是当前问题。
 - 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
 - 用中文回答，简洁、分点，不说空泛的养生套话；
 - 直接输出回答正文，不要输出 JSON。
-''';
+""";
+
+/// 允许查阅时追加的工具说明（D-43）。改动时同步更新 docs/prompts.md。
+const consultLookupPrompt = """
+
+你可以用工具查用户的数据：日常记录、手机/手表健康数据、检验指标及其历史、
+病历和报告里已核对的文字结论。工具只读，查到的都是用户本人的数据。
+- 问题和具体数据有关时（最近睡得怎样、某项指标的变化、以前查出过什么），
+  先查再答，不要凭空推测；和个人数据无关的常识问题不必查；
+- 只查回答需要的范围：日期从近到远，够用就停，不要为了"全面"把能查的都查一遍；
+- 检验项目先用 list_lab_items 找到项目名，再查历史；
+- 查不到数据就直说没有记录（没有记录不等于没有发生），不要编造；
+- 回答里用到具体数据时注明日期，让用户知道依据是什么。
+""";
+
+/// 带工具的模型调用，测试时替换为假实现。
+typedef ToolChatCall = Future<ToolChatResponse> Function({
+  required ModelConfig config,
+  required String apiKey,
+  String? system,
+  required List<ToolChatMessage> messages,
+  required List<ToolSpec> tools,
+  required bool allowTools,
+  required int maxTokens,
+});
 
 /// 主动咨询（V4-M6，D-26）：问题 + 最小上下文发默认模型；咨询是问答
 /// 不是录入——不进消息流、不参与整理、不生成记录；历史本地保存可回看。
+///
+/// 用户允许查阅时按 agent 方式运行（D-43）：模型可多轮调用只读工具
+/// （[ConsultTools]）按需查数据，最多 [maxLookupRounds] 轮后必须作答。
+/// 每一轮都写一条调用记录，问题下方列出查了什么。
 class ConsultService {
   ConsultService({
     required AppDatabase db,
@@ -44,7 +73,9 @@ class ConsultService {
     required OrganizeRepository organize,
     required ModelConfigRepository modelConfigs,
     required KeyStore keyStore,
+    required ConsultTools tools,
     OrganizeModelCall? modelCall,
+    ToolChatCall? toolCall,
     this.ids = const IdGenerator(),
   })  : _db = db,
         _records = records,
@@ -52,7 +83,9 @@ class ConsultService {
         _organize = organize,
         _modelConfigs = modelConfigs,
         _keyStore = keyStore,
-        _modelCall = modelCall ?? _defaultCall;
+        _tools = tools,
+        _modelCall = modelCall ?? _defaultCall,
+        _toolCall = toolCall ?? _defaultToolCall;
 
   final AppDatabase _db;
   final RecordRepository _records;
@@ -60,8 +93,16 @@ class ConsultService {
   final OrganizeRepository _organize;
   final ModelConfigRepository _modelConfigs;
   final KeyStore _keyStore;
+  final ConsultTools _tools;
   final OrganizeModelCall _modelCall;
+  final ToolChatCall _toolCall;
   final IdGenerator ids;
+
+  /// 查阅轮数上限：到最后一轮禁止再调用工具，逼模型作答。
+  static const maxLookupRounds = 6;
+
+  /// "允许模型查阅我的记录"开关的设置键，默认开（D-43）。
+  static const allowLookupKey = 'consult_allow_lookup';
 
   static Future<ModelResponse> _defaultCall({
     required ModelConfig config,
@@ -75,6 +116,24 @@ class ConsultService {
           apiKey: apiKey,
           system: system,
           userText: userText,
+          maxTokens: maxTokens);
+
+  static Future<ToolChatResponse> _defaultToolCall({
+    required ModelConfig config,
+    required String apiKey,
+    String? system,
+    required List<ToolChatMessage> messages,
+    required List<ToolSpec> tools,
+    required bool allowTools,
+    required int maxTokens,
+  }) =>
+      ModelClient().chatWithTools(
+          config: config,
+          apiKey: apiKey,
+          system: system,
+          messages: messages,
+          tools: tools,
+          allowTools: allowTools,
           maxTokens: maxTokens);
 
   /// 一个会话的全部消息，按时间升序。
@@ -94,11 +153,12 @@ class ConsultService {
   }
 
   /// 提问。把问题存入会话、组上下文调模型、存回答；返回回答消息。
-  /// [includeRecentRecords] 用户勾选才附带最近 7 天记录（默认不带，D-26）。
+  /// [allowLookup] 为真时模型可按需调用只读工具查数据（D-43）；为假时
+  /// 只发最小上下文（D-26）。
   Future<ConsultMessage> ask(
     String sessionId,
     String question, {
-    bool includeRecentRecords = false,
+    bool allowLookup = false,
   }) async {
     final config = await _modelConfigs.defaultConfig();
     if (config == null) {
@@ -148,62 +208,67 @@ class ConsultService {
       }
     }
 
-    // 可选：最近 7 天记录摘要。
-    List<Map<String, Object?>>? recentRecords;
-    if (includeRecentRecords) {
-      recentRecords = [];
-      for (final rec in await _records.since(_daysAgo(7))) {
-        if (rec.currentRevisionId == null) continue;
-        final rev = await _records.currentRevisionOf(rec.id);
-        final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
-        final meta = FieldMetaMap.decode(rev.fieldMeta);
-        final String summary;
-        switch (rec.recordType) {
-          // 医疗类只发已核对的内容（D-04）：未核对的状况、报告要点不算事实。
-          case RecordType.condition:
-            if (!(meta['condition']?.isProtected ?? false)) continue;
-            summary = recordSummary(rec.recordType, data);
-          case RecordType.labPanel:
-            final s = reviewedMedicalSummary(data, meta);
-            if (s == null) continue;
-            summary = s;
-          default:
-            summary = recordSummary(rec.recordType, data);
-        }
-        recentRecords.add({
-          'date': rec.localDate,
-          'type': enumToDb(rec.recordType),
-          'summary': summary,
-        });
-      }
-    }
-
     final history = await messagesOf(sessionId);
     final contextNote = [
       '问题',
       if (profile.isNotEmpty) '基本资料',
       '状况档案 ${longTerm.length + temporary.length} 条',
-      if (recentRecords != null) '最近 7 天记录 ${recentRecords.length} 条',
       if (history.isNotEmpty) '本会话历史 ${history.length} 条',
     ].join(' + ');
 
-    await _insert(sessionId, 'user', question, contextNote: contextNote);
+    final asked = await _insert(sessionId, 'user', question,
+        contextNote: contextNote);
 
-    final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
         ? ''
         : (await _keyStore.read(config.keychainRef) ?? '');
     final userText = jsonEncode({
+      'today': _daysAgo(0),
       'profile': profile,
       'long_term_conditions': longTerm,
       'recent_temporary_conditions': temporary,
       'past_conditions': past,
-      'recent_records': ?recentRecords,
       'conversation': [
         for (final m in history.takeLast(20)) {'role': m.role, 'text': m.body},
         {'role': 'user', 'text': question},
       ],
     });
+
+    (String, String) answer;
+    var note = contextNote;
+    if (allowLookup) {
+      final lookups = <String>[];
+      try {
+        answer = await _askWithTools(
+            config, apiKey, userText, contextNote, lookups);
+      } on ModelClientException catch (e) {
+        // 第一轮就被拒（400/422）多半是模型或服务不支持工具：按原方式答。
+        if (lookups.isNotEmpty || !(e.statusCode == 400 || e.statusCode == 422)) {
+          rethrow;
+        }
+        AppLog.I.w('consult', '带工具的请求被拒，按不查阅的方式回答：${e.message}');
+        note = '$contextNote（模型不支持查阅，按原方式回答）';
+        answer = await _askOnce(config, apiKey, userText, note);
+      } finally {
+        if (lookups.isNotEmpty) note = '$contextNote + 查阅：${lookups.join('、')}';
+        if (note != contextNote) await _updateNote(asked.id, note);
+      }
+    } else {
+      answer = await _askOnce(config, apiKey, userText, contextNote);
+    }
+    final (reply, callId) = answer;
+
+    if (reply.trim().isEmpty) {
+      throw StateError('模型返回为空，稍后重试');
+    }
+    AppLog.I.i('consult', '咨询完成：$note');
+    return _insert(sessionId, 'assistant', reply.trim(), modelCallId: callId);
+  }
+
+  /// 一问一答（不查阅）。返回回答和调用记录 ID。
+  Future<(String, String)> _askOnce(ModelConfig config, String apiKey,
+      String userText, String contextNote) async {
+    final requestAt = ids.nowMs();
     ModelResponse response;
     try {
       response = await _modelCall(
@@ -214,43 +279,101 @@ class ConsultService {
         maxTokens: 4096,
       );
     } catch (e) {
-      await _organize.recordModelCall(
+      await _logCall(config, requestAt, contextNote, userText, null);
+      rethrow;
+    }
+    final call =
+        await _logCall(config, requestAt, contextNote, userText, response);
+    return (response.text, call.id);
+  }
+
+  /// agent 循环（D-43）：模型要查就执行工具、把结果发回，直到给出回答。
+  /// 每轮一条调用记录，request_text 是这一轮新发出的内容（首轮是上下文，
+  /// 之后是工具结果）。[lookups] 收集给用户看的"查了什么"。
+  Future<(String, String)> _askWithTools(ModelConfig config, String apiKey,
+      String userText, String contextNote, List<String> lookups) async {
+    final messages = <ToolChatMessage>[UserText(userText)];
+    var sent = userText;
+    var summary = contextNote;
+    for (var round = 1;; round++) {
+      final requestAt = ids.nowMs();
+      ToolChatResponse response;
+      try {
+        response = await _toolCall(
+          config: config,
+          apiKey: apiKey,
+          system: consultSystemPrompt + consultLookupPrompt,
+          messages: messages,
+          tools: ConsultTools.specs,
+          allowTools: round < maxLookupRounds,
+          maxTokens: 4096,
+        );
+      } catch (e) {
+        await _logCall(config, requestAt, summary, sent, null);
+        rethrow;
+      }
+      final call = await _logCall(
+          config,
+          requestAt,
+          summary,
+          sent,
+          ModelResponse(
+            text: response.toolCalls.isEmpty
+                ? response.text
+                : jsonEncode({
+                    if (response.text.isNotEmpty) 'text': response.text,
+                    'tool_calls': [
+                      for (final c in response.toolCalls)
+                        {'name': c.name, 'arguments': c.arguments},
+                    ],
+                  }),
+            tokensIn: response.tokensIn,
+            tokensOut: response.tokensOut,
+          ));
+      if (response.toolCalls.isEmpty) return (response.text, call.id);
+
+      final results = <ToolResult>[];
+      final notes = <String>[];
+      for (final c in response.toolCalls) {
+        final outcome = await _tools.run(c);
+        results.add(ToolResult(callId: c.id, content: outcome.content));
+        notes.add(outcome.note);
+      }
+      lookups.addAll(notes);
+      messages
+        ..add(response.assistant)
+        ..add(ToolResults(results));
+      sent = jsonEncode([
+        for (var i = 0; i < results.length; i++)
+          {'tool': response.toolCalls[i].name, 'result': results[i].content},
+      ]);
+      summary = '查阅结果：${notes.join('、')}';
+    }
+  }
+
+  Future<ModelCall> _logCall(ModelConfig config, int requestAt,
+          String summary, String requestText, ModelResponse? response) =>
+      _organize.recordModelCall(
         modelConfigId: config.id,
         dataBoundary: config.dataBoundary,
         sentMessageIdsJson: '[]',
         sentAttachmentIdsJson: '[]',
         requestAt: requestAt,
         responseAt: ids.nowMs(),
-        status: ModelCallStatus.failed,
+        status: response == null
+            ? ModelCallStatus.failed
+            : ModelCallStatus.succeeded,
+        tokensIn: response?.tokensIn,
+        tokensOut: response?.tokensOut,
+        responseText: response?.text,
         caller: ModelCaller.userConsult,
-        sentSummary: contextNote,
-        requestText: userText,
+        sentSummary: summary,
+        requestText: requestText,
       );
-      rethrow;
-    }
-    final call = await _organize.recordModelCall(
-      modelConfigId: config.id,
-      dataBoundary: config.dataBoundary,
-      sentMessageIdsJson: '[]',
-      sentAttachmentIdsJson: '[]',
-      requestAt: requestAt,
-      responseAt: ids.nowMs(),
-      status: ModelCallStatus.succeeded,
-      tokensIn: response.tokensIn,
-      tokensOut: response.tokensOut,
-      responseText: response.text,
-      caller: ModelCaller.userConsult,
-      sentSummary: contextNote,
-      requestText: userText,
-    );
 
-    final reply = response.text.trim();
-    if (reply.isEmpty) {
-      throw StateError('模型返回为空，稍后重试');
-    }
-    AppLog.I.i('consult', '咨询完成：$contextNote');
-    return _insert(sessionId, 'assistant', reply, modelCallId: call.id);
-  }
+  Future<void> _updateNote(String messageId, String note) =>
+      (_db.update(_db.consultMessages)..where((t) => t.id.equals(messageId)))
+          .write(ConsultMessagesCompanion(contextNote: Value(note)));
 
   Future<ConsultMessage> _insert(String sessionId, String role, String body,
           {String? contextNote, String? modelCallId}) =>

@@ -4,17 +4,64 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
+import 'package:live_a_long_life/data/repositories/medical_document_repository.dart';
 import 'package:live_a_long_life/data/repositories/model_config_repository.dart';
 import 'package:live_a_long_life/data/repositories/organize_repository.dart';
 import 'package:live_a_long_life/data/repositories/profile_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/consult_service.dart';
+import 'package:live_a_long_life/services/consult_tools.dart';
+import 'package:live_a_long_life/services/health_service.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/model_client.dart';
+import 'package:live_a_long_life/services/tool_chat.dart';
 
 import '../data/test_helpers.dart';
 import 'organize_service_test.dart' show FakeModel;
+
+/// 带工具的假模型：按脚本逐轮返回，记下每轮收到的消息和是否允许调用工具。
+class FakeToolModel {
+  final _script = <Object>[];
+  final calls = <({List<ToolChatMessage> messages, bool allowTools})>[];
+
+  void reply(Object turnOrError) => _script.add(turnOrError);
+
+  Future<ToolChatResponse> call({
+    required ModelConfig config,
+    required String apiKey,
+    String? system,
+    required List<ToolChatMessage> messages,
+    required List<ToolSpec> tools,
+    required bool allowTools,
+    required int maxTokens,
+  }) async {
+    calls.add((messages: List.of(messages), allowTools: allowTools));
+    if (_script.isEmpty) {
+      throw StateError('FakeToolModel 没有预置应答（第 ${calls.length} 次调用）');
+    }
+    final next = _script.removeAt(0);
+    if (next is Exception) throw next;
+    return next as ToolChatResponse;
+  }
+}
+
+ToolChatResponse textTurn(String text) => ToolChatResponse(
+    text: text,
+    toolCalls: const [],
+    assistant: const AssistantTurn([]),
+    tokensIn: 10,
+    tokensOut: 20);
+
+ToolChatResponse toolTurn(String name, Map<String, Object?> args,
+        {String id = 'call-1'}) =>
+    ToolChatResponse(
+      text: '',
+      toolCalls: [ToolCall(id: id, name: name, arguments: args)],
+      assistant: AssistantTurn([
+        {'type': 'tool_use', 'id': id, 'name': name, 'input': args},
+      ]),
+    );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +72,7 @@ void main() {
   late ModelConfigRepository configs;
   late OrganizeRepository organize;
   late FakeModel model;
+  late FakeToolModel toolModel;
   late ConsultService consult;
 
   setUp(() async {
@@ -35,6 +83,7 @@ void main() {
     configs = ModelConfigRepository(env.db, env.ctx);
     organize = OrganizeRepository(env.db, env.ctx);
     model = FakeModel();
+    toolModel = FakeToolModel();
     consult = ConsultService(
       db: env.db,
       records: records,
@@ -42,7 +91,15 @@ void main() {
       organize: organize,
       modelConfigs: configs,
       keyStore: KeyStore(),
+      tools: ConsultTools(
+        db: env.db,
+        records: records,
+        documents: MedicalDocumentRepository(env.db, env.ctx),
+        deviceData: (_) async => const DeviceDayData(
+            sleep: null, workouts: [], steps: null, activeEnergyKcal: null),
+      ),
       modelCall: model.call,
+      toolCall: toolModel.call,
     );
   });
 
@@ -84,7 +141,7 @@ void main() {
     );
   }
 
-  test('咨询上下文：基本资料 + 已确认状况进入，未核对不进；默认不带近期记录（D-26）',
+  test('不允许查阅：一问一答，基本资料 + 已确认状况进入，未核对不进（D-26）',
       () async {
     await addConfig();
     await profile.setField('sex_at_birth', value: 'male');
@@ -115,7 +172,7 @@ void main() {
     expect(names, ['胆囊结石']); // 未核对的不进（D-04），已痊愈的单列
     expect([for (final e in sent['past_conditions'] as List) e['name']],
         ['肾结石']);
-    expect(sent.containsKey('recent_records'), isFalse); // 默认不带
+    expect(sent['today'], today());
     expect((sent['conversation'] as List).length, 1);
 
     // 调用记录：caller 与发送范围描述（A-38）。
@@ -134,7 +191,25 @@ void main() {
     expect(changes.where((c) => c.entityType == 'consult_messages'), isEmpty);
   });
 
-  test('多轮追问带会话历史；勾选后附带近 7 天记录摘要', () async {
+  test('多轮追问带会话历史', () async {
+    await addConfig();
+    model.reply('第一轮回答');
+    await consult.ask('s1', '最近想加强锻炼');
+    model.reply('第二轮回答');
+    await consult.ask('s1', '那强度怎么定？');
+
+    final sent = jsonDecode(model.calls[1]) as Map;
+    final convo = sent['conversation'] as List;
+    expect(convo, hasLength(3)); // 首问 + 首答 + 当前问题
+    expect((convo[1] as Map)['role'], 'assistant');
+
+    final msgs = await consult.messagesOf('s1');
+    expect(msgs, hasLength(4));
+    expect(msgs.last.modelCallId, isNotNull);
+  });
+
+  test('允许查阅（D-43）：模型调工具、结果发回、再作答；每轮一条调用记录，问题下方列出查了什么',
+      () async {
     await addConfig();
     await records.create(
       recordType: RecordType.exercise,
@@ -147,107 +222,72 @@ void main() {
       producedBy: ProducedBy.organizeRun('r1'),
     );
 
-    model.reply('第一轮回答');
-    await consult.ask('s1', '最近想加强锻炼');
-    model.reply('第二轮回答');
-    await consult.ask('s1', '那强度怎么定？', includeRecentRecords: true);
+    toolModel.reply(toolTurn(
+        'get_records', {'start_date': today(), 'end_date': today()}));
+    toolModel.reply(textTurn('今天跑了 30 分钟，强度合适。'));
+    final reply = await consult.ask('s1', '我今天运动够吗？', allowLookup: true);
 
-    final sent = jsonDecode(model.calls[1]) as Map;
-    final convo = sent['conversation'] as List;
-    expect(convo, hasLength(3)); // 首问 + 首答 + 当前问题
-    expect((convo[1] as Map)['role'], 'assistant');
-    final recent = sent['recent_records'] as List;
-    expect((recent.single as Map)['summary'], contains('跑步'));
+    expect(reply.body, contains('30 分钟'));
+    expect(model.calls, isEmpty); // 不走一问一答
+    expect(toolModel.calls, hasLength(2));
+    // 第二轮带上了模型的工具调用和工具结果。
+    final second = toolModel.calls[1].messages;
+    expect(second, hasLength(3));
+    expect(second[1], isA<AssistantTurn>());
+    final result = (second[2] as ToolResults).results.single;
+    expect(result.callId, 'call-1');
+    expect(result.content, contains('跑步'));
 
-    final msgs = await consult.messagesOf('s1');
-    expect(msgs, hasLength(4));
-    expect(msgs.last.modelCallId, isNotNull);
+    final question = (await consult.messagesOf('s1')).first;
+    expect(question.contextNote, contains('查阅：记录'));
+    expect(question.contextNote, contains('（1 条）'));
+
+    final calls = await organize.recentModelCalls();
+    expect(calls, hasLength(2));
+    expect(calls.every((c) => c.caller == ModelCaller.userConsult), isTrue);
+    // 第二轮的发送内容是工具结果，可在调用记录里查到；回答出自这一轮。
+    final toolRound =
+        calls.firstWhere((c) => c.sentSummary!.startsWith('查阅结果'));
+    expect(toolRound.requestText, contains('跑步'));
+    expect(reply.modelCallId, toolRound.id);
+    // 第一轮的返回内容记的是模型要调的工具。
+    final first = calls.firstWhere((c) => c.id != toolRound.id);
+    expect(first.responseText, contains('get_records'));
   });
 
-  test('近 7 天摘要（联调修订）：睡眠带时间；未核对状况与报告要点不发；已核对报告发诊断/异常/药名', () async {
+  test('允许查阅：到轮数上限时禁止再调工具，逼模型作答', () async {
     await addConfig();
-    final occurred = TimeValue(
-        localDate: today(),
-        precision: TimePrecision.dateOnly,
-        source: TimeValueSource.userStated);
-    Future<void> add(RecordType type, Map<String, Object?> data,
-            Map<String, FieldMeta> meta) =>
-        records.create(
-          recordType: type,
-          occurred: occurred,
-          dataJson: jsonEncode(data),
-          fieldMeta: FieldMetaMap(meta),
-          producedBy: ProducedBy.userEdit(),
-        );
-    const unreviewed = FieldMeta(
-        origin: FieldOrigin.modelInferred, reviewStatus: ReviewStatus.unreviewed);
-    const confirmed = FieldMeta(
-        origin: FieldOrigin.modelInferred, reviewStatus: ReviewStatus.confirmed);
+    for (var i = 1; i < ConsultService.maxLookupRounds; i++) {
+      toolModel.reply(toolTurn('list_lab_items', {}, id: 'c$i'));
+    }
+    toolModel.reply(textTurn('根据现有数据……'));
+    await consult.ask('s1', '我的指标怎么样', allowLookup: true);
+    expect(toolModel.calls, hasLength(ConsultService.maxLookupRounds));
+    expect(toolModel.calls.last.allowTools, isFalse);
+    expect(toolModel.calls[ConsultService.maxLookupRounds - 2].allowTools,
+        isTrue);
+  });
 
-    await add(RecordType.sleep, {
-      'sleep_onset': {'local_date': today(), 'local_time': '23:40'},
-      'wake_time': {'local_date': today(), 'local_time': '07:05'},
-      'quality_text': '睡得还行',
-    }, {});
-    await add(RecordType.condition,
-        {'name': '胆囊息肉', 'persistence': 'long_term', 'status': 'active'},
-        {'condition': unreviewed});
-    // 全部未核对的报告：不发。
-    await add(RecordType.labPanel, {
-      'medical_document_id': 'd1',
-      'results': [],
-      'findings': [
-        {'section_raw': '诊断', 'text_raw': '未核对的诊断'}
-      ],
-    }, {'findings.0': unreviewed});
-    // 已核对的报告：诊断、异常值、药名；正常值、现病史、未核对的药不发。
-    await add(RecordType.labPanel, {
-      'medical_document_id': 'd2',
-      'results': [
-        {'item_name_raw': '白细胞', 'value_raw': '11.2', 'value_num': 11.2,
-         'unit_raw': '10^9/L', 'ref_range_raw': '3.5-9.5', 'ref_low': 3.5,
-         'ref_high': 9.5, 'flag_raw': null},
-        {'item_name_raw': '血红蛋白', 'value_raw': '145', 'value_num': 145,
-         'ref_low': 130, 'ref_high': 175, 'flag_raw': null},
-      ],
-      'findings': [
-        {'section_raw': '诊断', 'text_raw': '1.咽喉炎 2.上呼吸道感染'},
-        {'section_raw': '现病史', 'text_raw': '患者5天前出现不适'},
-      ],
-      'medications': [
-        {'name': '头孢呋辛酯片'},
-        {'name': '未核对的药'},
-      ],
-    }, {
-      'results.0': confirmed,
-      'results.1': confirmed,
-      'findings.0': confirmed,
-      'findings.1': confirmed,
-      'medications.0': confirmed,
-      'medications.1': unreviewed,
-    });
+  test('允许查阅：第一轮被拒（模型不支持工具）时按一问一答回答并注明', () async {
+    await addConfig();
+    toolModel.reply(ModelClientException('tools not supported', statusCode: 400));
+    model.reply('普通回答');
+    final reply = await consult.ask('s1', '问一下', allowLookup: true);
+    expect(reply.body, '普通回答');
+    final question = (await consult.messagesOf('s1')).first;
+    expect(question.contextNote, contains('模型不支持查阅'));
+    // 失败的一轮和兜底的一问一答各有记录。
+    final calls = await organize.recentModelCalls();
+    expect(calls.map((c) => c.status).toSet(),
+        {ModelCallStatus.failed, ModelCallStatus.succeeded});
+  });
 
-    model.reply('好的');
-    await consult.ask('s1', '最近要注意什么', includeRecentRecords: true);
-    final sent = jsonDecode(model.calls.single) as Map;
-    final summaries = [
-      for (final r in sent['recent_records'] as List) (r as Map)['summary'] as String
-    ];
-    final all = summaries.join('\n');
-    expect(all, contains('入睡 23:40'));
-    expect(all, contains('醒来 07:05'));
-    expect(all, isNot(contains('胆囊息肉')));
-    expect(all, isNot(contains('未核对')));
-    expect(all, contains('诊断：1.咽喉炎 2.上呼吸道感染'));
-    expect(all, contains('白细胞 11.210^9/L'));
-    expect(all, isNot(contains('血红蛋白')));
-    expect(all, isNot(contains('现病史')));
-    expect(all, contains('开药：头孢呋辛酯片'));
-    expect(summaries, hasLength(2)); // 睡眠 + 已核对的报告
-
-    // 调用记录保存了实际发送的内容。
-    final call = (await organize.recentModelCalls()).single;
-    expect(call.requestText, model.calls.single);
+  test('允许查阅：网络错误不兜底，照常报错', () async {
+    await addConfig();
+    toolModel.reply(ModelClientException('网络断了', retriable: true));
+    await expectLater(
+        consult.ask('s1', '问一下', allowLookup: true), throwsException);
+    expect(model.calls, isEmpty);
   });
 
   test('模型失败：问题保留在会话里，失败调用有记录', () async {

@@ -35,7 +35,7 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 
 ### Ask a question (iPhone, Mac)
 
-- Ask the model a health question at any time. By default only basic profile info and your confirmed conditions are included; a summary of the last 7 days is added only if you tick it.
+- Ask the model a health question at any time. It starts with your basic profile and confirmed conditions; when it needs specifics, it looks up your records, Apple Health data, lab history and report conclusions on its own (for medical content, only what you have reviewed), then answers from what it found. What it looked up is listed under your question, and everything sent in each round can be seen in the model call log. Turn off "Let the model look up my records" to send only your profile and conditions.
 - Conversations never turn into health records, and replies are shown with formatting. The model does not diagnose or prescribe, and says clearly when you should see a doctor.
 
 ### Computer (Mac, Windows)

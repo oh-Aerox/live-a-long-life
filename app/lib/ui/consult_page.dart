@@ -7,6 +7,7 @@ import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
+import '../services/consult_service.dart';
 
 /// 主动咨询（D-26）：临时问模型一些建议。问答不进消息流、不参与整理、
 /// 不生成记录；要记录咨询里提到的事，回消息流正常录入。
@@ -24,7 +25,7 @@ class _ConsultPageState extends State<ConsultPage> {
   final _scroll = ScrollController();
   String _sessionId = const IdGenerator().newId();
   List<ConsultMessage> _messages = [];
-  bool _includeRecent = false;
+  bool _allowLookup = true;
   bool _sending = false;
 
   @override
@@ -34,6 +35,9 @@ class _ConsultPageState extends State<ConsultPage> {
   }
 
   Future<void> _restore() async {
+    final allow = await widget.services.settings
+        .get(ConsultService.allowLookupKey) as bool?;
+    if (allow != null && mounted) setState(() => _allowLookup = allow);
     final latest = await widget.services.consult.latestSessionId();
     if (latest != null) {
       _sessionId = latest;
@@ -62,7 +66,7 @@ class _ConsultPageState extends State<ConsultPage> {
       final future = widget.services.consult.ask(
         _sessionId,
         text,
-        includeRecentRecords: _includeRecent,
+        allowLookup: _allowLookup,
       );
       await _reload(); // 先显示自己的提问
       await future;
@@ -183,13 +187,18 @@ class _ConsultPageState extends State<ConsultPage> {
                   Row(
                     children: [
                       Checkbox(
-                        value: _includeRecent,
+                        value: _allowLookup,
                         visualDensity: VisualDensity.compact,
-                        onChanged: (v) =>
-                            setState(() => _includeRecent = v ?? false),
+                        onChanged: (v) {
+                          setState(() => _allowLookup = v ?? false);
+                          widget.services.settings.set(
+                              ConsultService.allowLookupKey, _allowLookup);
+                        },
                       ),
+                      // D-43：模型按需查记录、健康数据、检验和报告结论，
+                      // 查了什么列在问题下方。
                       const Expanded(
-                        child: Text('附带最近 7 天记录摘要（默认不带）',
+                        child: Text('允许模型查阅我的记录（查了什么会列在问题下方）',
                             style: TextStyle(fontSize: 12)),
                       ),
                     ],
