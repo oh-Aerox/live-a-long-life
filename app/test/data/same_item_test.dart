@@ -240,6 +240,21 @@ void main() {
     expect(SameItem.sameProblem('结膜炎', '结膜肉芽肿'), isFalse);
   });
 
+  test('同一问题（D-46）：方括号别名、同一种病的新旧叫法；疑似重复只提示不合并', () {
+    expect(SameItem.sameProblem('过敏性鼻炎［变应性鼻炎］', '变应性鼻炎'), isTrue);
+    expect(SameItem.sameProblem('慢性浅表性胃炎', '轻度慢性非萎缩性胃炎'), isTrue);
+    expect(SameItem.sameProblem('股癣？', '股癣'), isTrue);
+    expect(SameItem.sameProblem('变应性鼻炎', '慢性鼻炎'), isFalse);
+
+    expect(SameItem.maybeSameProblem('胃炎', '轻度慢性非萎缩性胃炎'), isTrue);
+    expect(SameItem.maybeSameProblem('皮疹', '皮疹血虚风燥'), isTrue);
+    expect(SameItem.sameProblem('胃炎', '慢性非萎缩性胃炎'), isFalse);
+    // 已经算同一问题的不再提示；毫不相干的不提示。
+    expect(SameItem.maybeSameProblem('胆囊结石', '胆囊结石（多发）'), isFalse);
+    expect(SameItem.maybeSameProblem('前列腺囊肿', '前列腺钙化灶'), isFalse);
+    expect(SameItem.maybeSameProblem('变应性鼻炎', '慢性鼻炎'), isFalse);
+  });
+
   test('问题文字去序号与检查名前缀', () {
     expect(SameItem.problemText('3.耳鼻喉科提示：慢性鼻炎'), '慢性鼻炎');
     expect(SameItem.problemText('(1).肝囊肿'), '肝囊肿');

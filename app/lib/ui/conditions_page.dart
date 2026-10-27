@@ -6,13 +6,17 @@ import '../app_services.dart';
 import '../data/condition_entry.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
+import '../data/same_item.dart';
 import '../data/time_value.dart';
+import '../services/condition_category.dart';
 import 'source_viewer_page.dart';
 
 /// 长期状况档案（D-25，R-36）：长期状况全部列出，临时疾病单独一节。
 /// 提取建议的状况带"未核对"标记，确认后才参与分析；复查进展追加
 /// 新版本，既往诊断不改写（R-34）。不同年份报告里的同一问题各有一条
 /// 记录，这里归成一行，按最新那份报告显示，既往写法列在下面（D-32）。
+/// 按身体系统分组；已痊愈的、临时疾病收在下面；规则不敢自动合并的
+/// 疑似重复提示用户确认，也可以手动合并（D-46）。
 class ConditionsPage extends StatefulWidget {
   const ConditionsPage(
       {super.key, required this.services, this.readOnly = false});
@@ -26,6 +30,10 @@ class ConditionsPage extends StatefulWidget {
 
 class _ConditionsPageState extends State<ConditionsPage> {
   List<ConditionEntry> _entries = [];
+
+  /// 用户点过"不是同一个"的疑似重复（两组分组名的核心，排序后用 | 连接）。
+  Set<String> _dismissed = {};
+  static const _dismissedKey = 'condition_merge_dismissed';
 
   @override
   void initState() {
@@ -46,11 +54,155 @@ class _ConditionsPageState extends State<ConditionsPage> {
         FieldMetaMap.decode(rev.fieldMeta),
       ));
     }
-    if (mounted) setState(() => _entries = entries);
+    final dismissed =
+        (await s.settings.get(_dismissedKey) as List?)?.cast<String>() ?? [];
+    if (mounted) {
+      setState(() {
+        _entries = entries;
+        _dismissed = dismissed.toSet();
+      });
+    }
+  }
+
+  static String _pairKey(List<ConditionEntry> a, List<ConditionEntry> b) =>
+      ([SameItem.core(a.first.groupKey), SameItem.core(b.first.groupKey)]
+            ..sort())
+          .join('|');
+
+  /// 疑似重复：同一节（长期/临时）、同一系统，两组里有名字可能说的是同一
+  /// 问题，且用户没点过"不是"。
+  List<(List<ConditionEntry>, List<ConditionEntry>)> _suspects(
+      List<List<ConditionEntry>> groups) {
+    final out = <(List<ConditionEntry>, List<ConditionEntry>)>[];
+    for (var i = 0; i < groups.length; i++) {
+      for (var j = i + 1; j < groups.length; j++) {
+        final a = groups[i], b = groups[j];
+        if (a.first.longTerm != b.first.longTerm) continue;
+        if (conditionCategory(a.first.name) != conditionCategory(b.first.name)) {
+          continue;
+        }
+        if (_dismissed.contains(_pairKey(a, b))) continue;
+        if (a.any((x) => b.any((y) => SameItem.maybeSameProblem(x.name, y.name)))) {
+          out.add((a, b));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// 把 [source] 组并进 [target] 组：每条写一个新版本，记下合并到的名字
+  /// （D-46）。核对状态不变；走变更日志同步到 Mac。
+  Future<void> _merge(
+      List<ConditionEntry> source, List<ConditionEntry> target) async {
+    for (final e in source) {
+      final data = Map<String, Object?>.from(e.data)
+        ..['group_name'] = target.first.groupKey;
+      await _writeRevision(e, data, reload: false);
+    }
+    await _load();
+  }
+
+  Future<void> _unmerge(List<ConditionEntry> group) async {
+    for (final e in group) {
+      if (e.mergedInto == null) continue;
+      await _writeRevision(e, Map<String, Object?>.from(e.data)..remove('group_name'),
+          reload: false);
+    }
+    await _load();
+  }
+
+  Future<void> _dismiss(List<ConditionEntry> a, List<ConditionEntry> b) async {
+    final next = {..._dismissed, _pairKey(a, b)};
+    await widget.services.settings.set(_dismissedKey, next.toList());
+    setState(() => _dismissed = next);
+  }
+
+  Future<void> _reviewSuspects(List<List<ConditionEntry>> groups) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(builder: (context, setSheet) {
+        final pairs = _suspects(groups);
+        if (pairs.isEmpty) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => Navigator.maybePop(context));
+        }
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text('可能是同一问题',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text('合并后显示为一行，按最新那份报告的写法；原记录都保留，可以取消合并。',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+              for (final (a, b) in pairs)
+                ListTile(
+                  title: Text('${b.first.name}  ↔  ${a.first.name}'),
+                  subtitle: Text(
+                      '${b.first.date ?? ''} · ${a.first.date ?? ''}'),
+                  trailing: Wrap(spacing: 4, children: [
+                    TextButton(
+                      onPressed: () async {
+                        await _dismiss(a, b);
+                        setSheet(() {});
+                      },
+                      child: const Text('不是'),
+                    ),
+                    FilledButton.tonal(
+                      // 并进较新的那组，显示最新的写法。
+                      onPressed: () async {
+                        await _merge(b, a);
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                      child: const Text('合并'),
+                    ),
+                  ]),
+                ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  /// 手动合并：选同一节里的另一组，同一系统的排前面。
+  Future<void> _pickMergeTarget(List<ConditionEntry> group) async {
+    final category = conditionCategory(group.first.name);
+    final candidates = [
+      for (final g in ConditionEntry.groups(_entries))
+        if (!identical(g.first, group.first) &&
+            g.first.longTerm == group.first.longTerm)
+          g
+    ]..sort((a, b) {
+        final ca = conditionCategory(a.first.name) == category ? 0 : 1;
+        final cb = conditionCategory(b.first.name) == category ? 0 : 1;
+        return ca != cb ? ca - cb : a.first.name.compareTo(b.first.name);
+      });
+    final target = await showDialog<List<ConditionEntry>>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('把「${group.first.name}」合并到'),
+        children: [
+          for (final g in candidates)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, g),
+              child: Text('${g.first.name}'
+                  '（${conditionCategory(g.first.name)}）'),
+            ),
+        ],
+      ),
+    );
+    if (target != null) await _merge(group, target);
   }
 
   Future<void> _writeRevision(ConditionEntry e, Map<String, Object?> data,
-      {FieldMeta? conditionMeta}) async {
+      {FieldMeta? conditionMeta, bool reload = true}) async {
     final fields = Map<String, FieldMeta>.from(e.meta.fields);
     if (conditionMeta != null) fields['condition'] = conditionMeta;
     await widget.services.records.addRevision(
@@ -61,7 +213,7 @@ class _ConditionsPageState extends State<ConditionsPage> {
       fieldMeta: FieldMetaMap(fields),
       producedBy: ProducedBy.userEdit(),
     );
-    await _load();
+    if (reload) await _load();
   }
 
   Future<void> _confirm(ConditionEntry e) => _writeRevision(e, e.data,
@@ -172,6 +324,17 @@ class _ConditionsPageState extends State<ConditionsPage> {
                 title: Text(e.resolved ? '恢复为进行中' : '标记已痊愈/解除'),
                 onTap: () => Navigator.pop(context, 'resolve'),
               ),
+              ListTile(
+                leading: const Icon(Icons.merge),
+                title: const Text('与其他条目合并…'),
+                onTap: () => Navigator.pop(context, 'merge'),
+              ),
+              if (group.any((c) => c.mergedInto != null))
+                ListTile(
+                  leading: const Icon(Icons.call_split),
+                  title: const Text('取消合并'),
+                  onTap: () => Navigator.pop(context, 'unmerge'),
+                ),
             ],
             if (e.data['locator'] != null)
               ListTile(
@@ -199,6 +362,10 @@ class _ConditionsPageState extends State<ConditionsPage> {
         await _addDevelopment(e);
       case 'resolve':
         await _toggleResolved(e);
+      case 'merge':
+        await _pickMergeTarget(group);
+      case 'unmerge':
+        await _unmerge(group);
       case 'source':
         await _viewSource(e);
       case final String a when a.startsWith('earlier:'):
@@ -313,13 +480,47 @@ class _ConditionsPageState extends State<ConditionsPage> {
     );
   }
 
+  /// 按系统分组的一串条目：系统标题 + 组内按最新日期。
+  List<Widget> _byCategory(List<List<ConditionEntry>> groups) {
+    final byCat = <String, List<List<ConditionEntry>>>{};
+    for (final g in groups) {
+      (byCat[conditionCategory(g.first.name)] ??= []).add(g);
+    }
+    return [
+      for (final cat in conditionCategories)
+        if (byCat[cat] != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+            child: Text('$cat · ${byCat[cat]!.length}',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary)),
+          ),
+          for (final g in byCat[cat]!) _tile(g),
+        ],
+    ];
+  }
+
+  Widget _section(String title, String hint, List<List<ConditionEntry>> groups,
+          {required bool expanded}) =>
+      ExpansionTile(
+        initiallyExpanded: expanded,
+        title: Text('$title（${groups.length}）'),
+        subtitle: Text(hint, style: const TextStyle(fontSize: 12)),
+        children: _byCategory(groups),
+      );
+
   @override
   Widget build(BuildContext context) {
     final groups = ConditionEntry.groups(_entries);
-    final longTerm = groups.where((g) => g.first.longTerm).toList()
+    final active =
+        groups.where((g) => g.first.longTerm && !g.first.resolved).toList();
+    final past =
+        groups.where((g) => g.first.longTerm && g.first.resolved).toList();
+    final temporary = groups.where((g) => !g.first.longTerm).toList()
       ..sort((a, b) =>
           (a.first.resolved ? 1 : 0).compareTo(b.first.resolved ? 1 : 0));
-    final temporary = groups.where((g) => !g.first.longTerm).toList();
+    final suspects = widget.readOnly ? const [] : _suspects(groups);
 
     return Scaffold(
       appBar: AppBar(title: const Text('长期状况档案')),
@@ -333,20 +534,31 @@ class _ConditionsPageState extends State<ConditionsPage> {
             )
           : ListView(
               children: [
-                if (longTerm.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('长期状况（参与分析；已痊愈的只作既往病史参考）'),
+                if (suspects.isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: ListTile(
+                      leading: const Icon(Icons.merge),
+                      title: Text('有 ${suspects.length} 组可能是同一问题'),
+                      subtitle: const Text('确认后合并成一行'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _reviewSuspects(groups),
+                    ),
                   ),
-                  for (final e in longTerm) _tile(e),
-                ],
-                if (temporary.isNotEmpty) ...[
+                if (active.isNotEmpty) ...[
                   const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('临时疾病（只影响近期建议；已痊愈的不再参与）'),
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Text('长期状况（参与分析）',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                  for (final e in temporary) _tile(e),
+                  ..._byCategory(active),
                 ],
+                if (past.isNotEmpty)
+                  _section('既往病史', '已痊愈或已解除，只作背景参考', past,
+                      expanded: false),
+                if (temporary.isNotEmpty)
+                  _section('临时疾病', '只影响近期建议；已痊愈的不再参与', temporary,
+                      expanded: temporary.any((g) => !g.first.resolved)),
                 const Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(

@@ -378,14 +378,39 @@ class SameItem {
 
   static final _qualifier = RegExp(
       '轻度|中度|重度|多发|单发|多个|少许|少量|可疑|考虑|左侧|右侧|双侧|有');
-  static final _noise = RegExp(r'[\s\d.．,，、;；:：\-~～/（）()\[\]【】]');
+  static final _noise = RegExp(r'[\s\d.．,，、;；:：\-~～/（）()\[\]【】［］？?]');
 
-  /// 问题名称的核心：去括号内容、程度与左右等修饰、数字与标点。
-  static String core(String name) => problemText(name)
-      .replaceAll(RegExp(r'[（(][^（()）]*[）)]'), '')
-      .replaceAll(_qualifier, '')
-      .replaceAll(RegExp('[左右双]'), '')
-      .replaceAll(_noise, '');
+  /// 问题名称的核心：去括号内容（含方括号里的别名注释）、程度与左右等
+  /// 修饰、数字与标点，再把同一种病的不同叫法换成同一个写法。
+  static String core(String name) {
+    var s = problemText(name)
+        .replaceAll(RegExp(r'[（(][^（()）]*[）)]'), '')
+        .replaceAll(RegExp(r'[［\[【][^［\[【\]］】]*[\]］】]'), '')
+        .replaceAll(_qualifier, '')
+        .replaceAll(RegExp('[左右双]'), '')
+        .replaceAll(_noise, '');
+    for (final (from, to) in _synonyms) {
+      s = s.replaceAll(from, to);
+    }
+    return s;
+  }
+
+  /// 同一种病的不同叫法（D-46）：过敏性＝变应性；慢性浅表性胃炎是
+  /// 慢性非萎缩性胃炎的旧称。
+  static const _synonyms = [
+    ('过敏性', '变应性'),
+    ('浅表性', '非萎缩性'),
+  ];
+
+  /// 可能是同一问题、但规则不敢自动合并的（D-46）：一个的核心完整出现在
+  /// 另一个里，比如"胃炎"与"慢性非萎缩性胃炎"、"皮疹"与"皮疹血虚风燥"。
+  /// 只用来提示用户确认，不自动合并。
+  static bool maybeSameProblem(String a, String b) {
+    if (sameProblem(a, b)) return false;
+    final ka = core(a), kb = core(b);
+    final (short, long) = ka.length <= kb.length ? (ka, kb) : (kb, ka);
+    return short.length >= 2 && long.contains(short);
+  }
 
   /// 两个问题名称是否说的同一件事：核心相同；或较短的核心不少于 3 个字、
   /// 按顺序出现在较长的里、且最后两个字（问题本身：结石、增生、囊肿）相同。
