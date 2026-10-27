@@ -44,6 +44,9 @@ const consultLookupPrompt = """
   先查再答，不要凭空推测；和个人数据无关的常识问题不必查；
 - 只查回答需要的范围：日期从近到远，够用就停，不要为了"全面"把能查的都查一遍；
 - 检验项目先用 list_lab_items 找到项目名，再查历史；
+- 有 read_health_live 工具时，睡眠细节、心率、血氧、血压、体重等手机"健康"
+  里的数据用它实时读：先想清楚问的是哪段时间（"昨晚""这次运动"），
+  先找到对应的时间段再读指标；没有这个工具时用 get_device_data；
 - 查不到数据就直说没有记录（没有记录不等于没有发生），不要编造；
 - 回答里用到具体数据时注明日期，让用户知道依据是什么。
 """;
@@ -293,6 +296,7 @@ class ConsultService {
   Future<(String, String)> _askWithTools(ModelConfig config, String apiKey,
       String userText, String contextNote, List<String> lookups) async {
     final messages = <ToolChatMessage>[UserText(userText)];
+    final tools = await _tools.availableSpecs();
     var sent = userText;
     var summary = contextNote;
     for (var round = 1;; round++) {
@@ -304,7 +308,7 @@ class ConsultService {
           apiKey: apiKey,
           system: consultSystemPrompt + consultLookupPrompt,
           messages: messages,
-          tools: ConsultTools.specs,
+          tools: tools,
           allowTools: round < maxLookupRounds,
           maxTokens: 4096,
         );
@@ -333,10 +337,15 @@ class ConsultService {
       if (response.toolCalls.isEmpty) return (response.text, call.id);
 
       final results = <ToolResult>[];
+      final logged = <String>[];
       final notes = <String>[];
       for (final c in response.toolCalls) {
         final outcome = await _tools.run(c);
         results.add(ToolResult(callId: c.id, content: outcome.content));
+        // 实时健康数据只发给模型，调用记录里只写读了什么（D-44）。
+        logged.add(outcome.ephemeral
+            ? '（实时健康数据，未保存）${outcome.note}'
+            : outcome.content);
         notes.add(outcome.note);
       }
       lookups.addAll(notes);
@@ -345,7 +354,7 @@ class ConsultService {
         ..add(ToolResults(results));
       sent = jsonEncode([
         for (var i = 0; i < results.length; i++)
-          {'tool': response.toolCalls[i].name, 'result': results[i].content},
+          {'tool': response.toolCalls[i].name, 'result': logged[i]},
       ]);
       summary = '查阅结果：${notes.join('、')}';
     }

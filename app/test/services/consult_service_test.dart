@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:health/health.dart' show HealthDataType;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
@@ -12,12 +13,14 @@ import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/consult_service.dart';
 import 'package:live_a_long_life/services/consult_tools.dart';
+import 'package:live_a_long_life/services/health_live.dart';
 import 'package:live_a_long_life/services/health_service.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/model_client.dart';
 import 'package:live_a_long_life/services/tool_chat.dart';
 
 import '../data/test_helpers.dart';
+import 'health_live_test.dart' show FakeLiveSource, sample;
 import 'organize_service_test.dart' show FakeModel;
 
 /// 带工具的假模型：按脚本逐轮返回，记下每轮收到的消息和是否允许调用工具。
@@ -299,5 +302,52 @@ void main() {
     final call = (await organize.recentModelCalls()).single;
     expect(call.status, ModelCallStatus.failed);
     expect(call.caller, ModelCaller.userConsult);
+  });
+
+  test('实时健康数据（D-44）：发给模型，但调用记录里只写读了什么', () async {
+    await addConfig();
+    final live = FakeLiveSource()
+      ..samples.add(sample(
+          HealthDataType.HEART_RATE, DateTime(2026, 10, 26, 18, 5),
+          value: 156));
+    final liveConsult = ConsultService(
+      db: env.db,
+      records: records,
+      profile: profile,
+      organize: organize,
+      modelConfigs: configs,
+      keyStore: KeyStore(),
+      tools: ConsultTools(
+        db: env.db,
+        records: records,
+        documents: MedicalDocumentRepository(env.db, env.ctx),
+        deviceData: (_) async => const DeviceDayData(
+            sleep: null, workouts: [], steps: null, activeEnergyKcal: null),
+        live: HealthLiveReader(live),
+      ),
+      modelCall: model.call,
+      toolCall: toolModel.call,
+    );
+    toolModel.reply(toolTurn('read_health_live', {
+      'metric': 'heart_rate',
+      'start': '2026-10-26 18:00',
+      'end': '2026-10-26 18:30',
+    }));
+    toolModel.reply(textTurn('这次运动平均心率 156。'));
+    await liveConsult.ask('s1', '这次运动心率如何', allowLookup: true);
+
+    final sentToModel =
+        (toolModel.calls[1].messages[2] as ToolResults).results.single.content;
+    expect(sentToModel, contains('156'));
+
+    final calls = await organize.recentModelCalls();
+    final toolRound =
+        calls.firstWhere((c) => c.sentSummary!.startsWith('查阅结果'));
+    expect(toolRound.requestText, isNot(contains('156')));
+    expect(toolRound.requestText, contains('实时健康数据，未保存'));
+    final question = (await consult.messagesOf('s1')).first;
+    expect(question.contextNote, contains('实时读取：心率'));
+    // 实时读到的数据不入库。
+    expect(await env.db.select(env.db.healthSamples).get(), isEmpty);
   });
 }

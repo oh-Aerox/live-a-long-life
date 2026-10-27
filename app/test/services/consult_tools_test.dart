@@ -6,12 +6,15 @@ import 'package:live_a_long_life/data/field_meta.dart';
 import 'package:live_a_long_life/data/repositories/medical_document_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/time_value.dart';
+import 'package:health/health.dart' show HealthDataType;
 import 'package:live_a_long_life/services/consult_tools.dart';
+import 'package:live_a_long_life/services/health_live.dart';
 import 'package:live_a_long_life/services/health_service.dart';
 import 'package:live_a_long_life/services/sleep_merge.dart';
 import 'package:live_a_long_life/services/tool_chat.dart';
 
 import '../data/test_helpers.dart';
+import 'health_live_test.dart' show FakeLiveSource, sample;
 
 const unreviewed = FieldMeta(
     origin: FieldOrigin.modelInferred, reviewStatus: ReviewStatus.unreviewed);
@@ -282,5 +285,79 @@ void main() {
     final (outOfRange, _) = await run('search_medical_documents',
         {'start_date': '2026-03-02', 'end_date': '2026-12-31'});
     expect(outOfRange['documents'], isEmpty);
+  });
+
+  group('read_health_live（D-44）', () {
+    late FakeLiveSource live;
+    late bool enabled;
+
+    ConsultTools withLive({bool hasLive = true}) => ConsultTools(
+          db: env.db,
+          records: records,
+          documents: documents,
+          deviceData: (_) async => const DeviceDayData(
+              sleep: null, workouts: [], steps: null, activeEnergyKcal: null),
+          live: hasLive ? HealthLiveReader(live) : null,
+          liveEnabled: () async => enabled,
+        );
+
+    setUp(() {
+      live = FakeLiveSource();
+      enabled = true;
+    });
+
+    test('只在有实时来源且开了健康数据同步时提供', () async {
+      bool offered(List<ToolSpec> specs) =>
+          specs.any((t) => t.name == 'read_health_live');
+      expect(offered(await withLive().availableSpecs()), isTrue);
+      expect(offered(await tools.availableSpecs()), isFalse); // Mac：没有来源
+      enabled = false;
+      expect(offered(await withLive().availableSpecs()), isFalse);
+      // 模型硬要调也不读。
+      final out = await withLive().run(const ToolCall(
+          id: 'c',
+          name: 'read_health_live',
+          arguments: {'metric': 'heart_rate', 'start': '2026-10-26', 'end': '2026-10-26'}));
+      expect(out.content, contains('get_device_data'));
+      expect(live.queries, isEmpty);
+    });
+
+    test('读到的数据标记为不保存；只写日期时按整天读；超过 31 天报错', () async {
+      live.samples.add(sample(
+          HealthDataType.HEART_RATE, DateTime(2026, 10, 26, 18, 5),
+          value: 130));
+      final out = await withLive().run(const ToolCall(
+          id: 'c',
+          name: 'read_health_live',
+          arguments: {
+            'metric': 'heart_rate',
+            'start': '2026-10-26',
+            'end': '2026-10-26',
+          }));
+      expect(out.ephemeral, isTrue);
+      expect(out.content, contains('130'));
+      expect(out.note, '实时读取：心率 2026-10-26 00:00~2026-10-27 00:00（1 个点）');
+
+      final timed = await withLive().run(const ToolCall(
+          id: 'c',
+          name: 'read_health_live',
+          arguments: {
+            'metric': 'heart_rate',
+            'start': '2026-10-26 18:00',
+            'end': '2026-10-26 18:30',
+          }));
+      expect(timed.note, contains('18:00~2026-10-26 18:30'));
+
+      final tooLong = await withLive().run(const ToolCall(
+          id: 'c',
+          name: 'read_health_live',
+          arguments: {
+            'metric': 'heart_rate',
+            'start': '2026-01-01',
+            'end': '2026-03-01',
+          }));
+      expect(tooLong.content, contains('31 天'));
+      expect(tooLong.ephemeral, isFalse);
+    });
   });
 }

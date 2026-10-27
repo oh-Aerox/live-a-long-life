@@ -7,16 +7,20 @@ import '../data/record_summary.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/same_item.dart';
+import 'health_live.dart';
 import 'health_service.dart';
 import 'tool_chat.dart';
 
 /// 一次工具调用的结果：[content] 发回模型，[note] 是给用户看的一句话
 /// （列在问题下方"查阅了什么"，并写进调用记录）。
 class ToolOutcome {
-  const ToolOutcome(this.content, this.note);
+  const ToolOutcome(this.content, this.note, {this.ephemeral = false});
 
   final String content;
   final String note;
+
+  /// 实时读取的健康数据（D-44）：只发给模型，调用记录里只写 [note]。
+  final bool ephemeral;
 }
 
 /// 咨询 agent 的只读工具（D-43）。只读、不写库；医疗类只给已核对的内容
@@ -28,15 +32,55 @@ class ConsultTools {
     required RecordRepository records,
     required MedicalDocumentRepository documents,
     required Future<DeviceDayData> Function(String localDate) deviceData,
+    HealthLiveReader? live,
+    Future<bool> Function()? liveEnabled,
   })  : _db = db,
         _records = records,
         _documents = documents,
-        _deviceData = deviceData;
+        _deviceData = deviceData,
+        _live = live,
+        _liveEnabled = liveEnabled;
 
   final AppDatabase _db;
   final RecordRepository _records;
   final MedicalDocumentRepository _documents;
   final Future<DeviceDayData> Function(String localDate) _deviceData;
+
+  /// 实时读取（D-44）：只在 iPhone 上有；用户关掉健康数据同步时不提供。
+  final HealthLiveReader? _live;
+  final Future<bool> Function()? _liveEnabled;
+
+  /// 这台设备现在能否实时读取健康数据。
+  Future<bool> liveAvailable() async =>
+      _live != null && (await _liveEnabled?.call() ?? true);
+
+  /// 本次可用的工具：基础五个，能实时读取时再加 [liveSpec]。
+  Future<List<ToolSpec>> availableSpecs() async =>
+      [...specs, if (await liveAvailable()) liveSpec];
+
+  static final liveSpec = ToolSpec(
+    name: 'read_health_live',
+    description: '实时读取手机"健康"App 里的数据（不经本应用保存，比 get_device_data '
+        '更全更细）。一次读一个指标，时间范围单次最多 31 天。可读指标：'
+        '${HealthLiveReader.metricGuide}。'
+        '问某次运动的心率：先读 workouts 拿到起止时间，再读 heart_rate。'
+        '问昨晚睡眠：读 sleep_stages，范围设为昨天 18:00 到今天 12:00。',
+    parameters: {
+      'type': 'object',
+      'properties': {
+        'metric': {'type': 'string', 'enum': HealthLiveReader.metricKeys},
+        'start': {
+          'type': 'string',
+          'description': '开始时间 YYYY-MM-DD HH:MM（只写日期表示当天 00:00）',
+        },
+        'end': {
+          'type': 'string',
+          'description': '结束时间 YYYY-MM-DD HH:MM（只写日期表示到当天结束）',
+        },
+      },
+      'required': ['metric', 'start', 'end'],
+    },
+  );
 
   static const maxDays = 31;
   static const _maxDocuments = 15;
@@ -135,11 +179,42 @@ class ConsultTools {
         'list_lab_items' => await _listLabItems(a),
         'get_lab_history' => await _getLabHistory(a),
         'search_medical_documents' => await _searchDocuments(a),
+        'read_health_live' => await _readLive(a),
         _ => _error(call.name, '没有这个工具'),
       };
     } on FormatException catch (e) {
       return _error(call.name, e.message);
     }
+  }
+
+  Future<ToolOutcome> _readLive(Map<String, Object?> a) async {
+    if (!await liveAvailable()) {
+      return _error('read_health_live', '这台设备不能实时读取健康数据，请改用 get_device_data');
+    }
+    final start = _time(a['start'], endOfDay: false);
+    final end = _time(a['end'], endOfDay: true);
+    if (!end.isAfter(start)) throw const FormatException('结束时间早于开始时间');
+    if (end.difference(start).inDays > maxDays) {
+      throw const FormatException('单次最多读 $maxDays 天，请缩小范围');
+    }
+    final (content, note) = await _live!.read('${a['metric']}', start, end);
+    return ToolOutcome(content, '实时读取：$note', ephemeral: true);
+  }
+
+  /// "YYYY-MM-DD HH:MM" 或 "YYYY-MM-DD"；只有日期时按当天开始/结束。
+  static DateTime _time(Object? v, {required bool endOfDay}) {
+    final s = '${v ?? ''}'.trim();
+    final m = RegExp(r'^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}):(\d{2}))?$')
+        .firstMatch(s);
+    final day = m == null ? null : DateTime.tryParse(m[1]!);
+    if (day == null) {
+      throw FormatException('时间要写成 YYYY-MM-DD HH:MM：$s');
+    }
+    if (m![2] == null) {
+      return endOfDay ? day.add(const Duration(days: 1)) : day;
+    }
+    return day.add(
+        Duration(hours: int.parse(m[2]!), minutes: int.parse(m[3]!)));
   }
 
   ToolOutcome _error(String name, String message) =>

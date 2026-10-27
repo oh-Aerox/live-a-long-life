@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/repositories/health_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import 'app_log.dart';
+import 'health_live.dart';
 import 'sleep_merge.dart';
 
 /// 一天的设备数据（没有的项为 null，表示"暂未读取到"，不是 0，D-11）。
@@ -131,7 +132,9 @@ class HealthKitPort implements HealthPort {
       return _health.requestAuthorization(types,
           permissions: [for (final _ in types) HealthDataAccess.READ]);
     }
-    return _health.requestAuthorization(_types);
+    // 咨询实时读取的类型一并申请（D-44）：授权已决定的不再弹框，新增的
+    // 类型在下次启动 autoSync 时弹一次。
+    return _health.requestAuthorization({..._types, ...liveReadTypes}.toList());
   }
 
   /// iOS：授权已决定过时不弹框、直接返回；只有"未决定"时才弹。重装换签名后
