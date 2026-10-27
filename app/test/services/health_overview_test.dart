@@ -25,9 +25,10 @@ void main() {
   tearDown(() => env.dispose());
 
   TimeValue day(String d) => TimeValue(
-      localDate: d,
-      precision: TimePrecision.dateOnly,
-      source: TimeValueSource.userStated);
+    localDate: d,
+    precision: TimePrecision.dateOnly,
+    source: TimeValueSource.userStated,
+  );
 
   FieldMeta meta(ReviewStatus s) =>
       FieldMeta(origin: FieldOrigin.modelInferred, reviewStatus: s);
@@ -35,30 +36,33 @@ void main() {
   Future<MedicalDocument> doc(MedicalDocType type, {String? examDate}) =>
       documents.create(
         pages: const [
-          MedicalPageRef(attachmentId: 'a', messageId: 'm', pageNo: 1)
+          MedicalPageRef(attachmentId: 'a', messageId: 'm', pageNo: 1),
         ],
         docType: type,
         examDate: examDate == null ? null : day(examDate),
       );
 
   Future<void> panel(String docId, ReviewStatus status) => records.create(
-        recordType: RecordType.labPanel,
-        occurred: day('2024-01-01'),
-        dataJson: jsonEncode({
-          'medical_document_id': docId,
-          'results': [
-            {'item_name_raw': '血红蛋白', 'value_raw': '145', 'value_num': 145},
-          ],
-        }),
-        fieldMeta: FieldMetaMap({'results.0': meta(status)}),
-        producedBy: ProducedBy.medicalExtract('c'),
-      );
+    recordType: RecordType.labPanel,
+    occurred: day('2024-01-01'),
+    dataJson: jsonEncode({
+      'medical_document_id': docId,
+      'results': [
+        {'item_name_raw': '血红蛋白', 'value_raw': '145', 'value_num': 145},
+      ],
+    }),
+    fieldMeta: FieldMetaMap({'results.0': meta(status)}),
+    producedBy: ProducedBy.medicalExtract('c'),
+  );
 
   test('健康档案概况：待核对、未提取、最近体检、待核对状况、指标数', () async {
     final pending = await doc(MedicalDocType.labReport);
     final reviewed = await doc(MedicalDocType.labReport);
     await doc(MedicalDocType.other); // 未提取
-    final exam1 = await doc(MedicalDocType.physicalExam, examDate: '2023-11-30');
+    final exam1 = await doc(
+      MedicalDocType.physicalExam,
+      examDate: '2023-11-30',
+    );
     await doc(MedicalDocType.physicalExam, examDate: '2024-12-10'); // 未提取
     await panel(pending.id, ReviewStatus.unreviewed);
     await panel(reviewed.id, ReviewStatus.confirmed);
@@ -72,9 +76,10 @@ void main() {
     );
 
     final o = await HealthOverview.load(
-        records: records,
-        documents: documents,
-        profile: ProfileRepository(env.db, env.ctx));
+      records: records,
+      documents: documents,
+      profile: ProfileRepository(env.db, env.ctx),
+    );
     expect(o.pendingRecordDocs, 1);
     expect(o.unextractedRecordDocs, 1);
     expect(o.pendingExamDocs, 1);
@@ -82,5 +87,26 @@ void main() {
     expect(o.lastExamDate, '2024-12-10');
     expect(o.pendingConditions, 1);
     expect(o.labItems, 1);
+  });
+
+  test('待核对状况按组数：最新那条已确认或痊愈，较早报告的记录不再算（D-32）', () async {
+    Future<void> condition(String date, String status, ReviewStatus review) =>
+        records.create(
+          recordType: RecordType.condition,
+          occurred: day(date),
+          dataJson: jsonEncode({'name': '寻常疣', 'status': status}),
+          fieldMeta: FieldMetaMap({'condition': meta(review)}),
+          producedBy: ProducedBy.userEdit(),
+        );
+    await condition('2024-12-10', 'active', ReviewStatus.unreviewed);
+    await condition('2025-03-07', 'active', ReviewStatus.unreviewed);
+    await condition('2025-05-20', 'resolved', ReviewStatus.edited);
+
+    final o = await HealthOverview.load(
+      records: records,
+      documents: documents,
+      profile: ProfileRepository(env.db, env.ctx),
+    );
+    expect(o.pendingConditions, 0);
   });
 }

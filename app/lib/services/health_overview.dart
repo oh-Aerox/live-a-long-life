@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../data/condition_entry.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/repositories/medical_document_repository.dart';
@@ -55,10 +56,9 @@ class HealthOverview {
       final docId = (jsonDecode(rev.data) as Map)['medical_document_id'];
       if (docId is! String) continue;
       extractedDocs.add(docId);
-      if (FieldMetaMap.decode(rev.fieldMeta)
-          .fields
-          .values
-          .any((m) => m.reviewStatus == ReviewStatus.unreviewed)) {
+      if (FieldMetaMap.decode(
+        rev.fieldMeta,
+      ).fields.values.any((m) => m.reviewStatus == ReviewStatus.unreviewed)) {
         pendingDocs.add(docId);
       }
     }
@@ -73,9 +73,11 @@ class HealthOverview {
       if (exam) {
         if (pending) pendingExam++;
         if (unextracted) unextractedExam++;
-        final date =
-            d.examDate == null ? null : TimeValue.decode(d.examDate!).localDate;
-        if (date != null && (lastExam == null || date.compareTo(lastExam) > 0)) {
+        final date = d.examDate == null
+            ? null
+            : TimeValue.decode(d.examDate!).localDate;
+        if (date != null &&
+            (lastExam == null || date.compareTo(lastExam) > 0)) {
           lastExam = date;
         }
       } else {
@@ -84,17 +86,28 @@ class HealthOverview {
       }
     }
 
-    var pendingConditions = 0;
+    // 与档案页同一口径：同一问题的多份报告归成一行，只看最新那条（D-32）。
+    // 较早报告的记录确认、痊愈都不再动，逐条数会一直剩着。
+    final conditions = <ConditionEntry>[];
     for (final rec in await records.byType(RecordType.condition)) {
       final rev = await records.currentRevisionOf(rec.id);
-      final status =
-          FieldMetaMap.decode(rev.fieldMeta)['condition']?.reviewStatus;
-      if (status == null || status == ReviewStatus.unreviewed) {
-        pendingConditions++;
-      }
+      conditions.add(
+        ConditionEntry(
+          rec,
+          rev,
+          (jsonDecode(rev.data) as Map).cast<String, Object?>(),
+          FieldMetaMap.decode(rev.fieldMeta),
+        ),
+      );
     }
+    final pendingConditions = ConditionEntry.groups(
+      conditions,
+    ).where((g) => !g.first.reviewed).length;
 
-    final body = await BodyMapService(records: records, profile: profile).load();
+    final body = await BodyMapService(
+      records: records,
+      profile: profile,
+    ).load();
     final attention = {
       for (final list in body.byOrgan.values)
         for (final f in list) '${f.recordId}|${f.kind.name}|${f.title}',
