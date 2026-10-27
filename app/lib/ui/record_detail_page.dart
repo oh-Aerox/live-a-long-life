@@ -292,7 +292,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                 title: Text(fieldLabels[entry.key] ?? entry.key),
                 subtitle: Text(fieldValueText(entry.value)),
                 trailing: Text(
-                  _metaText(meta[entry.key]),
+                  _metaText(meta[entry.key], record.recordType),
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
                 onTap: !widget.readOnly &&
@@ -435,7 +435,9 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     await _load();
   }
 
-  String _metaText(FieldMeta? meta) {
+  /// 字段的来源与核对状态。日常记录不要求逐条核对（D-04），未核对时只显示
+  /// 来源；检查单和长期状况须核对后才算事实，照常标"未核对"。
+  String _metaText(FieldMeta? meta, RecordType type) {
     if (meta == null) return '';
     final origin = switch (meta.origin) {
       FieldOrigin.userStated => '你说的',
@@ -443,6 +445,11 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       FieldOrigin.device => '设备',
       FieldOrigin.modelInferred => '模型推断',
     };
+    final mustReview =
+        type == RecordType.labPanel || type == RecordType.condition;
+    if (meta.reviewStatus == ReviewStatus.unreviewed && !mustReview) {
+      return origin;
+    }
     final review = switch (meta.reviewStatus) {
       ReviewStatus.unreviewed => '未核对',
       ReviewStatus.confirmed => '已确认',

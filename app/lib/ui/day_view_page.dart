@@ -252,7 +252,8 @@ class _DayViewPageState extends State<DayViewPage> {
         recordTypeLabels[record.recordType]!,
         timeValueText(occurred),
         if (occurred.dateAmbiguous) '日期待确认',
-        if (edited) '已核对/修改' else '未核对',
+        // 日常记录不要求逐条核对（D-04），只标改过的，不标"未核对"。
+        if (edited) '已核对/修改',
       ].join(' · ')),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
