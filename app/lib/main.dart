@@ -90,6 +90,8 @@ Future<void> main() async {
     if (exams > 0) AppLog.I.i('medical', '体检报告类型改回：$exams 份');
     final repaired = await services.records.repairMissingSources();
     if (repaired > 0) AppLog.I.i('records', '补回来源链接：$repaired 个版本');
+    final drinks = await services.records.repairDrinkSlots();
+    if (drinks > 0) AppLog.I.i('records', '饮水记录归回饮水：$drinks 条');
     final fixed = await services.records.repairUnappliedOcrFixes();
     if (fixed > 0) AppLog.I.i('records', '补上识别修正：$fixed 份检验报告');
     final removed = await services.records.dedupeExactDuplicates();

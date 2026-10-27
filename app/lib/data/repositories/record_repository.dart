@@ -604,6 +604,50 @@ class RecordRepository {
   /// ocr_fixes、字段仍是 OCR 原文（"*1012/L"）。未核对的检验数值按修正
   /// 说明改字段，追加一个版本（索引随之重建、走变更日志同步到电脑端）；
   /// 用户已确认或修改过的项不动。幂等。返回修过的记录数。
+  /// 饮水记录归回 drink（D-47）：加 drink 之前，单独喝水喝茶被整理成
+  /// meal_slot=unknown，或模型自己编了"饮水"之类的值，按日视图显示成
+  /// "未知：红茶"。只改没说清哪一顿、且吃的东西全是饮品的；用户核对过
+  /// 餐次的不动。写新版本，可追溯。
+  Future<int> repairDrinkSlots() async {
+    const standard = {'breakfast', 'lunch', 'dinner', 'snack', 'drink'};
+    var repaired = 0;
+    for (final rec in await byType(RecordType.meal)) {
+      if (rec.currentRevisionId == null) continue;
+      final rev = await currentRevisionOf(rec.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      final slot = data['meal_slot'];
+      if (slot is String && standard.contains(slot)) continue;
+      if (data['status'] == 'skipped') continue;
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      if (meta['meal_slot']?.isProtected ?? false) continue;
+      final saidDrink = slot is String && _drinkSlot.hasMatch(slot);
+      final items = [
+        for (final i in data['items'] as List? ?? const [])
+          if (i is Map && i['name'] is String) i['name'] as String,
+      ];
+      final allDrinks = items.isNotEmpty && items.every(_drinkName.hasMatch);
+      if (!saidDrink && !allDrinks) continue;
+      data['meal_slot'] = 'drink';
+      await addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: TimeValue.decode(rev.occurred),
+        occurredEnd: rev.occurredEnd == null
+            ? null
+            : TimeValue.decode(rev.occurredEnd!),
+        dataJson: jsonEncode(data),
+        fieldMeta: meta,
+        producedBy: ProducedBy.decode(rev.producedBy),
+      );
+      repaired++;
+    }
+    return repaired;
+  }
+
+  static final _drinkSlot = RegExp('饮|喝|drink', caseSensitive: false);
+  static final _drinkName = RegExp(
+      r'水|茶|咖啡|饮料|饮品|果汁|豆浆|牛奶|奶茶|可乐|汽水|苏打|拿铁|美式');
+
   Future<int> repairUnappliedOcrFixes() async {
     var repaired = 0;
     final recs = await (_db.select(_db.records)

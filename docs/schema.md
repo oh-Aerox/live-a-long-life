@@ -275,7 +275,7 @@ v0.2 包含下面六种类型，v0.4 增加 `lab_panel`（见第 5 节）。
 | 字段 | 说明 |
 |---|---|
 | `status` | `eaten` 吃了 / `skipped` 明确没吃 |
-| `meal_slot` | `breakfast` 早餐 / `lunch` 午餐 / `dinner` 晚餐 / `snack` 加餐 / `unknown` 未知 |
+| `meal_slot` | `breakfast` 早餐 / `lunch` 午餐 / `dinner` 晚餐 / `snack` 加餐 / `drink` 饮水（单独喝水、茶、咖啡、饮料，D-47）/ `unknown` 未注明哪一顿 |
 | `description` | 概括性描述，尽量沿用原话 |
 | `items` | 列表，每项包含 `name`（食物）、`amount_text`（用户说的份量，比如"半碗"）、`photo_attachment_ids`（对应的照片） |
 | `photo_attachment_ids` | 这顿饭的全部照片。多张照片可能是同一份食物的不同角度，不代表多份食物 |

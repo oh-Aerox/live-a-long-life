@@ -12,7 +12,8 @@ const _valueLabels = {
   'lunch': '午餐',
   'dinner': '晚餐',
   'snack': '加餐',
-  'unknown': '未知',
+  'drink': '饮水',
+  'unknown': '未注明',
   'present': '有不适',
   'explicitly_none': '明确没有',
   'done': '做了',
@@ -40,8 +41,13 @@ String fieldValueText(Object? value) {
 String recordSummary(RecordType type, Map<String, Object?> data) {
   switch (type) {
     case RecordType.meal:
-      final slot = fieldValueText(data['meal_slot']);
       final desc = data['description'] ?? fieldValueText(data['items']);
+      // 没说是哪一顿的不加前缀，免得显示成"未知：苹果"（D-47）。
+      final rawSlot = data['meal_slot'];
+      if (rawSlot == null || rawSlot == 'unknown') {
+        return data['status'] == 'skipped' ? '明确没吃' : '$desc';
+      }
+      final slot = fieldValueText(rawSlot);
       return data['status'] == 'skipped' ? '$slot：明确没吃' : '$slot：$desc';
     case RecordType.sleep:
       // 时间点是 {"local_date","local_time"}（schema §3.5）；早期数据有
