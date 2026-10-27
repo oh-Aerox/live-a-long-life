@@ -46,6 +46,9 @@ class ConsultTools {
   final MedicalDocumentRepository _documents;
   final Future<DeviceDayData> Function(String localDate) _deviceData;
 
+  /// 已同步的某天设备数据（咨询页示例问题也用它判断有没有数据）。
+  Future<DeviceDayData> deviceData(String localDate) => _deviceData(localDate);
+
   /// 实时读取（D-44）：只在 iPhone 上有；用户关掉健康数据同步时不提供。
   final HealthLiveReader? _live;
   final Future<bool> Function()? _liveEnabled;

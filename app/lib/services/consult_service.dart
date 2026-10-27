@@ -13,6 +13,7 @@ import '../data/repositories/record_repository.dart';
 import 'app_log.dart';
 import 'key_store.dart';
 import 'model_client.dart';
+import 'consult_suggestions.dart';
 import 'consult_tools.dart';
 import 'organize_service.dart' show OrganizeModelCall;
 import 'tool_chat.dart';
@@ -138,6 +139,14 @@ class ConsultService {
           tools: tools,
           allowTools: allowTools,
           maxTokens: maxTokens);
+
+  /// 输入框下的示例问题，按本机已有的数据生成（D-45）。
+  Future<List<SuggestionGroup>> suggestions() => buildConsultSuggestions(
+        db: _db,
+        records: _records,
+        deviceData: _tools.deviceData,
+        liveAvailable: _tools.liveAvailable,
+      );
 
   /// 一个会话的全部消息，按时间升序。
   Future<List<ConsultMessage>> messagesOf(String sessionId) =>
