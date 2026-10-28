@@ -10,9 +10,9 @@ Your data stays on your own devices. The phone is for recording; the computer ha
 
 ### Daily journaling (iPhone)
 
-- **Log like chatting**: send text, several photos or PDFs in a row. Every message is saved immediately and can be edited or deleted, with edit history kept.
+- **Log like chatting**: send several text messages in a row; photos and PDFs are added from the records or checkups folder. Every message is saved immediately and can be edited or deleted, with edit history kept.
 - **Daily check-ins**: reminders at times you choose ask only about what's still missing today (breakfast, last night's bedtime, whether you exercised…).
-- **Automatic organizing**: a model turns messages into meal, sleep, mood, symptom, exercise and note records. Something you mention a day late ("I forgot to say yesterday…") is filed under the right date. Every record links back to your original words and photos, and fields you corrected are never overwritten.
+- **Automatic organizing**: a model turns messages into meal, sleep, mood, symptom, exercise and note records. Something you mention a day late ("I forgot to say yesterday…") is filed under the right date. Every record links back to your original words, and fields you corrected are never overwritten.
 - **Apple Health**: sleep, steps, workouts and active energy fill in the gaps so you type less. What you tell the app yourself takes priority.
 - **Day view** and per-field corrections. Unwanted records can be deleted, optionally together with the messages they came from.
 - **Profile** collected gradually (birth month, sex, height, exercise preferences, chronic conditions, allergies…). Every item can be skipped.

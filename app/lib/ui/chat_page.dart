@@ -1,17 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
-import '../data/repositories/attachment_repository.dart';
 import '../services/notification_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
@@ -24,7 +21,8 @@ import 'settings_page.dart';
 
 /// 对话页（product-spec §3 v0.1 页面）。
 /// 消息按 seq 排列、按天分组；发送即保存并显示"已保存"；
-/// 附件复制进应用存储并校验后才出现在对话流（即"已保存"）。
+/// 照片和文件不在这里添加，从病例夹/体检入口导入（仍写入消息流），
+/// 对话流照常显示已有的附件消息。
 class ChatPage extends StatefulWidget {
   const ChatPage({
     super.key,
@@ -48,13 +46,6 @@ class _ChatPageState extends State<ChatPage> {
   final _ids = const IdGenerator();
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
-  final _picker = ImagePicker();
-
-  /// 正在保存的附件批次数（>0 时输入栏显示进度）。
-  int _savingBatches = 0;
-
-  /// 消息 ID → 列表内 key，用于"查看已有"跳转。
-  final _messageKeys = <String, GlobalKey>{};
 
   AppServices get _s => widget.services;
 
@@ -119,166 +110,6 @@ class _ChatPageState extends State<ChatPage> {
     final sec =
         await _s.settings.get('idle_preorganize_sec') as int? ?? 180;
     _s.organizeService.noteUserActivity(Duration(seconds: sec));
-  }
-
-  // ---- 附件导入 ----
-
-  static String _mimeOf(String path) {
-    switch (p.extension(path).toLowerCase()) {
-      case '.jpg':
-      case '.jpeg':
-        return 'image/jpeg';
-      case '.png':
-        return 'image/png';
-      case '.heic':
-        return 'image/heic';
-      case '.webp':
-        return 'image/webp';
-      case '.gif':
-        return 'image/gif';
-      case '.pdf':
-        return 'application/pdf';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  Future<void> _showAttachSheet() async {
-    // 先收起输入法，否则选项被键盘遮挡。
-    FocusManager.instance.primaryFocus?.unfocus();
-    final choice = await showActionSheet<String>(context, actions: const [
-      SheetAction(
-          value: 'camera', label: '拍照', icon: Icons.photo_camera_outlined),
-      SheetAction(
-          value: 'photos',
-          label: '选照片（可多选）',
-          icon: Icons.photo_library_outlined),
-      SheetAction(
-          value: 'files',
-          label: '导入文件（PDF 或图片）',
-          icon: Icons.description_outlined),
-    ]);
-    if (choice == null) return;
-
-    List<String> paths;
-    switch (choice) {
-      case 'camera':
-        final shot = await _picker.pickImage(source: ImageSource.camera);
-        paths = [if (shot != null) shot.path];
-      case 'photos':
-        final picked = await _picker.pickMultiImage();
-        paths = picked.map((x) => x.path).toList();
-      default:
-        final result = await FilePicker.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'webp'],
-        );
-        paths = result.map((f) => f.path).whereType<String>().toList();
-    }
-    if (paths.isEmpty) return;
-    await _importPaths(paths);
-  }
-
-  /// 导入一批文件：逐个落盘校验，重复内容给三选项提示（D-10、A-03），
-  /// 保留下来的附件合成一条消息，顺序即选择顺序（A-01）。
-  Future<void> _importPaths(List<String> paths) async {
-    setState(() => _savingBatches++);
-    try {
-      final kept = <({Attachment attachment, bool duplicateAcknowledged})>[];
-      for (final path in paths) {
-        final name = p.basename(path);
-        final ImportResult result;
-        try {
-          result = await _s.attachments.importFile(
-            File(path),
-            mimeType: _mimeOf(path),
-            originalFilename: name,
-          );
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('「$name」保存失败：$e')));
-          }
-          continue;
-        }
-        if (!result.isDuplicate) {
-          kept.add((attachment: result.attachment, duplicateAcknowledged: false));
-          continue;
-        }
-        if (!mounted) return;
-        final action = await _askDuplicate(result.attachment, name);
-        switch (action) {
-          case 'add':
-            kept.add(
-                (attachment: result.attachment, duplicateAcknowledged: true));
-          case 'view':
-            await _revealExisting(result.attachment);
-          default:
-            break; // 取消：跳过这个文件
-        }
-      }
-      if (kept.isEmpty) return;
-
-      final message = await _s.messages.send(
-        clientMsgId: _ids.newId(),
-        role: MessageRole.user,
-        kind: MessageKind.attachments,
-        sentTz: widget.tz,
-      );
-      for (var i = 0; i < kept.length; i++) {
-        await _s.attachments.linkToMessage(
-          messageId: message.id,
-          attachmentId: kept[i].attachment.id,
-          position: i,
-          duplicateAcknowledged: kept[i].duplicateAcknowledged,
-        );
-      }
-      await _resetIdleTimer();
-    } finally {
-      if (mounted) setState(() => _savingBatches--);
-    }
-  }
-
-  Future<String?> _askDuplicate(Attachment existing, String filename) {
-    final imported = DateTime.fromMillisecondsSinceEpoch(
-        existing.firstImportedAt,
-        isUtc: true).toLocal();
-    return showAdaptiveDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog.adaptive(
-        title: const Text('这个文件已经记录过'),
-        content: Text(
-            '「$filename」与 ${imported.month}月${imported.day}日 导入的文件内容完全相同。'),
-        actions: [
-          DialogAction(
-            onPressed: () => Navigator.pop(context, 'view'),
-            child: const Text('查看已有'),
-          ),
-          DialogAction(
-            onPressed: () => Navigator.pop(context, 'add'),
-            child: const Text('仍然添加'),
-          ),
-          DialogAction(
-            onPressed: () => Navigator.pop(context, 'cancel'),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _revealExisting(Attachment attachment) async {
-    final ids = await _s.attachments.messageIdsReferencing(attachment.id);
-    if (ids.isEmpty || !mounted) return;
-    final key = _messageKeys[ids.first];
-    final targetContext = key?.currentContext;
-    if (targetContext != null && targetContext.mounted) {
-      await Scrollable.ensureVisible(targetContext,
-          duration: const Duration(milliseconds: 400), alignment: 0.3);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已有记录在更早的历史里，往上翻可以看到')));
-    }
   }
 
   // ---- 显示 ----
@@ -391,8 +222,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ));
       }
-      final key = _messageKeys.putIfAbsent(m.id, GlobalKey.new);
-      items.add(KeyedSubtree(key: key, child: _buildMessage(m)));
+      items.add(_buildMessage(m));
       if (m.id == lastUserMessageId) {
         items.add(Padding(
           padding: EdgeInsets.only(
@@ -660,21 +490,6 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_savingBatches > 0)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
-                    SizedBox(width: 8),
-                    Text('正在保存附件…', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
             useCupertino(context)
                 ? _buildCupertinoInputRow()
                 : _buildMaterialInputRow(),
@@ -700,11 +515,6 @@ class _ChatPageState extends State<ChatPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline),
-          tooltip: '添加照片或文件',
-          onPressed: _savingBatches > 0 ? null : _showAttachSheet,
-        ),
         Expanded(
           child: TextField(
             controller: _textController,
@@ -745,12 +555,6 @@ class _ChatPageState extends State<ChatPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        CupertinoButton(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          minimumSize: const Size(36, 36),
-          onPressed: _savingBatches > 0 ? null : _showAttachSheet,
-          child: const Icon(CupertinoIcons.add_circled, size: 28),
-        ),
         Expanded(
           child: CupertinoTextField(
             controller: _textController,
