@@ -25,7 +25,7 @@ typedef OrganizeModelCall = Future<ModelResponse> Function({
   required int maxTokens,
 });
 
-/// 整理管线（D-05、schema §3.1/§3.1a，plan-v0.2 V2-M2）。
+/// 整理管线（D-05、schema §3.1/§3.1a）。
 ///
 /// 单一写入队列：触发（记好了 / 无输入预整理 / 每日回顾 / 用户重整理）只
 /// 负责建批次排队，[_pump] 串行执行，不并行处理同一输入。每一项在一个

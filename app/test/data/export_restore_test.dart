@@ -81,7 +81,7 @@ void main() {
     return imported.attachment.sha256;
   }
 
-  group('导出（product-spec §3）', () {
+  group('导出（product-spec §13）', () {
     test('data.json、files/、manifest.json 齐全且校验通过', () async {
       final sha = await seedData();
       final out = Directory(p.join(tempDir.path, 'export'));
@@ -111,7 +111,7 @@ void main() {
     });
   });
 
-  group('恢复（A-29、Codex 7_reply 替换语义）', () {
+  group('恢复（A-29 替换语义）', () {
     Future<RestoreResult> doRestore(Directory exportDir, Directory targetRoot,
         {bool hasExistingData = false, bool replaceExisting = false}) {
       final service = RestoreService(

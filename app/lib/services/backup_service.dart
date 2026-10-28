@@ -59,7 +59,7 @@ class RestoreDrillResult {
   final String? error;
 }
 
-/// 加密备份与恢复演练（V3-M6，D-15、schema §7.5）。
+/// 加密备份与恢复演练（D-15、schema §7.5）。
 ///
 /// - 密钥由备份密码经 PBKDF2-HMAC-SHA256（20 万次迭代）派生；
 /// - 数据快照（全表 JSON）与每个附件文件分别 AES-256-GCM 加密，

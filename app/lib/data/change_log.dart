@@ -5,11 +5,11 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 
-/// 变更日志埋点（schema §7.2，V3-M1）。
+/// 变更日志埋点（schema §7.2）。
 ///
 /// 各仓库在业务写入的**同一事务里**调用 [logChange]：
 /// - 对行拍快照作为 payload，保证负载与 entity_version 一致
-///   （Codex 7_reply：不能发送时才读当前行）；
+///   （不能发送时才读当前行）；
 /// - change_seq 本代次内单调递增无空洞；
 /// - 同时回写实体的通用 change_seq 字段（schema §1.1）。
 ///
@@ -54,7 +54,7 @@ extension ChangeLogging on AppDatabase {
   ];
 
   /// 回填：把当前代次日志里还没有的行补进日志，否则这些数据永远同步
-  /// 不到 Mac。两种情况会用到：变更日志埋点（V3-M1）之前的存量数据；
+  /// 不到 Mac。两种情况会用到：变更日志埋点上线之前的存量数据；
   /// 从导出恢复后换了新代次——新代次里要有完整的手机数据，Mac 才能按新
   /// 代次重建副本（schema §7.3）。settings 的 `change_log_backfilled`
   /// 记下已回填的代次（旧版本存的是 true），代次不同就再做一次；当前代次

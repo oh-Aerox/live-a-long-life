@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 
-/// Mac 端消息流（V3-M4）：手机同步来的副本，只读（D-12）。
+/// Mac 端消息流：手机同步来的副本，只读（D-12）。
 class MacMessagesPage extends StatelessWidget {
   const MacMessagesPage({super.key, required this.services});
 

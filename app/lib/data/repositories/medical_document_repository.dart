@@ -42,7 +42,7 @@ class MedicalPageRef {
       jsonEncode([for (final p in pages) p.toJson()]);
 }
 
-/// 医疗文件（v0.4 V4-M0，schema §5.1）。手机是唯一编辑者（D-12），
+/// 医疗文件（schema §5.1）。手机是唯一编辑者（D-12），
 /// 每次写入在同一事务里记变更日志同步 Mac。
 class MedicalDocumentRepository {
   MedicalDocumentRepository(this._db, this._ctx,

@@ -34,7 +34,7 @@ class FlutterWindow : public Win32Window {
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
 
-  // 局域网广播与托盘常驻（V4-M5、P-34），要在 flutter_controller_ 之前释放。
+  // 局域网广播与托盘常驻（P-34），要在 flutter_controller_ 之前释放。
   std::unique_ptr<BonjourChannel> bonjour_;
   std::unique_ptr<TrayChannel> tray_;
 };

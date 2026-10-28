@@ -2,7 +2,7 @@
 ; 它先构建 release、把 VC++ 运行库放进构建目录，再传入版本号与目录调用 ISCC。
 ;
 ; 装到当前用户目录（%LOCALAPPDATA%\Programs\长命百岁），不需要管理员权限。
-; 用户数据在 %APPDATA%\com.example\Live a Long Life，备份在"文档\长命百岁备份"，
+; 用户数据在 %APPDATA%\io.github.oh-aerox\Live a Long Life，备份在"文档\长命百岁备份"，
 ; 覆盖安装与卸载都不碰（A-07）。
 
 #ifndef AppVersion
@@ -24,7 +24,7 @@ AppId={{303E4AF2-8AD0-4091-9C69-592E2EA30C74}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
-AppPublisher=com.example
+AppPublisher=Aerox
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes

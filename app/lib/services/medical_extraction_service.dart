@@ -75,7 +75,7 @@ const labExtractSystemPrompt = '''
   ],
   "conditions": [
     {
-      "name": "疾病或身体状况名称（如 胆囊结石、青霉素过敏）",
+      "name": "疾病或身体状况名称（如 肾结石、青霉素过敏）",
       "persistence": "long_term" | "temporary",
       "evidence_text": "依据的文字（诊断、结论、印象一栏）",
       "source_lines": ["来源行号"，至少一个]
@@ -129,13 +129,13 @@ const labExtractSystemPrompt = '''
   检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
 - 文本里的【姓名】【证件号】【卡号】是脱敏占位符，不是数据，忽略它们；
 - visit_title 用一个短语说明这次就诊或检查是为什么：有诊断或主诉的写诊断或
-  主诉（如"甲状腺结节复查""急性胃肠炎""腰痛"），体检写"年度体检"或报告上的
+  主诉（如"膝关节扭伤复诊""急性咽炎""腰痛"），体检写"年度体检"或报告上的
   体检名称，单项检查写检查名和部位（如"腹部超声""血常规"）；不超过 12 个字，
   不写医院、日期、人名；看不出就留 null；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ''';
 
-/// 模型识图兜底提示词（V4-M3，D-23/D-24）：本机文字识别不准时，用户显式
+/// 模型识图兜底提示词（D-23/D-24）：本机文字识别不准时，用户显式
 /// 选择把（通常已裁剪的）页面图片发给多模态模型。输出结构与
 /// [labExtractSystemPrompt] 相同但没有行号——定位回原件用页码 + 裁剪区域。
 /// 改动本提示词时同步更新 docs/prompts.md。
@@ -525,7 +525,7 @@ class SendDraft {
       '${edits.isEmpty ? '' : '，手动改动 ${edits.length} 行（含删掉的）'}';
 }
 
-/// 医疗文件结构化提取（V4-M1，D-23/D-24/D-28）：
+/// 医疗文件结构化提取（D-23/D-24/D-28）：
 /// 本地 OCR（带缓存）→ 页筛选 → 脱敏 →【用户预览修改】→ 纯文本模型调用 → lab_panel 记录
 /// （全部 unreviewed，D-04 关键字段确认后才算事实）→ 回填文件级信息。
 class MedicalExtractionService {
@@ -641,7 +641,7 @@ class MedicalExtractionService {
         attachmentPage: page.attachmentPage);
   }
 
-  /// 模型识图兜底（V4-M3，D-24）：用户显式发起，发送的是裁剪页上确认过的
+  /// 模型识图兜底（D-24）：用户显式发起，发送的是裁剪页上确认过的
   /// 图片（或确认风险后的整页），只用于这一次调用、不落库。结果与文字路径
   /// 同样建成 lab_panel（全部 unreviewed），定位为页码 + 裁剪区域。
   Future<MedicalExtractOutcome> extractFromImage(

@@ -389,7 +389,7 @@ class _ConditionsPageState extends State<ConditionsPage> {
                   controller: nameCtl,
                   autofocus: true,
                   decoration: const InputDecoration(
-                      labelText: '名称', hintText: '比如 胆囊结石、青霉素过敏')),
+                      labelText: '名称', hintText: '比如 肾结石、青霉素过敏')),
               const SizedBox(height: 8),
               SegmentedButton<bool>(
                 segments: const [

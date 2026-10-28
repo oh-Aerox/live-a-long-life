@@ -122,7 +122,7 @@ class MedicalTextChannel: NSObject {
   }
 }
 
-/// 局域网发现（V4-M5 mDNS）：Mac 广播同步服务，手机按 Mac 的设备 ID 找回
+/// 局域网发现（mDNS）：Mac 广播同步服务，手机按 Mac 的设备 ID 找回
 /// 当前地址（Mac 换 IP 后不用重新配对）。服务名 `llal-<设备 ID>`，类型
 /// `_llal-sync._tcp`。只负责找地址；连上后仍走配对时建立的加密认证，
 /// 冒名的广播连不上。与另一端（ios/macos）的实现保持一致。

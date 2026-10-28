@@ -10,7 +10,7 @@ import '../data/repositories/peer_repository.dart';
 import '../services/sync/secure_channel.dart';
 import '../services/sync/sync_client.dart';
 
-/// 扫 Mac 上的二维码完成配对（V3-M2，D-13）。
+/// 扫 Mac 上的二维码完成配对（D-13）。
 class PairMacPage extends StatefulWidget {
   const PairMacPage({super.key, required this.services});
 

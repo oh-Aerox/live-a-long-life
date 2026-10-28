@@ -7,8 +7,13 @@
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = live_a_long_life
 
-// The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.livealonglife
+// The application's bundle identifier：默认值在前，本机的 app/Signing.xcconfig（不进 git）覆盖它。
+APP_BUNDLE_ID = com.example.livealonglife
+#include? "../../../Signing.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = $(APP_BUNDLE_ID)
+// Mac 端用本机临时签名（CODE_SIGN_IDENTITY = -），不用 Signing.xcconfig 里的 team：
+// 换签名身份会读不到钥匙串里已存的 key 和备份密码。
+DEVELOPMENT_TEAM =
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Aerox. All rights reserved.

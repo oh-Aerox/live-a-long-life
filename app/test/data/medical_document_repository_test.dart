@@ -45,7 +45,7 @@ void main() {
     expect(pages[0].attachmentId, 'att-1');
     expect(pages[1].messageId, 'msg-2');
 
-    // 变更日志埋点（漏埋 = 永远同步不到，plan-v0.3 风险）。
+    // 变更日志埋点（漏埋 = 永远同步不到，见 docs/development.md §2）。
     final changes = await changesFor(doc.id);
     expect(changes, hasLength(1));
     expect(changes.single.op, ChangeOp.upsert);

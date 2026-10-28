@@ -12,7 +12,7 @@ import 'medical_folder_page.dart' show medicalDocTypeLabels;
 import 'record_ui.dart';
 import 'source_viewer_page.dart';
 
-/// 记录详情（product-spec §4）：来源消息可查、字段可修正、历史保留。
+/// 记录详情（product-spec §7）：来源消息可查、字段可修正、历史保留。
 /// 修正后字段状态变为"用户已修改"，整理不再覆盖它（D-05、A-25）。
 class RecordDetailPage extends StatefulWidget {
   const RecordDetailPage(

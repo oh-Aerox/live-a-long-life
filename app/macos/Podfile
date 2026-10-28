@@ -38,7 +38,7 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
-    # Xcode 27 不再接受 12.0 以下的部署目标，统一抬高（同 iOS 的 M0 教训）。
+    # Xcode 27 不再接受 12.0 以下的部署目标，统一抬高（iOS 同理，见 docs/development.md §4）。
     target.build_configurations.each do |config|
       if config.build_settings['MACOSX_DEPLOYMENT_TARGET'].to_f < 12.0
         config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '12.0'

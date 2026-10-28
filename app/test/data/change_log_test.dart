@@ -55,7 +55,7 @@ void main() {
     expect(field.changeSeq, 3);
   });
 
-  test('负载与 entity_version 一致：先发的旧序号带旧文字（Codex 7_reply）', () async {
+  test('负载与 entity_version 一致：先发的旧序号带旧文字', () async {
     final m = await say('早饭吃了鸡蛋');
     await messages.edit(m.id, '早饭吃了鸡蛋和牛奶');
 

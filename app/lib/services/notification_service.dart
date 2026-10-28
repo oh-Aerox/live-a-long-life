@@ -2,7 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-/// 每日回顾提醒（product-spec §3、A-05）。
+/// 每日回顾提醒（product-spec §6、A-05）。
 /// 只用本地通知，免费签名不支持远程推送也不受影响（D-19）。
 /// iOS 上已排期的本地通知重启后仍会触发；安卓靠开机广播重排（manifest 里的
 /// ScheduledNotificationBootReceiver）。每次启动按设置重排一遍，保证设置修改后生效。
@@ -12,7 +12,7 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   var _initialized = false;
 
-  /// 点开回顾通知时的动作（V2-M5：进入带提问的对话流）。
+  /// 点开回顾通知时的动作（进入带提问的对话流）。
   /// init 之后由 main 赋值。
   void Function()? onReviewTap;
 

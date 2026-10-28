@@ -70,7 +70,7 @@ class ExportResult {
   final List<String> missingFiles;
 }
 
-/// 导出为一个文件夹（product-spec §3、RV-06）：
+/// 导出为一个文件夹（product-spec §13）：
 /// data.json（消息、修改历史、附件关联、资料、设置；不含模型配置和 key）
 /// + files/（附件原件，按 SHA-256 命名）+ manifest.json（逐文件哈希）。
 /// 导出完成后逐个文件重新哈希校验，通过才算成功。
@@ -215,7 +215,7 @@ class ExportService {
     await File(p.join(target.path, 'manifest.json'))
         .writeAsString(jsonEncode(manifest));
 
-    // 导出后校验：逐个核对哈希（product-spec §3）。
+    // 导出后校验：逐个核对哈希（product-spec §13）。
     for (final entry in manifestFiles.entries) {
       final f = File(p.join(target.path, entry.key));
       final expected = (entry.value as Map)['sha256'] as String;

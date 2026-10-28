@@ -23,7 +23,7 @@ String _capabilityLabel(ModelConfig c) {
   return caps.contains('image') ? '文本+图片' : '仅文本';
 }
 
-/// 模型配置列表（product-spec §4、D-16）。
+/// 模型配置列表（product-spec §8、D-16）。
 class ModelConfigPage extends StatefulWidget {
   const ModelConfigPage({super.key, required this.services});
 

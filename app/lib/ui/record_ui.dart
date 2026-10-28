@@ -7,7 +7,7 @@ import '../data/time_value.dart';
 
 export '../data/record_summary.dart';
 
-/// 记录类型的展示名与图标（product-spec §4 六种类型）。
+/// 记录类型的展示名与图标（product-spec §7）。
 const recordTypeLabels = {
   RecordType.meal: '饮食',
   RecordType.sleep: '睡眠',

@@ -41,7 +41,7 @@ const weeklyReviewSystemPrompt = '''
 - 用户手动修改过的值以记录为准，不要质疑。
 ''';
 
-/// 分析结果的生成与读取（V3-M5，schema §6.1，D-14/D-20）。
+/// 分析结果的生成与读取（schema §6.1，D-14/D-20）。
 /// 生成在 Mac 上进行；手机通过同步端点拉取副本。
 class AnalysisService {
   AnalysisService({
@@ -80,7 +80,7 @@ class AnalysisService {
           userText: userText,
           maxTokens: maxTokens);
 
-  /// 生成上周周报。失败抛异常，已有的旧周报保留（product-spec §5）。
+  /// 生成上周周报。失败抛异常，已有的旧周报保留（product-spec §12）。
   Future<AnalysisArtifact> generateWeeklyReview() async {
     AppLog.I.i('analysis', '开始生成周报');
     final config = await _modelConfigs.defaultConfig();

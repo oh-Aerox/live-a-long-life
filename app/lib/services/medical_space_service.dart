@@ -51,7 +51,7 @@ class CleanupResult {
   final Map<String, String> failures; // attachmentId → 原因
 }
 
-/// 医疗文件空间管理（V4-M5，D-22/schema §8）：列出、清理、取回。
+/// 医疗文件空间管理（D-22/schema §8）：列出、清理、取回。
 /// 只处理医疗文件引用的附件；清理只删本机文件副本，事实与索引不动。
 class MedicalSpaceService {
   MedicalSpaceService({

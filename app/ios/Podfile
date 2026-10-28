@@ -1,4 +1,4 @@
-# 与工程一致的部署目标（Xcode 27 最低支持 15.0，docs/plan-v0.1.md §2）
+# 与工程一致的部署目标（Xcode 27 最低支持 15.0，见 docs/development.md §4.1）
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.

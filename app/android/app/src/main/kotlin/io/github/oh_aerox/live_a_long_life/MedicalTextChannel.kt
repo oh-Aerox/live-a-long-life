@@ -1,4 +1,4 @@
-package com.example.live_a_long_life
+package io.github.oh_aerox.live_a_long_life
 
 import android.content.Context
 import android.graphics.Bitmap

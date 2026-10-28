@@ -1,4 +1,4 @@
-package com.example.live_a_long_life
+package io.github.oh_aerox.live_a_long_life
 
 import android.content.Context
 import android.net.nsd.NsdManager
@@ -11,7 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.net.Inet4Address
 
 /**
- * 局域网发现（V4-M5 mDNS）：手机按 Mac 的设备 ID 找回当前地址。与
+ * 局域网发现（mDNS）：手机按 Mac 的设备 ID 找回当前地址。与
  * ios/Runner/AppDelegate.swift 的 BonjourChannel 同一协议：服务类型
  * `_llal-sync._tcp`，服务名 `llal-<设备 ID>`，返回逗号分隔的 IPv4 `host:port`，
  * 包含 Mac 写在 TXT `ips` 里的局域网地址。手机不广播，只实现 resolve。

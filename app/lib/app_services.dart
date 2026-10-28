@@ -35,7 +35,7 @@ import 'services/sync/sync_service.dart';
 import 'services/text_extraction.dart';
 
 /// 应用级服务：数据库与各仓库。
-/// 数据库和附件都放 Application Support 下（docs/plan-v0.1.md §2），
+/// 数据库和附件都放 Application Support 下（docs/development.md §2），
 /// 覆盖安装后保留（A-07），不出现在用户可见的文档目录里。
 class AppServices {
   AppServices._({
@@ -67,7 +67,7 @@ class AppServices {
       peers: peerRepo,
       keyStore: keyStore,
       filesDir: filesDir,
-      // 手机按 Mac 设备 ID 在局域网找回新地址（V4-M5 mDNS）。
+      // 手机按 Mac 设备 ID 在局域网找回新地址（mDNS）。
       discover: Platform.isIOS || Platform.isAndroid
           ? const LanDiscovery().resolve
           : null,

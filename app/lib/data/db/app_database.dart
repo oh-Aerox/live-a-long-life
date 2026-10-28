@@ -8,7 +8,7 @@ export 'tables.dart';
 
 part 'app_database.g.dart';
 
-/// 数据库（docs/plan-v0.1.md §3、plan-v0.2.md V2-M0）。
+/// 数据库（表结构见 docs/schema.md）。
 /// 迁移从 schemaVersion 1 开始编号，之后只追加迁移，不改旧迁移。
 @DriftDatabase(tables: [
   Messages,

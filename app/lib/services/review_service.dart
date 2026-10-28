@@ -9,7 +9,7 @@ import 'health_service.dart';
 import 'organize_service.dart';
 import 'record_gaps.dart';
 
-/// 每日回顾（D-08、D-09，plan-v0.2 V2-M5）：只问缺的。
+/// 每日回顾（D-08、D-09）：只问缺的。
 ///
 /// - 先跑一次整理（daily_review 触发），让已发的消息先变成记录；
 /// - 缺口按 schema §3.5 的表检测；设备已提供睡眠时间时只问感受；

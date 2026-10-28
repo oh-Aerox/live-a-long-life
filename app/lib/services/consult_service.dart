@@ -63,7 +63,7 @@ typedef ToolChatCall = Future<ToolChatResponse> Function({
   required int maxTokens,
 });
 
-/// 主动咨询（V4-M6，D-26）：问题 + 最小上下文发默认模型；咨询是问答
+/// 主动咨询（D-26）：问题 + 最小上下文发默认模型；咨询是问答
 /// 不是录入——不进消息流、不参与整理、不生成记录；历史本地保存可回看。
 ///
 /// 用户允许查阅时按 agent 方式运行（D-43）：模型可多轮调用只读工具

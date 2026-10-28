@@ -33,7 +33,7 @@ String today([int daysAgo = 0]) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('AnalysisService（V3-M5）', () {
+  group('AnalysisService', () {
     late TestEnv env;
     late RecordRepository records;
     late AnalysisService analysis;

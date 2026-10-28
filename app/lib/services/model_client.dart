@@ -47,7 +47,7 @@ class TestConnectionResult {
 ///   覆盖 OpenAI / DeepSeek / Kimi / 智谱 GLM / Ollama / 自定义兼容服务；
 /// - `anthropic`：`POST {base}/v1/messages`，x-api-key + anthropic-version。
 ///
-/// 不引第三方 LLM SDK（plan-v0.2 §2），只用 dart:io。
+/// 不引第三方 LLM SDK（减少依赖漂移），只用 dart:io。
 class ModelClient {
   ModelClient({
     HttpClient Function()? httpClientFactory,
@@ -60,7 +60,7 @@ class ModelClient {
   final Duration timeout;
   static const anthropicVersion = '2023-06-01';
 
-  /// 发送一轮对话，返回模型回复。M2 的整理管线在此之上组装。
+  /// 发送一轮对话，返回模型回复。整理管线在此之上组装。
   /// [imagePngBase64] 只由医疗文件"用模型识图"显式传入（D-24：图片永不
   /// 隐式发给模型）；其余调用都是纯文字。
   Future<ModelResponse> complete({
@@ -572,7 +572,7 @@ class ModelClient {
   }
 }
 
-/// 各预设的默认值（product-spec §4：服务预设 → 填 key → 选模型）。
+/// 各预设的默认值（product-spec §8：服务预设 → 填 key → 选模型）。
 class ModelPresetDefaults {
   const ModelPresetDefaults({
     required this.label,

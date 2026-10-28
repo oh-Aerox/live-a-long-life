@@ -49,7 +49,7 @@ class PendingRebuild {
 /// 被占用时向后顺延（最多 10 个）。
 const syncBasePort = 47856;
 
-/// Mac 端同步服务（V3-M2 配对、V3-M3 接收）。
+/// Mac 端同步服务（配对与接收）。
 ///
 /// - `POST /pair`：配对（一次性窗口）；`POST /ping`：连通性检查；
 /// - `POST /changes`：接收一条变更并按 payload 回灌副本表。接收不经仓库、
@@ -216,7 +216,7 @@ class SyncServer {
     }
   }
 
-  /// 接收一条变更（V3-M3）。幂等：同序号重复应用是同内容 upsert。
+  /// 接收一条变更。幂等：同序号重复应用是同内容 upsert。
   Future<Map<String, Object?>> _applyChange(
       String peerId, Map<String, Object?> payload) async {
     final change = (payload['change'] as Map).cast<String, Object?>();

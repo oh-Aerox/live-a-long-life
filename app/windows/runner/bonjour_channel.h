@@ -10,7 +10,7 @@
 #include <memory>
 #include <string>
 
-// 局域网发现（V4-M5 mDNS）：电脑广播同步服务，手机按电脑的设备 ID 找回
+// 局域网发现（mDNS）：电脑广播同步服务，手机按电脑的设备 ID 找回
 // 当前地址（电脑换 IP 后不用重新配对）。与 macos/Runner/MainFlutterWindow.swift
 // 的 BonjourChannel 保持一致：服务名 `llal-<设备 ID>`，类型 `_llal-sync._tcp`，
 // TXT 记录 ips=<逗号分隔的局域网地址>。

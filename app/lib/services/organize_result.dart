@@ -25,7 +25,7 @@ class OrganizeCandidate {
   final Set<String> inferredFields;
 }
 
-/// 解析结果：有效项 + 被丢弃项的原因（plan-v0.2 §5：缺字段丢弃该条，
+/// 解析结果：有效项 + 被丢弃项的原因（缺字段丢弃该条，
 /// 不猜默认值；解析整体失败时一条记录都不写）。
 class OrganizeParseResult {
   OrganizeParseResult({required this.candidates, required this.errors});

@@ -55,7 +55,7 @@ class HealthFetchResult {
 
 /// 对 health 插件的最小抽象，测试用假实现替换。
 ///
-/// 候选包差异（plan-v0.2 §2）：health 插件不支持 HKAnchoredObjectQuery，
+/// health 插件的限制（docs/development.md §4.1）：health 插件不支持 HKAnchoredObjectQuery，
 /// 拿不到"已删除样本"，也没有锚点。所以：
 /// - 增量按时间窗重读（上次同步往前多读 2 天），UUID 幂等去重；
 /// - 苹果健康里删除的样本暂时无法同步删除（A-31 删除部分待原生实现）；
@@ -226,7 +226,7 @@ class HealthKitPort implements HealthPort {
   }
 }
 
-/// 健康数据同步（D-11、schema §2.5/§2.6，plan-v0.2 V2-M4）。
+/// 健康数据同步（D-11、schema §2.5/§2.6）。
 class HealthService {
   HealthService({
     required HealthRepository repository,

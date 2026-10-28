@@ -24,7 +24,7 @@ class SyncResult {
   bool get ok => error == null;
 }
 
-/// 手机端推送同步（V3-M3，schema §7.2/§7.3）：
+/// 手机端推送同步（schema §7.2/§7.3）：
 /// 变更按 change_seq 逐条发送、逐条确认，第一版不合并；
 /// 依赖附件的变更收到 need_blob 时先传文件再重发；
 /// 连续游标只有前面全部确认才推进。
@@ -41,7 +41,7 @@ class SyncService {
         _keyStore = keyStore,
         _filesDir = filesDir;
 
-  /// 局域网发现（V4-M5）：按 Mac 设备 ID 返回候选 `host:port`（优先的在前），
+  /// 局域网发现：按 Mac 设备 ID 返回候选 `host:port`（优先的在前），
   /// 找不到为空列表。为 null 时不做发现（测试、未启用）。
   final Future<List<String>> Function(String peerDeviceId)? discover;
 
@@ -78,7 +78,7 @@ class SyncService {
   }
 
   /// 先按记录的地址试连；连不上时用局域网发现找 Mac 的新地址，
-  /// 能连通就更新记录（Mac 换 IP 不必重新配对，V4-M5）。都不通时仍返回
+  /// 能连通就更新记录（Mac 换 IP 不必重新配对）。都不通时仍返回
   /// 记录的地址，让后续请求照常报出连接错误。
   Future<String?> _reachableAddr(Peer peer, SecureChannel channel) async {
     final stored = peer.lastSeenAddr;
@@ -262,7 +262,7 @@ class SyncService {
     return rows.length;
   }
 
-  /// 从第一个已配对的 Mac 拉取最新分析结果（V3-M5）。没有或失败返回 null。
+  /// 从第一个已配对的 Mac 拉取最新分析结果。没有或失败返回 null。
   Future<Map<String, Object?>?> fetchLatestAnalysis() async {
     final peers = await _peers.all();
     for (final peer in peers) {

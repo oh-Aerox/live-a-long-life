@@ -4,7 +4,7 @@ import '../app_services.dart';
 import '../services/notification_service.dart';
 import 'profile_page.dart';
 
-/// 首次使用引导（product-spec §3、D-18）：
+/// 首次使用引导（product-spec §4、D-18）：
 /// 确认时区 → 设置回顾时间 → 可跳过的基本资料。
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({

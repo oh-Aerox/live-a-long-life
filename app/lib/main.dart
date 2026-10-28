@@ -42,7 +42,7 @@ Future<void> main() async {
     AppLog.I.e('app', '检验项目索引重建失败', e, st);
   }
 
-  // 电脑端（V3-M0，Mac 与 Windows）：只读副本 + 同步接收，不初始化手机专属
+  // 电脑端（Mac 与 Windows）：只读副本 + 同步接收，不初始化手机专属
   // 插件（通知、HealthKit、整理触发都属于手机，D-12）。
   if (Platform.isMacOS || Platform.isWindows) {
     // 日视图的设备数据区只读数据库，不会调用 HealthKit。
@@ -83,7 +83,7 @@ Future<void> main() async {
       onResume: () => unawaited(services.organizeService.catchUp()));
 
   // 变更日志埋点前的存量数据一次性回填；清理一次重复记录（修复前遗留）；
-  // 再推送（V3-M3；失败静默，状态在"连接 Mac"页可见）。
+  // 再推送（失败静默，状态在"连接 Mac"页可见）。
   unawaited(() async {
     await services.db.backfillChangeLogIfNeeded(services.ctx.deviceId);
     final exams = await services.medicalDocuments.repairPhysicalExamType();
@@ -99,7 +99,7 @@ Future<void> main() async {
     await services.syncService.syncNow();
   }());
 
-  // 健康数据（V2-M4）：用户在设置里开启后，启动和回到前台时增量同步。
+  // 健康数据：用户在设置里开启后，启动和回到前台时增量同步。
   services.healthService = HealthService(
     repository: services.health,
     settings: services.settings,
@@ -109,7 +109,7 @@ Future<void> main() async {
   AppLifecycleListener(
       onResume: () => unawaited(services.healthService.autoSync()));
 
-  // 每日回顾（V2-M5）：点开通知进入带提问的对话流，只问缺的。
+  // 每日回顾：点开通知进入带提问的对话流，只问缺的。
   services.reviewService = ReviewService(
     messages: services.messages,
     records: services.records,
@@ -132,7 +132,7 @@ Future<void> main() async {
   ));
 }
 
-/// 电脑端应用（V3-M0 骨架）：Mac 与 Windows 共用。
+/// 电脑端应用：Mac 与 Windows 共用。
 class MacApp extends StatelessWidget {
   const MacApp({super.key, required this.services});
 

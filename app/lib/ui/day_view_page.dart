@@ -8,8 +8,7 @@ import '../services/health_service.dart';
 import 'record_detail_page.dart';
 import 'record_ui.dart';
 
-/// 按日视图（product-spec §4）：日期切换，显示当天的记录。
-/// 设备数据与缺口显示在 V2-M4 / V2-M5 加入。
+/// 按日视图（product-spec §7）：日期切换，显示当天的记录、设备数据与缺口。
 class DayViewPage extends StatefulWidget {
   const DayViewPage(
       {super.key, required this.services, this.initialDate, this.readOnly = false});

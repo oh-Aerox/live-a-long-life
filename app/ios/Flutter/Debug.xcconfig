@@ -1,2 +1,6 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// 签名与 bundle ID：默认值在前，本机的 app/Signing.xcconfig（不进 git）覆盖它们。
+APP_BUNDLE_ID = com.example.livealonglife
+#include? "../../Signing.xcconfig"

@@ -8,7 +8,7 @@ import '../ids.dart';
 /// 整理批次与逐项结果的读写（schema §3.1、§3.1a、§3.2）。
 ///
 /// 只负责落盘和状态机；prompt 组装、模型调用、D-05 提交规则的编排
-/// 在 V2-M2 的整理服务里实现。
+/// 在整理服务（OrganizeService）里实现。
 class OrganizeRepository {
   OrganizeRepository(this._db, this._ctx, {this.ids = const IdGenerator()});
 
