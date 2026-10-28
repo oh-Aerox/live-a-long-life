@@ -8,7 +8,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import 'record_detail_page.dart';
 
-/// 周报页（V3-M5，A-17）：显示 Mac 生成的周报，
+/// 周报页（A-17）：显示 Mac 生成的周报，
 /// 数据有更新时提示"需要更新"（D-14），事实陈述可点回来源记录。
 /// 手机从 Mac 拉取；Mac 端 [readOnly] 直接看本机生成的全文（2026-09-29 联调：
 /// Mac 首页只有 8 行预览，看不到后面的"下周建议"）。

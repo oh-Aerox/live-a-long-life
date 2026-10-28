@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 
-/// 同步通道的加密与双向认证（D-13，plan-v0.3 §2 定案）：
+/// 同步通道的加密与双向认证（D-13，docs/development.md §4.4）：
 ///
 /// - 配对二维码只出现在用户自己的 Mac 屏幕上，本身就是带外安全信道，
 ///   直接携带 32 字节对称密钥；
@@ -103,7 +103,7 @@ class ChannelException implements Exception {
   String toString() => 'ChannelException: $message';
 }
 
-/// 配对二维码的内容（V3-M2）。
+/// 配对二维码的内容。
 class PairingInfo {
   PairingInfo({
     required this.macDeviceId,

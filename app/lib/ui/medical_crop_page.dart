@@ -22,7 +22,7 @@ class CropResult {
   final Map<String, double>? cropBox;
 }
 
-/// 识图前的裁剪（V4-M3，D-24）：提示用户裁掉姓名、证件号等区域，在图上
+/// 识图前的裁剪（D-24）：提示用户裁掉姓名、证件号等区域，在图上
 /// 拖动框出要识别的部分。可以跳过裁剪发整页，但先确认风险。应用内不做
 /// 打码；原图不改，裁剪图只用于这一次发送。
 class MedicalCropPage extends StatefulWidget {

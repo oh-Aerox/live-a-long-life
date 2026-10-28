@@ -16,7 +16,7 @@ void main() {
 
   test('回填：埋点前的存量行补进变更日志，已在日志的不重复', () async {
     // 模拟存量：直接插一条 message（不走仓库，因此没有变更日志），
-    // 就像 V3-M1 之前录入的数据。
+    // 就像变更日志上线之前录入的数据。
     await env.db.customInsert(
       "INSERT INTO messages (id, user_id, created_at, created_on_device, "
       "version, client_msg_id, seq, role, kind, text, revision_no, sent_at, "

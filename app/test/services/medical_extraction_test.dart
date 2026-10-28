@@ -723,7 +723,7 @@ void main() {
     expect(meta['medications.1'], isNull);
   });
 
-  group('模型识图兜底（V4-M3，D-24）', () {
+  group('模型识图兜底（D-24）', () {
     ImageSend send(String attId) => ImageSend(
           attachmentId: attId,
           pageNo: 1,

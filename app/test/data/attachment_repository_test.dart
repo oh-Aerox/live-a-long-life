@@ -111,7 +111,7 @@ void main() {
   });
 
   group('消息关联（schema §2.4）', () {
-    test('删除消息：引用被标记删除，共享附件的文件保留（product-spec §3）', () async {
+    test('删除消息：引用被标记删除，共享附件的文件保留（product-spec §5）', () async {
       final bytes = List.filled(64, 8);
       final result = await repo.importFile(await writeSource('a.jpg', bytes),
           mimeType: 'image/jpeg');

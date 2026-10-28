@@ -80,7 +80,7 @@ void main() {
     });
   });
 
-  group('配对流程（V3-M2，回环网络）', () {
+  group('配对流程（回环网络）', () {
     late TestEnv macEnv;
     late TestEnv phoneEnv;
     late SyncServer server;

@@ -1,4 +1,4 @@
-package com.example.live_a_long_life
+package io.github.oh_aerox.live_a_long_life
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine

@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 import '../app_log.dart';
 
-/// 局域网发现（V4-M5 mDNS）：Mac 广播同步服务，手机按 Mac 的设备 ID 找回
+/// 局域网发现（mDNS）：Mac 广播同步服务，手机按 Mac 的设备 ID 找回
 /// 当前地址。原生实现见 ios/Runner/AppDelegate.swift、
 /// macos/Runner/MainFlutterWindow.swift 的 BonjourChannel，Windows 电脑见
 /// windows/runner/bonjour_channel.cpp（只广播）。

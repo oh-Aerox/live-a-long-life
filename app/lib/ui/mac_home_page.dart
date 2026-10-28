@@ -21,9 +21,8 @@ import 'medical_folder_page.dart';
 import 'visit_timeline_page.dart';
 import 'weekly_report_page.dart';
 
-/// Mac 端主页（plan-v0.3 V3-M0）：副本概览骨架。
-/// Mac 只保存手机同步来的副本，不能编辑（D-12）；
-/// 同步、浏览、周报在 V3-M3 至 V3-M5 逐步补齐。
+/// 电脑端主页：副本概览。
+/// 电脑只保存手机同步来的副本，不能编辑（D-12）。
 class MacHomePage extends StatefulWidget {
   const MacHomePage({super.key, required this.services});
 
@@ -217,7 +216,7 @@ class _MacHomePageState extends State<MacHomePage> {
       };
     await _server!.start();
     await _load(); // 服务就绪后才能读到待重建的手机
-    // 局域网广播，手机在 Mac 换 IP 后能自己找回来（V4-M5 mDNS）。
+    // 局域网广播，手机在 Mac 换 IP 后能自己找回来（mDNS）。
     final port = _server!.port;
     if (port != null) {
       await const LanDiscovery().publish(widget.services.ctx.deviceId, port,

@@ -122,7 +122,7 @@ class TextExtractionService {
   final TextExtractor _extractor;
   final Directory _cacheDir;
 
-  /// 一页的图片字节（模型识图兜底用，V4-M3）：图片附件原样读出，PDF 渲染该页
+  /// 一页的图片字节（模型识图兜底用）：图片附件原样读出，PDF 渲染该页
   /// 到临时文件再读出并删除——渲染结果只在内存里交给裁剪页，不落库（D-24）。
   /// [attachmentPage] 从 1 起。
   Future<Uint8List> pageImage(

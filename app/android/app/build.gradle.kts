@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.live_a_long_life"
+    namespace = "io.github.oh_aerox.live_a_long_life"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.livealonglife"
+        applicationId = "io.github.oh_aerox.livealonglife"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // health 插件（Health Connect）要求 26

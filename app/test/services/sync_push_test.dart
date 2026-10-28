@@ -404,7 +404,7 @@ void main() {
     expect(await macEnv.db.select(macEnv.db.labResults).get(), isEmpty);
   });
 
-  test('Mac 换了地址：按设备 ID 在局域网找回新地址，同步照常并更新记录（V4-M5）',
+  test('Mac 换了地址：按设备 ID 在局域网找回新地址，同步照常并更新记录',
       () async {
     final phonePeers = PeerRepository(phoneEnv.db);
     final mac = (await phonePeers.all()).single;

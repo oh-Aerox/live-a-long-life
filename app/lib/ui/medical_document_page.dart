@@ -19,7 +19,7 @@ import 'medical_folder_page.dart' show medicalDocTypeLabels;
 import 'medical_send_preview_page.dart';
 import 'source_viewer_page.dart';
 
-/// 医疗文件详情（V4-M2）：文件信息、提取（先本地识别预览、确认后发送，
+/// 医疗文件详情：文件信息、提取（先本地识别预览、确认后发送，
 /// D-28）、检验数值与文字内容逐项核对（D-04）、定位回原件（A-19）。
 /// Mac 端 [readOnly]：只看提取结果、核对状态和原件位置，不提取、不核对、
 /// 不修改、不删除（D-12 只有手机写入）。
@@ -85,7 +85,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     final values = await showFieldsDialog(
       context,
       title: '就诊标题',
-      fields: [DialogField(initial: doc.visitTitle ?? '', hint: '如 甲状腺结节复查')],
+      fields: [DialogField(initial: doc.visitTitle ?? '', hint: '如 膝关节扭伤复诊')],
     );
     if (values == null) return;
     final text = values.single.trim();
@@ -221,7 +221,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
     }
   }
 
-  /// 模型识图兜底（V4-M3，D-24）：本机识别不准时显式发起。先看默认模型能否
+  /// 模型识图兜底（D-24）：本机识别不准时显式发起。先看默认模型能否
   /// 识图（不能就提示换模型，不算失败）→ 选页 → 裁剪 → 发送。
   Future<void> _extractByImage() async {
     final ex = widget.services.medicalExtraction;

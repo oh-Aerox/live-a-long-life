@@ -22,7 +22,7 @@ import 'pair_mac_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
 
-/// 设置页（product-spec §3 v0.1 页面）。
+/// 设置页（product-spec §3）。
 class SettingsPage extends StatefulWidget {
   const SettingsPage(
       {super.key, required this.services, required this.notifications});
@@ -227,11 +227,13 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ]),
           AdaptiveSection(header: '关于', children: [
-            AdaptiveTile(
-              title: const Text('签名到期'),
-              subtitle: const Text('免费签名 7 天有效，到期前连接 Mac 重签'),
-              trailing: Text(_signingText),
-            ),
+            // 只有 iOS 免费签名才有到期日；安卓、正式签名读不到，不显示。
+            if (_signingExpiry != null)
+              AdaptiveTile(
+                title: const Text('签名到期'),
+                subtitle: const Text('免费签名 7 天有效，到期前连接 Mac 重签'),
+                trailing: Text(_signingText),
+              ),
             AdaptiveTile(
               title: const Text('版本'),
               trailing: Text(_version),
@@ -254,7 +256,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ---- 导出与恢复（M5，product-spec §3）----
+  // ---- 导出与恢复（product-spec §13）----
 
   Future<void> _export() async {
     setState(() => _busy = true);

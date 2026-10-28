@@ -19,7 +19,7 @@ import 'health_records_page.dart';
 import 'record_detail_page.dart';
 import 'settings_page.dart';
 
-/// 对话页（product-spec §3 v0.1 页面）。
+/// 对话页（product-spec §5）。
 /// 消息按 seq 排列、按天分组；发送即保存并显示"已保存"；
 /// 照片和文件不在这里添加，从病例夹/体检入口导入（仍写入消息流），
 /// 对话流照常显示已有的附件消息。
@@ -381,7 +381,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // ---- 消息纠错（M3：A-06 与误发移除）----
+  // ---- 消息纠错（A-06 与误发移除）----
 
   Future<void> _showMessageMenu(Message m) async {
     // 先收起输入法，否则菜单被键盘遮挡。

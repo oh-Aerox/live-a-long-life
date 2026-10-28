@@ -30,7 +30,7 @@ Future<Map<String, Object?>> postEnvelope(
   }
 }
 
-/// 手机端配对客户端（V3-M2）。推送在 SyncService（V3-M3）。
+/// 手机端配对客户端。推送在 SyncService。
 class SyncClient {
   SyncClient({
     required this.deviceId,

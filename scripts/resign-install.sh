@@ -7,8 +7,16 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../app"
 
-# 默认设备：Aerox。接了别的设备时传设备 ID 作为第一个参数。
-DEVICE="${1:-00000000-0000000000000000}"
+# team、bundle ID 和默认设备都读本机的 app/Signing.xcconfig（不进 git，
+# 照 Signing.example.xcconfig 填写）。接了别的设备时传设备 ID 作为第一个参数。
+signing() { sed -nE "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*([^[:space:]]*).*/\1/p" Signing.xcconfig 2>/dev/null | tail -1; }
+TEAM="$(signing DEVELOPMENT_TEAM)"
+BUNDLE_ID="$(signing APP_BUNDLE_ID)"
+DEVICE="${1:-$(signing IOS_DEVICE_ID)}"
+if [ -z "$TEAM" ] || [ -z "$BUNDLE_ID" ] || [ -z "$DEVICE" ]; then
+  echo "!! 先在 app/ 下 cp Signing.example.xcconfig Signing.xcconfig，填好 DEVELOPMENT_TEAM、APP_BUNDLE_ID、IOS_DEVICE_ID" >&2
+  exit 1
+fi
 
 # 续期描述文件：Xcode 会一直复用本机缓存里还没过期的描述文件，只重新构建
 # 不会延后到期日（2026-09-30 发现）。先把本应用的缓存挪开，再指定这台设备
@@ -21,7 +29,7 @@ for f in "$PROFILES"/*.mobileprovision; do
   [ -e "$f" ] || continue
   appid="$(security cms -D -i "$f" 2>/dev/null \
     | plutil -extract Entitlements.application-identifier raw -o - - 2>/dev/null || true)"
-  if [[ "$appid" == *.com.example.livealonglife ]]; then mv "$f" "$BACKUP/"; fi
+  if [[ "$appid" == *."$BUNDLE_ID" ]]; then mv "$f" "$BACKUP/"; fi
 done
 flutter build ios --release --config-only >/dev/null
 if ! (cd ios && xcodebuild -workspace Runner.xcworkspace -scheme Runner \
@@ -34,7 +42,7 @@ if ! (cd ios && xcodebuild -workspace Runner.xcworkspace -scheme Runner \
 fi
 rm -rf "$BACKUP"
 
-echo "==> 重新构建并签名（team XXXXXXXXXX）"
+echo "==> 重新构建并签名（team ${TEAM}）"
 flutter build ios --release
 
 # native-assets 原生库（sqlite3、objective_c）由 hooks 产出，构建缓存残留时
@@ -44,7 +52,7 @@ for fw in sqlite3 objective_c; do
   path="build/ios/iphoneos/Runner.app/Frameworks/$fw.framework"
   # 先存输出再匹配：pipefail 下 grep -q 提前退出会让 codesign 收 SIGPIPE 误判失败。
   sig="$(codesign -dv "$path" 2>&1 || true)"
-  if [ ! -d "$path" ] || [[ "$sig" != *"TeamIdentifier=XXXXXXXXXX"* ]]; then
+  if [ ! -d "$path" ] || [[ "$sig" != *"TeamIdentifier=$TEAM"* ]]; then
     echo "!! $fw.framework 缺失或未用团队证书签名，先在 app/ 下 flutter clean 后重跑本脚本" >&2
     exit 1
   fi

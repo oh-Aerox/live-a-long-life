@@ -24,5 +24,5 @@ echo "==> 覆盖安装 $APK"
 adb "${SERIAL_ARGS[@]+"${SERIAL_ARGS[@]}"}" install -r "$APK"
 
 echo "==> 启动"
-adb "${SERIAL_ARGS[@]+"${SERIAL_ARGS[@]}"}" shell monkey -p com.example.livealonglife -c android.intent.category.LAUNCHER 1 >/dev/null
+adb "${SERIAL_ARGS[@]+"${SERIAL_ARGS[@]}"}" shell monkey -p io.github.oh_aerox.livealonglife -c android.intent.category.LAUNCHER 1 >/dev/null
 echo "完成"

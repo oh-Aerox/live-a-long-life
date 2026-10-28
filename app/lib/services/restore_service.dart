@@ -30,9 +30,9 @@ class RestoreResult {
   bool get partial => missingFiles.isNotEmpty;
 }
 
-/// 从导出恢复（product-spec §3、A-29）：
+/// 从导出恢复（product-spec §13、A-29）：
 /// 先校验清单，在临时位置建好新资料库和附件目录，全部成功后一次
-/// 替换，失败保留原资料库不动（Codex 7_reply）。缺失或损坏的文件
+/// 替换，失败保留原资料库不动。缺失或损坏的文件
 /// 单独列出，其余照常导入，结果为"部分恢复"。
 class RestoreService {
   RestoreService({
