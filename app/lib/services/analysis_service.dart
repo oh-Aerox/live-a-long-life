@@ -34,7 +34,9 @@ const weeklyReviewSystemPrompt = '''
 - 输入里的 long_term_conditions 是用户已确认的长期身体状况档案
   （结石、慢性病、过敏等），下周建议要把它们考虑进去（比如结石注意
   饮食和饮水、过敏避开过敏原）；recent_temporary_conditions 是近期
-  临时疾病，只影响近期建议。两者都可能为空；
+  临时疾病，只影响近期建议；past_conditions 是用户标记已痊愈或已解除的
+  既往病史，只作背景参考（比如曾有结石，可以温和提一句预防复发），
+  不要当作现在的疾病给建议。三者都可能为空；
 - 不做医疗诊断，不给用药建议；可以温和提示值得留意的模式；
 - 用户手动修改过的值以记录为准，不要质疑。
 ''';
@@ -121,11 +123,13 @@ class AnalysisService {
               t.localDate.isSmallerOrEqualValue(periodEnd)))
         .get();
 
-    // 身体状况（D-25）：长期档案全部 + 近 30 天的临时疾病；
-    // 只取已核对的（unreviewed 不算事实，D-04）。
+    // 身体状况（D-25）：长期档案 + 近 30 天的临时疾病；已痊愈的长期
+    // 状况单列为既往病史，只作背景（D-41）。只取已核对的（unreviewed
+    // 不算事实，D-04）。
     final recent30 = d(end.subtract(const Duration(days: 30)));
     final longTermConditions = <Map<String, Object?>>[];
     final recentTemporary = <Map<String, Object?>>[];
+    final pastConditions = <Map<String, Object?>>[];
     final conditionRecs = await (_db.select(_db.records)
           ..where((t) =>
               t.recordType.equalsValue(RecordType.condition) &
@@ -158,7 +162,7 @@ class AnalysisService {
           ],
       };
       if (latest.longTerm) {
-        longTermConditions.add(entry);
+        (latest.resolved ? pastConditions : longTermConditions).add(entry);
       } else if ((latest.date ?? '').compareTo(recent30) >= 0 &&
           !latest.resolved) {
         recentTemporary.add(entry);
@@ -182,6 +186,7 @@ class AnalysisService {
       ],
       'long_term_conditions': longTermConditions,
       'recent_temporary_conditions': recentTemporary,
+      'past_conditions': pastConditions,
     });
     final response = await _modelCall(
       config: config,

@@ -11,7 +11,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>用于拍摄饮食、病历等照片记入你的健康记录。照片只保存在本机，不会上传。</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>用于读取睡眠、步数、体能训练和活动能量，补全你的健康记录。只读取，不写入，数据只保存在本机。</string>
+	<string>用于读取睡眠、步数、体能训练和活动能量，补全你的健康记录；咨询时按你的问题读取心率、血氧、体重等数据用于回答，这部分不保存。只读取，不写入。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>用于和你的 Mac 同步数据、Mac 换地址后自动找到它，以及连接你在局域网内自建的模型服务（如 Mac 上的 Ollama）。</string>
 	<key>NSBonjourServices</key>

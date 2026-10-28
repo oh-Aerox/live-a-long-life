@@ -6,6 +6,8 @@ import 'package:health/health.dart';
 import '../data/db/app_database.dart';
 import '../data/repositories/health_repository.dart';
 import '../data/repositories/settings_repository.dart';
+import 'app_log.dart';
+import 'health_live.dart';
 import 'sleep_merge.dart';
 
 /// 一天的设备数据（没有的项为 null，表示"暂未读取到"，不是 0，D-11）。
@@ -60,6 +62,9 @@ class HealthFetchResult {
 /// - 缺席不判定删除，符合 D-11。
 abstract class HealthPort {
   Future<bool> requestAuthorization();
+
+  /// 自动同步前确认读取授权，不会反复打扰用户（见 [HealthService.autoSync]）。
+  Future<void> ensureReadAuthorization();
   Future<HealthFetchResult> fetch(DateTime start, DateTime end);
   Future<int?> totalSteps(DateTime start, DateTime end);
 }
@@ -127,7 +132,20 @@ class HealthKitPort implements HealthPort {
       return _health.requestAuthorization(types,
           permissions: [for (final _ in types) HealthDataAccess.READ]);
     }
-    return _health.requestAuthorization(_types);
+    // 咨询实时读取的类型一并申请（D-44）：授权已决定的不再弹框，新增的
+    // 类型在下次启动 autoSync 时弹一次。
+    return _health.requestAuthorization({..._types, ...liveReadTypes}.toList());
+  }
+
+  /// iOS：授权已决定过时不弹框、直接返回；只有"未决定"时才弹。重装换签名后
+  /// 授权会变回"未决定"，不申请的话每次读取都报 Authorization not determined
+  /// （2026-10-26 排查：10-24、10-25 设备数据为空）。
+  /// 安卓：Health Connect 每次申请都会打开权限页，自动同步时不申请，
+  /// 仍由设置页的开关负责。
+  @override
+  Future<void> ensureReadAuthorization() async {
+    if (!Platform.isIOS) return;
+    await requestAuthorization();
   }
 
   @override
@@ -230,9 +248,30 @@ class HealthService {
 
   Future<bool> requestAuthorization() => _port.requestAuthorization();
 
+  Future<int>? _running;
+
+  /// 启动和回到前台时调用：设置里开了才读，先确认授权再同步。
+  /// 失败只记日志、不抛出——调用方都是 unawaited，异常否则无处可见。
+  Future<void> autoSync() async {
+    try {
+      final enabled =
+          await _settings.get('healthkit_sync_enabled') as bool? ?? false;
+      if (!enabled) return;
+      await _port.ensureReadAuthorization();
+      final n = await syncNow();
+      AppLog.I.i('health', '健康数据同步完成：新样本 $n 条');
+    } catch (e, st) {
+      AppLog.I.e('health', '健康数据同步失败', e, st);
+    }
+  }
+
   /// 读取并入库。返回写入的新样本数；读不到就是 0——
   /// 未授权和确实没有数据无法区分，界面按"暂未读取到"处理（D-11、A-12）。
-  Future<int> syncNow() async {
+  /// 同步进行中再调用时共用同一次（启动、回前台、设置页开关可能同时触发）。
+  Future<int> syncNow() =>
+      _running ??= _sync().whenComplete(() => _running = null);
+
+  Future<int> _sync() async {
     final now = DateTime.now();
     final lastMs = await _settings.get(_lastSyncKey) as int?;
     // 首次读近 30 天；之后从上次同步往前多读 2 天，UUID 去重。

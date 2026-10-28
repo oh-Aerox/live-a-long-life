@@ -1,16 +1,22 @@
 import 'dart:io';
 
-/// 电脑端界面文字：按 Mac 的写法写，在 Windows 上把"Mac"换成"电脑"
-/// （连同两侧的空格，"这台 Mac 上" → "这台电脑上"），"钥匙串"换成
-/// "系统加密存储"：Windows 上 flutter_secure_storage 把密码与 key 加密存成
-/// 应用数据目录里的文件，凭据管理器只保管加密用的密钥，用户在凭据管理器里
-/// 找不到密码本身。
+/// 电脑端（Mac 与 Windows）界面文字。
 ///
-/// 只用于电脑端自己显示的文字。说的是手机上的菜单名（手机设置里的
-/// "连接 Mac"）时不要用，手机端的文字也不变。[windows] 只给测试用。
-String desktopText(String text, {bool? windows}) {
-  if (!(windows ?? Platform.isWindows)) return text;
-  return text
-      .replaceAll(RegExp(r' ?Mac ?'), '电脑')
-      .replaceAll('钥匙串', '系统加密存储');
+/// 电脑端自己的页面直接写"电脑端"，不提 Mac。手机与电脑端共用的页面按手机
+/// 的写法写（手机上把电脑端称作"Mac"），在电脑端用这个函数把"Mac"换成
+/// "电脑端"（连同两侧的空格和后面的"上"："在 Mac 上重新生成" → "在电脑端
+/// 重新生成"）。手机上原样返回。
+///
+/// Windows 上另把"钥匙串"换成"系统加密存储"：flutter_secure_storage 在
+/// Windows 上把密码与 key 加密存成应用数据目录里的文件，凭据管理器只保管
+/// 加密用的密钥，用户在凭据管理器里找不到密码本身。
+///
+/// [os] 取 [Platform.operatingSystem] 的值，只给测试用。
+String desktopText(String text, {String? os}) {
+  final system = os ?? Platform.operatingSystem;
+  if (system != 'macos' && system != 'windows') return text;
+  final replaced = text.replaceAll(RegExp(r' ?Mac ?上?'), '电脑端');
+  return system == 'windows'
+      ? replaced.replaceAll('钥匙串', '系统加密存储')
+      : replaced;
 }

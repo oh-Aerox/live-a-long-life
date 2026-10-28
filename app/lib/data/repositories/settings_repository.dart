@@ -17,6 +17,7 @@ class SettingsRepository {
     'day_view_start': '00:00',
     'idle_preorganize_sec': 180,
     'healthkit_enabled_types': ['sleep', 'steps', 'workout', 'active_energy'],
+    'consult_allow_lookup': true,
   };
 
   Future<Object?> get(String key) async {

@@ -109,4 +109,66 @@ void main() {
         throwsRangeError);
     LabReview.confirmAll(jsonEncode({'results': []}), meta);
   });
+
+  test('删除一条文字内容：后面各条前移，核对状态跟着移', () {
+    final data = jsonEncode({
+      'results': [],
+      'findings': [
+        {'section_raw': '诊断', 'text_raw': '脂肪肝'},
+        {'section_raw': '备注', 'text_raw': '无'},
+        {'section_raw': '建议', 'text_raw': '复查'},
+      ],
+    });
+    final meta = FieldMetaMap({
+      'findings.0': const FieldMeta(
+          origin: FieldOrigin.modelInferred,
+          reviewStatus: ReviewStatus.confirmed),
+      'findings.1': const FieldMeta(
+          origin: FieldOrigin.modelInferred,
+          reviewStatus: ReviewStatus.unreviewed),
+      'findings.2': const FieldMeta(
+          origin: FieldOrigin.userEdited, reviewStatus: ReviewStatus.edited),
+    });
+    final (d, m) = LabReview.deleteEntry(data, meta, 'findings', 1);
+    final findings = (jsonDecode(d) as Map)['findings'] as List;
+    expect([for (final f in findings) f['section_raw']], ['诊断', '建议']);
+    expect(m['findings.0']!.reviewStatus, ReviewStatus.confirmed);
+    expect(m['findings.1']!.reviewStatus, ReviewStatus.edited);
+    expect(m['findings.2'], isNull);
+    expect(() => LabReview.deleteEntry(data, meta, 'findings', 3),
+        throwsRangeError);
+  });
+
+  test('删除检验结果：后面的前移、状态跟着移；汇总与明细重复的同项同值一起删', () {
+    final data = jsonEncode({
+      'results': [
+        {'item_name_raw': '*白细胞计数', 'value_raw': '6.2', 'value_num': 6.2},
+        {'item_name_raw': '身高', 'value_raw': '172', 'value_num': 172},
+        {'item_name_raw': '血红蛋白', 'value_raw': '145', 'value_num': 145},
+        {'item_name_raw': '白细胞计数', 'value_raw': '6.2', 'value_num': 6.2},
+        {'item_name_raw': '白细胞计数', 'value_raw': '5.0', 'value_num': 5.0},
+      ],
+    });
+    const unreviewed = FieldMeta(
+        origin: FieldOrigin.modelInferred,
+        reviewStatus: ReviewStatus.unreviewed);
+    final meta = FieldMetaMap({
+      for (var i = 0; i < 5; i++) 'results.$i': unreviewed,
+      'results.2': const FieldMeta(
+          origin: FieldOrigin.modelInferred,
+          reviewStatus: ReviewStatus.confirmed),
+    });
+    var (d, m) = LabReview.deleteResult(data, meta, 1);
+    List names(String d) =>
+        [for (final r in (jsonDecode(d) as Map)['results'] as List) r['value_raw']];
+    expect(names(d), ['6.2', '145', '6.2', '5.0']);
+    expect(m['results.1']!.reviewStatus, ReviewStatus.confirmed);
+    expect(m['results.4'], isNull);
+
+    (d, m) = LabReview.deleteResult(d, m, 2);
+    expect(names(d), ['145', '5.0']); // 两条 6.2 一起删，5.0 不是同值留下
+    expect(m['results.0']!.reviewStatus, ReviewStatus.confirmed);
+    expect(m['results.1']!.reviewStatus, ReviewStatus.unreviewed);
+    expect(m['results.2'], isNull);
+  });
 }

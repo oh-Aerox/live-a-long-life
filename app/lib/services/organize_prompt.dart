@@ -27,7 +27,7 @@ const organizeSystemPrompt = '''
 }
 
 data 字段（只填有依据的，缺的字段不要编造）：
-- meal: status("eaten"|"skipped"), meal_slot("breakfast"|"lunch"|"dinner"|"snack"|"unknown"), description, items([{name, amount_text}]), notes
+- meal: status("eaten"|"skipped"), meal_slot("breakfast"|"lunch"|"dinner"|"snack"|"drink"|"unknown"), description, items([{name, amount_text}]), notes。单独喝水、茶、咖啡、饮料（不是随某一顿吃的）用 drink；吃了东西但说不清是哪一顿才用 unknown
 - sleep: bedtime/sleep_onset/wake_time/out_of_bed（各自是 {"local_date","local_time"} 或省略）, quality_text, quality_score(1-5，只在用户自己给了分数时)
 - mood: description, score(1-5，只在用户自己给了分数时，不要推断)
 - symptom: status("present"|"explicitly_none"), body_site, description, severity_text, ongoing(true/false)

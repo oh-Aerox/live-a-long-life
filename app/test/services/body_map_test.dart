@@ -67,24 +67,17 @@ void main() {
     expect(BodyMapRules.abnormalSentences('肝内未见明显占位。胆囊壁毛糙，胆囊内见强回声'),
         ['胆囊壁毛糙，胆囊内见强回声']);
     expect(BodyMapRules.abnormalSentences('双肾未见异常；膀胱充盈良好'), isEmpty);
+    // 紧挨关键词的"不"是否定（2024-10 体检报告胰腺描述被误判）。
+    expect(
+        BodyMapRules.abnormalSentences(
+            '胰腺形态大小正常，轮廓规整，实质回声均匀，主胰管不扩张'),
+        isEmpty);
+    expect(BodyMapRules.abnormalSentences('胆总管不明显增宽，肝内胆管不扩张'), isEmpty);
+    expect(BodyMapRules.abnormalSentences('肝右叶见不规则低回声区'), hasLength(1));
     expect(BodyMapRules.abnormalSentences('甲状腺右叶结节，大小约 5mm'),
         ['甲状腺右叶结节，大小约 5mm']);
     expect(BodyMapRules.abnormalSentences('否认高血压、糖尿病史'), isEmpty);
     expect(BodyMapRules.abnormalSentences('无结石'), isEmpty);
-  });
-
-  test('数值异常', () {
-    expect(BodyMapRules.isAbnormalLab(flagRaw: '↑'), isTrue);
-    expect(BodyMapRules.isAbnormalLab(flagRaw: '-'), isFalse);
-    expect(
-        BodyMapRules.isAbnormalLab(valueNum: 65, refLow: 9, refHigh: 50), isTrue);
-    expect(
-        BodyMapRules.isAbnormalLab(valueNum: 30, refLow: 9, refHigh: 50), isFalse);
-    expect(
-        BodyMapRules.isAbnormalLab(valueRaw: '阳性(+)', refRangeRaw: '阴性'),
-        isTrue);
-    expect(BodyMapRules.isAbnormalLab(valueRaw: '阴性', refRangeRaw: '阴性'),
-        isFalse);
   });
 
   test('生理性别自由文本', () {
@@ -186,6 +179,22 @@ void main() {
         '天门冬氨酸氨基转移酶（AST） 12.7U/L ↓',
       ], reason: 'ALT 2022 已正常；AST 两条合一；报告文字被同份报告的诊断覆盖');
       expect(liver.first.detail, contains('此前：2019-05-11 脂肪肝（轻度）'));
+    });
+
+    test('尿常规的项目归膀胱/肾，不和血液里的同名项目混（D-36）', () async {
+      await addPanel('2022-07-17', [
+        {'panel_raw': '血常规', 'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'value_num': 5.33, 'ref_low': 3.5, 'ref_high': 9.5},
+        {'panel_raw': '尿常规', 'item_name_raw': '白细胞(LEU)', 'value_raw': '+', 'flag_raw': '↑'},
+        {'panel_raw': '尿常规', 'item_name_raw': '蛋白质(PRO)', 'value_raw': '+', 'flag_raw': '↑'},
+        {'panel_raw': '尿常规', 'item_name_raw': 'pH值(pH)', 'value_raw': '8.5', 'value_num': 8.5, 'ref_low': 4.5, 'ref_high': 8},
+      ]);
+      final data = await BodyMapService(records: records, profile: profile)
+          .load(now: DateTime(2026, 9, 30));
+      expect(data.of('bladder').map((f) => f.title), ['白细胞(LEU) + ↑']);
+      expect(data.of('kidney').map((f) => f.title),
+          containsAll(['蛋白质(PRO) + ↑', 'pH值(pH) 8.5']));
+      expect(data.of(bloodOrganId), isEmpty, reason: '血白细胞正常，尿白细胞不算血液');
+      expect(data.of('stomach'), isEmpty, reason: 'pH 不被 Hp 规则误中');
     });
 
     test('检验只看每项最近一次；报告文字、状况、不适各自归位', () async {

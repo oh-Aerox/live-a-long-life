@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -14,15 +15,12 @@ import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
 import 'android_background_page.dart';
-import 'healthkit_spike_page.dart';
 import 'log_page.dart';
 import 'medical_space_page.dart';
 import 'model_config_page.dart';
 import 'pair_mac_page.dart';
 import 'profile_page.dart';
 import 'review_times_page.dart';
-import 'suggestions_page.dart';
-import 'weekly_report_page.dart';
 
 /// 设置页（product-spec §3 v0.1 页面）。
 class SettingsPage extends StatefulWidget {
@@ -120,170 +118,137 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cupertino = useCupertino(context);
+    final chevron = cupertino
+        ? const CupertinoListTileChevron()
+        : const Icon(Icons.chevron_right);
+    Future<void> open(Widget page) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      backgroundColor: cupertino
+          ? CupertinoColors.systemGroupedBackground.resolveFrom(context)
+          : null,
+      appBar: adaptiveAppBar(context, title: const Text('设置')),
       body: ListView(
         children: [
-          ListTile(
-            title: const Text('每日回顾'),
-            subtitle: Text(_reviewSummary),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => ReviewTimesPage(
-                        services: widget.services,
-                        notifications: widget.notifications)),
-              );
-              await _load();
-            },
-          ),
-          if (Platform.isAndroid)
-            ListTile(
-              title: const Text('后台与提醒'),
-              subtitle: const Text('通知、闹钟和提醒、省电策略、自启动'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => AndroidBackgroundPage(
-                        services: widget.services,
-                        notifications: widget.notifications)),
+          AdaptiveSection(header: '记录与提醒', children: [
+            AdaptiveTile(
+              title: const Text('每日回顾'),
+              subtitle: Text(_reviewSummary),
+              trailing: chevron,
+              onTap: () async {
+                await open(ReviewTimesPage(
+                    services: widget.services,
+                    notifications: widget.notifications));
+                await _load();
+              },
+            ),
+            if (Platform.isAndroid)
+              AdaptiveTile(
+                title: const Text('后台与提醒'),
+                subtitle: const Text('通知、闹钟和提醒、省电策略、自启动'),
+                trailing: chevron,
+                onTap: () => open(AndroidBackgroundPage(
+                    services: widget.services,
+                    notifications: widget.notifications)),
+              ),
+            AdaptiveTile(
+              title: const Text('基本资料'),
+              subtitle: const Text('出生年月、生理性别、身高、过敏、长期用药等'),
+              trailing: chevron,
+              onTap: () => open(ProfilePage(services: widget.services)),
+            ),
+            AdaptiveTile(
+              title: const Text('读取健康数据'),
+              subtitle: const Text('睡眠、步数、体能训练、活动能量。只读取，不写入'),
+              trailing: Switch.adaptive(
+                value: _healthEnabled,
+                onChanged: _busy ? null : (v) => _toggleHealth(v),
               ),
             ),
-          ListTile(
-            title: const Text('模型'),
-            subtitle: const Text('配置整理消息用的模型，查看调用记录'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => ModelConfigPage(services: widget.services)),
+          ]),
+          AdaptiveSection(header: '模型', children: [
+            AdaptiveTile(
+              title: const Text('模型'),
+              subtitle: const Text('配置整理消息用的模型，查看调用记录'),
+              trailing: chevron,
+              onTap: () => open(ModelConfigPage(services: widget.services)),
             ),
-          ),
-          ListTile(
-            title: const Text('基本资料'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => ProfilePage(services: widget.services)),
+          ]),
+          AdaptiveSection(header: '数据与同步', children: [
+            AdaptiveTile(
+              title: Text(_pairedMacName == null ? '连接 Mac' : '已连接 Mac'),
+              subtitle: Text(_pairedMacName == null
+                  ? '扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'
+                  : '$_pairedMacName · $_syncSummary'),
+              trailing: chevron,
+              onTap: () async {
+                await open(PairMacPage(services: widget.services));
+                await _load();
+              },
             ),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('医疗文件空间'),
-            subtitle: const Text('清理手机原件，保留记录；已清理的可取回'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => MedicalSpacePage(services: widget.services)),
+            AdaptiveTile(
+              title: const Text('医疗文件空间'),
+              subtitle: const Text('清理手机原件，保留记录；已清理的可取回'),
+              trailing: chevron,
+              onTap: () => open(MedicalSpacePage(services: widget.services)),
             ),
-          ),
-          ListTile(
-            title: const Text('数据存储位置'),
-            subtitle: const Text('全部数据只保存在这台手机上'),
-            onTap: () => showAdaptiveDialog<void>(
-              context: context,
-              builder: (context) => AlertDialog.adaptive(
-                title: const Text('数据存储位置'),
-                content: const Text('消息、照片、PDF 和资料都保存在本机应用'
-                    '沙盒里，没有任何网络上传。删除应用会一并删除数据，'
-                    '重要内容请先用"导出数据"备份。'),
-                actions: [
-                  DialogAction(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('知道了')),
-                ],
+            AdaptiveTile(
+              title: const Text('导出数据'),
+              subtitle: const Text('导出到"文件"应用可见的文件夹'),
+              trailing: chevron,
+              onTap: _busy ? null : () => _export(),
+            ),
+            AdaptiveTile(
+              title: const Text('从导出恢复'),
+              trailing: chevron,
+              onTap: _busy ? null : () => _restore(),
+            ),
+            AdaptiveTile(
+              title: const Text('数据存储位置'),
+              subtitle: const Text('保存在本机；配对后 Mac 上有一份副本'),
+              onTap: () => showAdaptiveDialog<void>(
+                context: context,
+                builder: (context) => AlertDialog.adaptive(
+                  title: const Text('数据存储位置'),
+                  content: const Text('消息、照片、PDF 和资料保存在本机应用'
+                      '沙盒里。配对 Mac 后，数据通过局域网同步到 Mac 保存副本，'
+                      '不经过云端。整理消息、识别病历时，相关内容会发给你配置的'
+                      '模型服务，发了什么可以在"模型 → 调用记录"里查看。'
+                      '删除应用会一并删除本机数据，重要内容请先用"导出数据"备份。'),
+                  actions: [
+                    DialogAction(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('知道了')),
+                  ],
+                ),
               ),
             ),
-          ),
-          ListTile(
-            title: const Text('导出数据'),
-            subtitle: const Text('导出到"文件"应用可见的文件夹'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _busy ? null : () => _export(),
-          ),
-          ListTile(
-            title: const Text('从导出恢复'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _busy ? null : () => _restore(),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('签名到期'),
-            subtitle: const Text('免费签名 7 天有效，到期前连接 Mac 重签'),
-            trailing: Text(_signingText),
-          ),
-          ListTile(
-            title: const Text('版本'),
-            trailing: Text(_version),
-          ),
-          ListTile(
-            title: const Text('周报'),
-            subtitle: const Text('Mac 生成的每周分析，事实可点回来源'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => WeeklyReportPage(services: widget.services)),
+          ]),
+          AdaptiveSection(header: '关于', children: [
+            AdaptiveTile(
+              title: const Text('签名到期'),
+              subtitle: const Text('免费签名 7 天有效，到期前连接 Mac 重签'),
+              trailing: Text(_signingText),
             ),
-          ),
-          ListTile(
-            title: const Text('修正建议'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => SuggestionsPage(services: widget.services)),
+            AdaptiveTile(
+              title: const Text('版本'),
+              trailing: Text(_version),
             ),
-          ),
-          ListTile(
-            title: Text(_pairedMacName == null ? '连接 Mac' : '已连接 Mac'),
-            subtitle: Text(_pairedMacName == null
-                ? '扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'
-                : '$_pairedMacName · $_syncSummary'),
-            leading: _pairedMacName == null
-                ? null
-                : const Icon(Icons.laptop_mac, color: Colors.green),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => PairMacPage(services: widget.services)),
-              );
-              await _load();
-            },
-          ),
-          SwitchListTile.adaptive(
-            title: const Text('读取健康数据'),
-            subtitle: const Text('睡眠、步数、体能训练、活动能量。只读取，'
-                '不写入，数据只保存在本机'),
-            value: _healthEnabled,
-            onChanged: _busy ? null : (v) => _toggleHealth(v),
-          ),
-          ListTile(
-            title: const Text('运行日志'),
-            subtitle: const Text('排查问题用，可复制给开发'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LogPage()),
-            ),
-          ),
-          if (Platform.isIOS)
-            ListTile(
-              title: const Text('HealthKit 试验（T1）'),
-              subtitle: const Text('技术验证用，之后的版本会移除'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HealthKitSpikePage()),
+          ]),
+          AdaptiveSection(
+            header: '开发者',
+            footer: '排查问题用。周报和修正建议移到了首页的"健康档案"。',
+            children: [
+              AdaptiveTile(
+                title: const Text('运行日志'),
+                subtitle: const Text('可复制给开发'),
+                trailing: chevron,
+                onTap: () => open(const LogPage()),
               ),
-            ),
+            ],
+          ),
         ],
       ),
     );

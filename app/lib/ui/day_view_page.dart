@@ -29,6 +29,9 @@ class _DayViewPageState extends State<DayViewPage> {
   List<(RecordRow, RecordRevision)> _records = [];
   DeviceDayData? _device;
 
+  /// 当天发出、还没整理成记录的消息（模型不可用时也能看到说过什么）。
+  List<Message> _pending = [];
+
   @override
   void initState() {
     super.initState();
@@ -64,10 +67,15 @@ class _DayViewPageState extends State<DayViewPage> {
       return a.$1.createdAt.compareTo(b.$1.createdAt);
     });
     final device = await widget.services.healthService.dayData(_localDate);
+    final dayStart = DateTime(_date.year, _date.month, _date.day);
+    final pending = await widget.services.messages.pendingOrganizeBetween(
+        dayStart.millisecondsSinceEpoch,
+        dayStart.add(const Duration(days: 1)).millisecondsSinceEpoch);
     if (mounted) {
       setState(() {
         _records = result;
         _device = device;
+        _pending = pending;
       });
     }
   }
@@ -120,13 +128,14 @@ class _DayViewPageState extends State<DayViewPage> {
       ),
       body: ListView(
         children: [
-          if (_records.isEmpty)
+          if (_records.isEmpty && _pending.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: Text('这一天还没有记录')),
             )
           else
             for (final r in _records) _tile(r.$1, r.$2),
+          if (_pending.isNotEmpty) ..._pendingSection(),
           const Divider(),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -137,6 +146,35 @@ class _DayViewPageState extends State<DayViewPage> {
         ],
       ),
     );
+  }
+
+  /// 待整理的消息：原文照列，整理成记录后自然从这里消失。
+  List<Widget> _pendingSection() {
+    String hm(int ms) {
+      final t = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+      return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    }
+
+    return [
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Text('待整理',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        child: Text('模型可用时会自动整理成记录',
+            style: TextStyle(color: Colors.grey, fontSize: 12)),
+      ),
+      for (final m in _pending)
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.schedule_outlined, size: 20),
+          title: Text(m.body ?? '',
+              maxLines: 3, overflow: TextOverflow.ellipsis),
+          subtitle: Text(hm(m.sentAt)),
+        ),
+    ];
   }
 
   /// 设备数据区（D-11：没有行 = "暂未读取到"，不是 0；A-12 措辞）。
@@ -214,7 +252,8 @@ class _DayViewPageState extends State<DayViewPage> {
         recordTypeLabels[record.recordType]!,
         timeValueText(occurred),
         if (occurred.dateAmbiguous) '日期待确认',
-        if (edited) '已核对/修改' else '未核对',
+        // 日常记录不要求逐条核对（D-04），只标改过的，不标"未核对"。
+        if (edited) '已核对/修改',
       ].join(' · ')),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {

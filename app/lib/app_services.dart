@@ -22,6 +22,8 @@ import 'services/medical_duplicate.dart';
 import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
 import 'services/consult_service.dart';
+import 'services/consult_tools.dart';
+import 'services/health_live.dart';
 import 'services/health_service.dart';
 import 'services/key_store.dart';
 import 'services/medical_extraction_service.dart';
@@ -94,6 +96,17 @@ class AppServices {
       organize: organize,
       modelConfigs: modelConfigs,
       keyStore: keyStore,
+      tools: ConsultTools(
+        db: db,
+        records: records,
+        documents: medicalDocuments,
+        // healthService 在 main 里按平台创建，查询时才取。
+        deviceData: (date) => healthService.dayData(date),
+        // 实时读取只在 iPhone 上有，随设置里的健康数据开关（D-44）。
+        live: Platform.isIOS ? HealthLiveReader(HealthKitLiveSource()) : null,
+        liveEnabled: () async =>
+            await settings.get('healthkit_sync_enabled') as bool? ?? false,
+      ),
     );
     medicalExtraction = MedicalExtractionService(
       attachments: attachments,

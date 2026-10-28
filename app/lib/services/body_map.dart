@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
+import '../data/lab_abnormal.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/same_item.dart';
@@ -125,10 +126,11 @@ class BodyMapRules {
       ];
 
   static final _labRules = _compile(const {
-    'bladder': ['尿白细胞', '亚硝酸盐', '尿细菌'],
+    'bladder': ['尿白细胞', '亚硝酸盐', '尿细菌', '尿上皮'],
     'kidney': [
       '肌酐', '尿素', '胱抑素', '肾小球', 'eGFR', 'β2微球蛋白', 'β2-微球蛋白',
       '尿蛋白', '尿微量白蛋白', '尿隐血', '尿潜血', '尿红细胞', '尿比重',
+      '尿管型', '尿液酸碱度',
       'CREA', 'Cr', 'Scr', 'BUN', 'UREA', 'Cys-C', 'CysC',
     ],
     'thyroid': [
@@ -240,31 +242,6 @@ class BodyMapRules {
     return found;
   }
 
-  /// 数值异常：报告上有异常标记，或数值超出参考范围，或定性结果阳性而参考为阴性。
-  static bool isAbnormalLab({
-    String? flagRaw,
-    String? valueRaw,
-    double? valueNum,
-    double? refLow,
-    double? refHigh,
-    String? refRangeRaw,
-  }) {
-    final flag = flagRaw?.trim() ?? '';
-    if (flag.isNotEmpty && !_normalFlag.hasMatch(flag)) return true;
-    if (valueNum != null) {
-      if (refLow != null && valueNum < refLow) return true;
-      if (refHigh != null && valueNum > refHigh) return true;
-    }
-    final v = valueRaw ?? '';
-    if ((refRangeRaw ?? '').contains('阴性') &&
-        (v.contains('阳性') || RegExp(r'^\s*\++').hasMatch(v))) {
-      return true;
-    }
-    return false;
-  }
-
-  static final _normalFlag = RegExp(r'^(-|—|N|正常|阴性|/)$', caseSensitive: false);
-
   static final _abnormalWord = RegExp(
       '结节|囊肿|结石|息肉|增生|肥大|增大|肿大|增厚|钙化|占位|肿物|肿块|积液|狭窄|'
       '扩张|硬化|脂肪肝|炎|溃疡|糜烂|反流|异常|偏高|偏低|升高|降低|减退|亢进|'
@@ -272,6 +249,9 @@ class BodyMapRules {
       '低回声|强回声|阳性|骨折|突出|膨出|变性|衰竭|梗|血栓|肌瘤|腺瘤|瘤|癌|'
       '出血|感染|梗阻|紊乱|不全');
   static final _negation = RegExp('未见|未发现|未探及|未显示|未触及|没有|排除|否认|无(?!回声)');
+  /// 紧挨关键词的"不"（"主胰管不扩张""不明显增大"）也是否定；不挨着的不算，
+  /// 免得"不规则低回声"被当成正常。
+  static final _negatedRight = RegExp(r'不(明显)?$');
   static final _clauseBreak = RegExp(r'[，,。；;：:]'); // 顿号不断开：否定管到整串并列
 
   /// 报告文字里提示异常的句子（按句号、分号、换行切）。同一小句里关键词
@@ -292,6 +272,7 @@ class BodyMapRules {
         final clause = s.substring(
             clauseStart, nextBreak < 0 ? s.length : m.end + nextBreak);
         if (_negation.hasMatch(head.substring(clauseStart))) continue;
+        if (_negatedRight.hasMatch(head)) continue;
         if (clause.contains('正常')) continue;
         out.add(s);
         break;
@@ -422,16 +403,18 @@ class BodyMapService {
         for (var i = 0; i < results.length; i++) {
           final r = results[i];
           if (r is! Map) continue;
-          final name = r['item_name_raw'];
+          final rawName = r['item_name_raw'];
           final value = r['value_raw'];
-          if (name is! String || value is! String) continue;
-          final key = RecordRepository.labItemKey(name);
+          if (rawName is! String || value is! String) continue;
+          final name = SameItem.itemName(rawName);
+          final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
+          final key = RecordRepository.labItemKey(name, panel: panel);
           final prev = latestLab[key];
           // 同一天（同一份报告汇总与明细）后面的覆盖前面的：明细信息更全。
           if (prev != null && (prev.$1 ?? '').compareTo(date ?? '') > 0) {
             continue;
           }
-          final abnormal = BodyMapRules.isAbnormalLab(
+          final abnormal = isAbnormalLab(
             flagRaw: r['flag_raw'] as String?,
             valueRaw: value,
             valueNum: (r['value_num'] as num?)?.toDouble(),
@@ -496,10 +479,9 @@ class BodyMapService {
         }
       }
     }
-    for (final (_, name, f) in latestLab.values) {
+    for (final MapEntry(:key, value: (_, name, f)) in latestLab.entries) {
       if (f == null) continue;
       // 同一份报告已经据此下了诊断（"尿酸高"与"尿酸 463 ↑"）：只列诊断。
-      final key = RecordRepository.labItemKey(name);
       if (shownConditions.any((c) =>
           c.medicalDocumentId != null &&
           c.medicalDocumentId == f.medicalDocumentId &&
@@ -507,7 +489,10 @@ class BodyMapService {
           c.name.contains(key))) {
         continue;
       }
-      add(BodyMapRules.organOfLabItem(name), f);
+      // 尿、便检查的项目按带标本的键归器官（"白细胞"在尿常规里是"尿白细胞"，
+      // 归膀胱而不是血液，D-36）。
+      add(BodyMapRules.organOfLabItem(key == SameItem.labKey(name) ? name : key),
+          f);
     }
     for (final e in texts.entries) {
       for (final group in SameItem.groups(e.value, (f) => f.title, (f) => f.date)) {

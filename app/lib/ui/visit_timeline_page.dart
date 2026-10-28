@@ -104,8 +104,11 @@ class _VisitTimelinePageState extends State<VisitTimelinePage> {
       events.add(_TimelineEvent(
         date: date,
         icon: Icons.description_outlined,
-        title: medicalDocTypeLabels[doc.docType]!,
-        subtitle: doc.institutionText ?? '检查/就诊资料',
+        title: doc.visitTitle ?? medicalDocTypeLabels[doc.docType]!,
+        subtitle: [
+          if (doc.visitTitle != null) medicalDocTypeLabels[doc.docType]!,
+          doc.institutionText ?? (doc.visitTitle == null ? '检查/就诊资料' : null),
+        ].nonNulls.join(' · '),
         documentId: doc.id,
       ));
     }

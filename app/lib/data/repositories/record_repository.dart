@@ -7,6 +7,7 @@ import '../change_log.dart';
 import '../db/app_database.dart';
 import '../field_meta.dart';
 import '../ids.dart';
+import '../ocr_fixes.dart';
 import '../same_item.dart';
 import '../time_value.dart';
 
@@ -244,8 +245,8 @@ class RecordRepository {
   // ---- 检验项目索引（schema §5.3，D-27）----
   // 派生数据：随 lab_panel 版本同事务重建；不入变更日志、不同步。
 
-  static String labItemKey(String itemNameRaw) =>
-      SameItem.labKey(itemNameRaw);
+  static String labItemKey(String itemNameRaw, {String? panel}) =>
+      SameItem.labKey(itemNameRaw, panel: panel);
 
   Future<void> _reindexLabResults(
     String recordId,
@@ -272,9 +273,21 @@ class RecordRepository {
             results[i]['value_raw'] is String)
           {...(results[i] as Map).cast<String, Object?>(), '_index': i},
     ]);
-    for (final r in rows) {
+    // 血压写成一项"122/86"的拆成收缩压、舒张压两行（part 1、2，D-39）。
+    final parts = [
+      for (final r in rows)
+        ...switch (SameItem.splitBloodPressure(r)) {
+          final split? => [
+              for (final (k, half) in split.indexed)
+                {...half, '_index': r['_index'], '_part': k + 1},
+            ],
+          null => [r],
+        },
+    ];
+    for (final r in parts) {
       final i = r['_index'] as int;
       final name = r['item_name_raw'] as String;
+      final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
       var valueRaw = r['value_raw'] as String;
       var valueNum = (r['value_num'] as num?)?.toDouble();
       var unitRaw = r['unit_raw'] as String?;
@@ -304,10 +317,12 @@ class RecordRepository {
       await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
             recordId: recordId,
             resultIndex: i,
+            part: Value(r['_part'] as int? ?? 0),
             revisionId: revisionId,
             medicalDocumentId: Value(medicalDocumentId),
             itemNameRaw: name,
-            itemKey: labItemKey(name),
+            itemKey: labItemKey(name, panel: panel),
+            panelRaw: Value(panel),
             valueRaw: valueRaw,
             valueNum: Value(valueNum),
             unitRaw: Value(unitRaw),
@@ -389,14 +404,18 @@ class RecordRepository {
 
   /// 一个检验项目的历史数值，按检查日期升序（趋势视图、分析取数）。
   /// [itemKey] 用 [labItemKey] 归一化后的项目名。
-  Future<List<LabResult>> labResultHistory(String itemKey) =>
-      (_db.select(_db.labResults)
-            ..where((t) => t.itemKey.equals(itemKey))
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.examDate),
-              (t) => OrderingTerm.asc(t.updatedAt),
-            ]))
-          .get();
+  /// 没测的占位值（"-"）不算。
+  Future<List<LabResult>> labResultHistory(String itemKey) async => [
+        for (final r in await (_db.select(_db.labResults)
+              ..where((t) => t.itemKey.equals(itemKey))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.examDate),
+                (t) => OrderingTerm.asc(t.updatedAt),
+                (t) => OrderingTerm.asc(t.resultIndex),
+              ]))
+            .get())
+          if (!SameItem.isPlaceholderValue(r.valueRaw)) r
+      ];
 
   /// 一份医疗文件提取出的全部检验项目（详情页展示）。
   Future<List<LabResult>> labResultsOfDocument(String medicalDocumentId) =>
@@ -433,11 +452,35 @@ class RecordRepository {
         .get();
     final latest = <String, LabResult>{};
     for (final r in all) {
+      if (SameItem.isPlaceholderValue(r.valueRaw)) continue;
       latest[r.itemKey] = r; // 升序遍历，留下的是最新
     }
     final list = latest.values.toList()
       ..sort((a, b) => a.itemKey.compareTo(b.itemKey));
     return list;
+  }
+
+  /// 每个检验项目在趋势里归哪一组（D-42）：按检查日期取最近一次能认出
+  /// 分组的；最近那份报告没标大项时不会掉进"其他"。
+  Future<Map<String, String>> labItemGroups() async {
+    final groups = <String, String>{};
+    for (final r in await (_db.select(_db.labResults)
+          ..orderBy([(t) => OrderingTerm.asc(t.examDate)]))
+        .get()) {
+      final g = SameItem.trendGroup(r.panelRaw, r.itemKey);
+      if (g != '其他' || !groups.containsKey(r.itemKey)) groups[r.itemKey] = g;
+    }
+    return groups;
+  }
+
+  /// 每个检验项目在各份报告里出现过的名字（趋势页搜索用：搜"ALT"或旧
+  /// 写法"谷丙转氨酶"也能找到）。
+  Future<Map<String, Set<String>>> labItemNames() async {
+    final names = <String, Set<String>>{};
+    for (final r in await _db.select(_db.labResults).get()) {
+      (names[r.itemKey] ??= {}).add(r.itemNameRaw);
+    }
+    return names;
   }
 
   Future<RecordRow?> byId(String recordId) => (_db.select(_db.records)
@@ -538,6 +581,110 @@ class RecordRepository {
       (_db.select(_db.recordSources)
             ..where((t) => t.recordRevisionId.equals(revisionId)))
           .get();
+
+  /// 当前版本引用了这些消息的未删除记录 ID。删除记录时询问是否连原消息
+  /// 一起删，用它提示这些消息还整理出了哪些别的记录。
+  Future<Set<String>> recordsCitingMessages(Set<String> messageIds) async {
+    if (messageIds.isEmpty) return {};
+    final query = _db.select(_db.recordSources).join([
+      innerJoin(
+          _db.records,
+          _db.records.currentRevisionId
+              .equalsExp(_db.recordSources.recordRevisionId)),
+    ])
+      ..where(_db.recordSources.sourceKind
+              .equalsValue(RecordSourceKind.message) &
+          _db.recordSources.sourceId.isIn(messageIds) &
+          _db.records.deletedAt.isNull());
+    final rows = await query.get();
+    return {for (final r in rows) r.readTable(_db.records).id};
+  }
+
+  /// 补上识别修正（2026-10-19）：此前模型只把单位幂次等修正写进
+  /// ocr_fixes、字段仍是 OCR 原文（"*1012/L"）。未核对的检验数值按修正
+  /// 说明改字段，追加一个版本（索引随之重建、走变更日志同步到电脑端）；
+  /// 用户已确认或修改过的项不动。幂等。返回修过的记录数。
+  /// 饮水记录归回 drink（D-47）：加 drink 之前，单独喝水喝茶被整理成
+  /// meal_slot=unknown，或模型自己编了"饮水"之类的值，按日视图显示成
+  /// "未知：红茶"。只改没说清哪一顿、且吃的东西全是饮品的；用户核对过
+  /// 餐次的不动。写新版本，可追溯。
+  Future<int> repairDrinkSlots() async {
+    const standard = {'breakfast', 'lunch', 'dinner', 'snack', 'drink'};
+    var repaired = 0;
+    for (final rec in await byType(RecordType.meal)) {
+      if (rec.currentRevisionId == null) continue;
+      final rev = await currentRevisionOf(rec.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      final slot = data['meal_slot'];
+      if (slot is String && standard.contains(slot)) continue;
+      if (data['status'] == 'skipped') continue;
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      if (meta['meal_slot']?.isProtected ?? false) continue;
+      final saidDrink = slot is String && _drinkSlot.hasMatch(slot);
+      final items = [
+        for (final i in data['items'] as List? ?? const [])
+          if (i is Map && i['name'] is String) i['name'] as String,
+      ];
+      final allDrinks = items.isNotEmpty && items.every(_drinkName.hasMatch);
+      if (!saidDrink && !allDrinks) continue;
+      data['meal_slot'] = 'drink';
+      await addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: TimeValue.decode(rev.occurred),
+        occurredEnd: rev.occurredEnd == null
+            ? null
+            : TimeValue.decode(rev.occurredEnd!),
+        dataJson: jsonEncode(data),
+        fieldMeta: meta,
+        producedBy: ProducedBy.decode(rev.producedBy),
+      );
+      repaired++;
+    }
+    return repaired;
+  }
+
+  static final _drinkSlot = RegExp('饮|喝|drink', caseSensitive: false);
+  static final _drinkName = RegExp(
+      r'水|茶|咖啡|饮料|饮品|果汁|豆浆|牛奶|奶茶|可乐|汽水|苏打|拿铁|美式');
+
+  Future<int> repairUnappliedOcrFixes() async {
+    var repaired = 0;
+    final recs = await (_db.select(_db.records)
+          ..where((t) =>
+              t.recordType.equalsValue(RecordType.labPanel) &
+              t.deletedAt.isNull()))
+        .get();
+    for (final rec in recs) {
+      final rev = await currentRevisionOf(rec.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      final results = data['results'];
+      if (results is! List) continue;
+      final meta = FieldMetaMap.decode(rev.fieldMeta);
+      var changed = false;
+      for (var i = 0; i < results.length; i++) {
+        final r = results[i];
+        if (r is! Map<String, Object?>) continue;
+        final status = meta.fields['results.$i']?.reviewStatus;
+        if (status != null && status != ReviewStatus.unreviewed) continue;
+        if (OcrFixes.apply(r, OcrFixes.resultFields)) changed = true;
+      }
+      if (!changed) continue;
+      await addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: TimeValue.decode(rev.occurred),
+        occurredEnd: rev.occurredEnd == null
+            ? null
+            : TimeValue.decode(rev.occurredEnd!),
+        dataJson: jsonEncode(data),
+        fieldMeta: meta,
+        producedBy: ProducedBy.decode(rev.producedBy),
+      );
+      repaired++;
+    }
+    return repaired;
+  }
 
   /// 精确去重：类型、日期、发生时间、data、来源消息集合都完全相同的记录，
   /// 只保留 created_at 最早的一条，其余 markDeleted（走变更日志同步）。

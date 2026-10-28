@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/data/field_meta.dart';
@@ -162,4 +163,122 @@ void main() {
     final rows = await env.db.select(env.db.labResults).get();
     expect(rows.single.examDate, '2026-09-20');
   });
+
+  test('检查大项进索引；尿常规的白细胞与血常规的分开建键（D-36）', () async {
+    await records.create(
+      recordType: RecordType.labPanel,
+      occurred: day('2022-07-17'),
+      dataJson: jsonEncode({
+        'medical_document_id': 'doc-1',
+        'results': [
+          {'panel_raw': '血常规', 'item_name_raw': '白细胞计数（WBC）', 'value_raw': '5.33', 'value_num': 5.33},
+          {'panel_raw': '尿常规', 'item_name_raw': '白细胞(LEU)', 'value_raw': 'neg'},
+          {'panel_raw': '尿常规', 'item_name_raw': '比重（SG）', 'value_raw': '1.025', 'value_num': 1.025},
+        ],
+      }),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+    final rows = await (env.db.select(env.db.labResults)
+          ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
+        .get();
+    expect([for (final r in rows) r.itemKey], ['白细胞计数', '尿白细胞', '尿比重']);
+    expect(rows[1].panelRaw, '尿常规');
+    expect(await records.labResultHistory('尿比重'), hasLength(1));
+  });
+  test('识别修正只写进 ocr_fixes 的单位：启动修复按说明改字段，已核对的不动', () async {
+    Map<String, Object?> rbc(String name) => {
+          'item_name_raw': name,
+          'value_raw': '4.86',
+          'value_num': 4.86,
+          'unit_raw': '*1012/L',
+          'ref_range_raw': '4.3-5.8',
+          'ref_low': 4.3,
+          'ref_high': 5.8,
+          'flag_raw': null,
+          'locator': [],
+          'ocr_fixes': ['*1012/L→*10^12/L'],
+        };
+    final rec = await records.create(
+      recordType: RecordType.labPanel,
+      occurred: day('2026-10-01'),
+      dataJson: jsonEncode({
+        'results': [rbc('红细胞计数'), rbc('网织红细胞计数')],
+      }),
+      fieldMeta: FieldMetaMap({
+        'results.0': const FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.unreviewed),
+        'results.1': const FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.confirmed),
+      }),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+
+    expect(await records.repairUnappliedOcrFixes(), 1);
+    expect(await records.repairUnappliedOcrFixes(), 0); // 幂等
+
+    final rows = await (env.db.select(env.db.labResults)
+          ..where((t) => t.recordId.equals(rec.id))
+          ..orderBy([(t) => OrderingTerm.asc(t.resultIndex)]))
+        .get();
+    expect(rows[0].unitRaw, '*10^12/L');
+    expect(rows[0].valueRaw, '4.86');
+    expect(rows[1].unitRaw, '*1012/L'); // 用户已确认，不改
+  });
+
+  test('血压：一项写的拆成收缩压、舒张压，和分开写的、复测的同一条趋势；"-"不进趋势；红细胞压积小数换成百分数',
+      () async {
+    Future<void> panel(String date, List<Map<String, Object?>> results) =>
+        records.create(
+          recordType: RecordType.labPanel,
+          occurred: day(date),
+          dataJson: jsonEncode({
+            'medical_document_id': 'doc-$date',
+            'results': results,
+          }),
+          fieldMeta: FieldMetaMap({
+            for (var i = 0; i < results.length; i++)
+              'results.$i': const FieldMeta(
+                  origin: FieldOrigin.modelInferred,
+                  reviewStatus: ReviewStatus.unreviewed),
+          }),
+          producedBy: ProducedBy.medicalExtract('call-1'),
+        );
+    await panel('2019-05-11', [
+      {'item_name_raw': '血压', 'value_raw': '122/86', 'unit_raw': 'mmHg'},
+      {'item_name_raw': '复测血压', 'value_raw': '118/80', 'unit_raw': 'mmHg'},
+      {'item_name_raw': '红细胞压积(HCT)', 'value_raw': '0.45', 'value_num': 0.45,
+       'ref_range_raw': '0.4- 0.54', 'ref_low': 0.4, 'ref_high': 0.54},
+    ]);
+    await panel('2024-12-10', [
+      {'item_name_raw': '收缩压', 'value_raw': '129', 'value_num': 129, 'unit_raw': 'mmHg'},
+      {'item_name_raw': '舒张压', 'value_raw': '84', 'value_num': 84, 'unit_raw': 'mmHg'},
+      {'item_name_raw': '收缩压（复测第1次）', 'value_raw': '-', 'unit_raw': 'mmHg'},
+    ]);
+    await panel('2026-01-27', [
+      {'item_name_raw': '红细胞压积', 'value_raw': '44.0', 'value_num': 44.0, 'unit_raw': '%'},
+    ]);
+
+    final sys = await records.labResultHistory('收缩压');
+    expect([for (final r in sys) r.valueNum], [122, 118, 129]);
+    expect([for (final r in sys) r.examDate], ['2019-05-11', '2019-05-11', '2024-12-10']);
+    expect([for (final r in sys) r.part], [1, 1, 0]);
+    final dia = await records.labResultHistory('舒张压');
+    expect([for (final r in dia) r.valueNum], [86, 80, 84]);
+    expect(await records.labResultHistory('血压'), isEmpty);
+    final hct = await records.labResultHistory('红细胞压积');
+    expect([for (final r in hct) r.valueNum], [45, 44]);
+    expect(hct.first.unitRaw, '%');
+
+    // 搜索用：每个项目出现过的写法。
+    final names = await records.labItemNames();
+    expect(names['红细胞压积'], {'红细胞压积(HCT)', '红细胞压积'});
+
+    final latest = await records.labResultLatestPerItem();
+    expect(latest.map((r) => r.itemKey), isNot(contains('血压')));
+    expect(latest.firstWhere((r) => r.itemKey == '收缩压').valueNum, 129);
+  });
 }
+

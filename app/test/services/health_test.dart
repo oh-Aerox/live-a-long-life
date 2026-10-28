@@ -230,6 +230,40 @@ void main() {
       expect(await repo.dailyValue(localDate, HealthMetric.activeEnergyKcal),
           isNull);
     });
+
+    test('autoSync：开关关着不读；开着先确认授权再同步', () async {
+      final port = _FakePort(samples: [], energy: [], steps: 100);
+      final service = serviceWith(port);
+
+      await service.autoSync();
+      expect(port.authChecks, 0);
+      expect(await settings.get('health_last_sync_ms'), isNull);
+
+      await settings.set('healthkit_sync_enabled', true);
+      await service.autoSync();
+      expect(port.authChecks, 1);
+      expect(await settings.get('health_last_sync_ms'), isNotNull);
+    });
+
+    test('autoSync：读取失败不抛出，也不推进同步时间（下次重读）', () async {
+      await settings.set('healthkit_sync_enabled', true);
+      final port = _FakePort(samples: [], energy: [], steps: 100)
+        ..fetchError = Exception('Authorization not determined');
+      await serviceWith(port).autoSync();
+      expect(await settings.get('health_last_sync_ms'), isNull);
+    });
+
+    test('同步进行中再次调用共用同一次', () async {
+      final service =
+          serviceWith(_FakePort(samples: [], energy: [], steps: 100));
+      final a = service.syncNow();
+      final b = service.syncNow();
+      expect(identical(a, b), isTrue);
+      await a;
+      final c = service.syncNow();
+      expect(identical(c, a), isFalse);
+      await c;
+    });
   });
 }
 
@@ -240,12 +274,20 @@ class _FakePort implements HealthPort {
   final List<EnergyPoint> energy;
   final int? steps;
 
+  int authChecks = 0;
+  Object? fetchError;
+
   @override
   Future<bool> requestAuthorization() async => true;
 
   @override
-  Future<HealthFetchResult> fetch(DateTime start, DateTime end) async =>
-      HealthFetchResult(samples: samples, energy: energy);
+  Future<void> ensureReadAuthorization() async => authChecks++;
+
+  @override
+  Future<HealthFetchResult> fetch(DateTime start, DateTime end) async {
+    if (fetchError != null) throw fetchError!;
+    return HealthFetchResult(samples: samples, energy: energy);
+  }
 
   @override
   Future<int?> totalSteps(DateTime start, DateTime end) async => steps;

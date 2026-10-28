@@ -110,11 +110,12 @@ class MedicalDocumentRepository {
     });
   }
 
-  /// 提取后回填文件级字段（类型、机构、检查/报告日期）。
+  /// 提取后回填文件级字段（类型、机构、就诊标题、检查/报告日期）。
   Future<MedicalDocument> updateInfo(
     String id, {
     MedicalDocType? docType,
     String? institutionText,
+    String? visitTitle,
     TimeValue? examDate,
     TimeValue? reportDate,
   }) =>
@@ -124,6 +125,8 @@ class MedicalDocumentRepository {
           institutionText: institutionText == null
               ? const Value.absent()
               : Value(institutionText),
+          visitTitle:
+              visitTitle == null ? const Value.absent() : Value(visitTitle),
           examDate:
               examDate == null ? const Value.absent() : Value(examDate.encode()),
           reportDate: reportDate == null
@@ -131,6 +134,15 @@ class MedicalDocumentRepository {
               : Value(reportDate.encode()),
         );
       });
+
+  /// 用户手动改医疗机构；传 null 清空。
+  Future<MedicalDocument> updateInstitution(String id, String? text) =>
+      _update(id,
+          (doc) => MedicalDocumentsCompanion(institutionText: Value(text)));
+
+  /// 用户手动改就诊标题；传 null 清空。
+  Future<MedicalDocument> updateVisitTitle(String id, String? text) =>
+      _update(id, (doc) => MedicalDocumentsCompanion(visitTitle: Value(text)));
 
   /// 修复（2026-09-29 联调）：提取曾用模型判断覆盖文件类型，把"我的体检"里
   /// 的文件改成了检验报告/其他，文件从体检列表消失。变更日志里保留着每个

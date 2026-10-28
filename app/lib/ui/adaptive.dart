@@ -51,6 +51,7 @@ class NavAction {
     required this.tooltip,
     required this.onPressed,
     this.color,
+    this.badge = 0,
   });
 
   final IconData icon;
@@ -60,6 +61,9 @@ class NavAction {
 
   /// 图标颜色；null 用默认的次要文字色。只有首页底栏用。
   final Color? color;
+
+  /// 角标数字，0 不显示。只有首页底栏用。
+  final int badge;
 }
 
 /// iOS 上是 CupertinoNavigationBar（返回键是 ‹），其它平台是 AppBar。

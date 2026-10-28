@@ -121,14 +121,15 @@ void main() {
           precision: TimePrecision.dateOnly,
           source: TimeValueSource.userStated);
       Future<void> addCondition(String name, String persistence,
-          ReviewStatus status, String date) async {
+          ReviewStatus status, String date,
+          {String state = 'active'}) async {
         await records.create(
           recordType: RecordType.condition,
           occurred: day(date),
           dataJson: jsonEncode({
             'name': name,
             'persistence': persistence,
-            'status': 'active',
+            'status': state,
             'source_kind': 'report',
             'development_text': null,
           }),
@@ -143,6 +144,12 @@ void main() {
       // 已确认的长期状况：进档案（发现日期多久远都进）。
       await addCondition('胆囊结石', 'long_term', ReviewStatus.confirmed,
           '2024-01-15');
+      // 已痊愈的长期状况：单列为既往病史，不进长期档案（D-41）。
+      await addCondition('肾结石', 'long_term', ReviewStatus.edited,
+          '2023-05-01', state: 'resolved');
+      // 已痊愈的临时疾病：不进。
+      await addCondition('咽炎', 'temporary', ReviewStatus.edited, today(),
+          state: 'resolved');
       // 未核对的长期状况：不进（D-04）。
       await addCondition('甲状腺结节', 'long_term', ReviewStatus.unreviewed,
           '2026-09-01');
@@ -163,6 +170,9 @@ void main() {
           .toList();
       expect(longTerm, ['胆囊结石']);
       expect(temporary, ['感冒']);
+      expect([for (final e in input['past_conditions'] as List) e['name']],
+          ['肾结石']);
+      expect(weeklyReviewSystemPrompt, contains('past_conditions'));
     });
 
     test('解析降级：JSON 前后带解释文字仍能取出正文与引用', () async {
@@ -365,6 +375,19 @@ void main() {
       final (_, s) = await seed();
       await suggestions.reject(s);
       expect(await suggestions.pending(), isEmpty);
+      final changes = await env.db.select(env.db.changeLogs).get();
+      expect(
+          changes.where((c) => c.entityType == 'correction_suggestions'),
+          isNotEmpty);
+    });
+
+    test('记录被删除：待处理建议转 obsolete，处理状态入变更日志', () async {
+      final (rec, _) = await seed();
+      await records.markDeleted(rec.id);
+      await suggestions.obsoletePendingFor(rec.id);
+      expect(await suggestions.pending(), isEmpty);
+      final row = await env.db.select(env.db.correctionSuggestions).getSingle();
+      expect(row.status, SuggestionStatus.obsolete);
       final changes = await env.db.select(env.db.changeLogs).get();
       expect(
           changes.where((c) => c.entityType == 'correction_suggestions'),

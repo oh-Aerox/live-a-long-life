@@ -7,6 +7,9 @@ import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
+import '../services/app_log.dart';
+import '../services/consult_service.dart';
+import '../services/consult_suggestions.dart';
 
 /// 主动咨询（D-26）：临时问模型一些建议。问答不进消息流、不参与整理、
 /// 不生成记录；要记录咨询里提到的事，回消息流正常录入。
@@ -22,22 +25,72 @@ class ConsultPage extends StatefulWidget {
 class _ConsultPageState extends State<ConsultPage> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
+  final _focus = FocusNode();
   String _sessionId = const IdGenerator().newId();
   List<ConsultMessage> _messages = [];
-  bool _includeRecent = false;
+  bool _allowLookup = true;
   bool _sending = false;
+
+  /// 示例问题（D-45）：新对话时展开，发出第一问后收起，可用灯泡按钮再打开。
+  List<SuggestionGroup> _groups = [];
+  String? _openGroup;
+  bool _showSuggestions = true;
+
+  static const _groupIcons = {
+    'sleep': Icons.bedtime_outlined,
+    'exercise': Icons.directions_run_outlined,
+    'vitals': Icons.monitor_heart_outlined,
+    'labs': Icons.science_outlined,
+    'reports': Icons.description_outlined,
+    'conditions': Icons.health_and_safety_outlined,
+    'daily': Icons.restaurant_outlined,
+    'general': Icons.lightbulb_outline,
+  };
 
   @override
   void initState() {
     super.initState();
     _restore();
+    _loadSuggestions();
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _scroll.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSuggestions() async {
+    try {
+      final groups = await widget.services.consult.suggestions();
+      if (mounted) setState(() => _groups = groups);
+    } catch (e, st) {
+      // 示例问题只是辅助，生成失败不影响提问。
+      AppLog.I.e('consult', '示例问题生成失败', e, st);
+    }
+  }
+
+  /// 点示例问题：填进输入框，可以改了再发。
+  void _useQuestion(String q) {
+    _input.text = q;
+    _input.selection = TextSelection.collapsed(offset: q.length);
+    setState(() => _openGroup = null);
+    _focus.requestFocus();
   }
 
   Future<void> _restore() async {
+    final allow = await widget.services.settings
+        .get(ConsultService.allowLookupKey) as bool?;
+    if (allow != null && mounted) setState(() => _allowLookup = allow);
     final latest = await widget.services.consult.latestSessionId();
     if (latest != null) {
       _sessionId = latest;
       await _reload();
+      if (_messages.isNotEmpty && mounted) {
+        setState(() => _showSuggestions = false);
+      }
     }
   }
 
@@ -57,12 +110,16 @@ class _ConsultPageState extends State<ConsultPage> {
     final text = _input.text.trim();
     if (text.isEmpty || _sending) return;
     _input.clear();
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _showSuggestions = false;
+      _openGroup = null;
+    });
     try {
       final future = widget.services.consult.ask(
         _sessionId,
         text,
-        includeRecentRecords: _includeRecent,
+        allowLookup: _allowLookup,
       );
       await _reload(); // 先显示自己的提问
       await future;
@@ -82,7 +139,60 @@ class _ConsultPageState extends State<ConsultPage> {
     setState(() {
       _sessionId = const IdGenerator().newId();
       _messages = [];
+      _showSuggestions = true;
     });
+    _loadSuggestions();
+  }
+
+  Widget _suggestionPanel(ColorScheme scheme) {
+    final open = _groups.where((g) => g.key == _openGroup).firstOrNull;
+    final locked = open != null && open.needsLookup && !_allowLookup;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (open != null) ...[
+          for (final q in open.questions)
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(Icons.chevron_right, size: 18),
+              minLeadingWidth: 0,
+              title: Text(q),
+              enabled: !locked,
+              onTap: () => _useQuestion(q),
+            ),
+          if (locked)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+              child: Text('打开下面的"允许模型查阅我的记录"后可问',
+                  style:
+                      TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+            ),
+        ],
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final g in _groups)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    avatar: Icon(_groupIcons[g.key], size: 16),
+                    label: Text(g.label),
+                    showCheckmark: false,
+                    visualDensity: VisualDensity.compact,
+                    selected: g.key == _openGroup,
+                    onSelected: (on) =>
+                        setState(() => _openGroup = on ? g.key : null),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -107,13 +217,11 @@ class _ConsultPageState extends State<ConsultPage> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        '临时想问点什么就在这里问。\n\n'
-                        '提问会附带基本资料和已确认的状况档案，让建议贴合你；'
-                        '发送了什么在"模型调用记录"里可查。\n\n'
-                        '咨询是问答不是录入：这里聊的不会变成健康记录，'
-                        '要记录的事请回消息流正常发。'
+                        '有什么想问的？可以直接问，也可以从下面的问题开始。\n'
+                        '我会结合你的资料和记录来回答，查了什么列在问题下方。\n\n'
+                        '这里聊的不会变成健康记录；发送了什么在"模型调用记录"里可查。'
                         // 电脑端（D-29）：用电脑的模型，咨询历史不同步。
-                        '${Platform.isMacOS || Platform.isWindows ? desktopText('\n\n在 Mac 上用这台 Mac 配置的模型；这里的咨询记录只存在这台 Mac，和手机上的咨询互不相通。') : ''}',
+                        '${Platform.isMacOS || Platform.isWindows ? desktopText('\n\n电脑端的咨询用电脑端配置的模型；咨询记录只存在电脑端，和手机上的咨询互不相通。') : ''}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey, height: 1.6),
                       ),
@@ -180,25 +288,45 @@ class _ConsultPageState extends State<ConsultPage> {
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
               child: Column(
                 children: [
+                  if (_showSuggestions && _groups.isNotEmpty)
+                    _suggestionPanel(scheme),
                   Row(
                     children: [
                       Checkbox(
-                        value: _includeRecent,
+                        value: _allowLookup,
                         visualDensity: VisualDensity.compact,
-                        onChanged: (v) =>
-                            setState(() => _includeRecent = v ?? false),
+                        onChanged: (v) {
+                          setState(() => _allowLookup = v ?? false);
+                          widget.services.settings.set(
+                              ConsultService.allowLookupKey, _allowLookup);
+                        },
                       ),
+                      // D-43：模型按需查记录、健康数据、检验和报告结论，
+                      // 查了什么列在问题下方。
                       const Expanded(
-                        child: Text('附带最近 7 天记录摘要（默认不带）',
+                        child: Text('允许模型查阅我的记录（查了什么会列在问题下方）',
                             style: TextStyle(fontSize: 12)),
                       ),
                     ],
                   ),
                   Row(
                     children: [
+                      IconButton(
+                        icon: Icon(_showSuggestions
+                            ? Icons.lightbulb
+                            : Icons.lightbulb_outline),
+                        tooltip: '示例问题',
+                        onPressed: _groups.isEmpty
+                            ? null
+                            : () => setState(() {
+                                  _showSuggestions = !_showSuggestions;
+                                  _openGroup = null;
+                                }),
+                      ),
                       Expanded(
                         child: TextField(
                           controller: _input,
+                          focusNode: _focus,
                           minLines: 1,
                           maxLines: 4,
                           decoration: const InputDecoration(

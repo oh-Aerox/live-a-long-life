@@ -12,7 +12,9 @@
 | Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
 | 医疗文件结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引，用户预览修改后发出（D-28）。**不发图片；调用记录含遮蔽项数与发送范围 sent_summary** | 医疗文件详情"识别并预览"→"确认发送" |
 | 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
-| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart` | 用户问题 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"最近 7 天记录摘要"勾选才带。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
+| 医疗文件文字整理 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 当前版本已提取的文字内容（栏目 + 内容，来自脱敏后的文本）。**不发图片、行号和原始识别文本** | 医疗文件详情"用模型整理"（文字内容两段以上，确认后发送） |
+| 医疗文件补检查大项 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 已提取的检验项目名称与已有大项（按报告顺序）。**不发数值、图片** | 医疗文件详情"用模型补大项"（有检验项目没有大项时出现） |
+| 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart`、`consult_tools.dart` | 用户问题 + 今天日期 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"允许模型查阅我的记录"打开时（默认开）模型可多轮调用只读工具按需查记录、健康数据、检验和报告结论（D-43），每轮一条调用记录。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
 
 `ModelCaller.externalAgent` 只有枚举定义，无调用路径（D-20 外部 agent 入口默认关闭，未实现）。
@@ -45,7 +47,7 @@
 }
 
 data 字段（只填有依据的，缺的字段不要编造）：
-- meal: status("eaten"|"skipped"), meal_slot("breakfast"|"lunch"|"dinner"|"snack"|"unknown"), description, items([{name, amount_text}]), notes
+- meal: status("eaten"|"skipped"), meal_slot("breakfast"|"lunch"|"dinner"|"snack"|"drink"|"unknown"), description, items([{name, amount_text}]), notes。单独喝水、茶、咖啡、饮料（不是随某一顿吃的）用 drink；吃了东西但说不清是哪一顿才用 unknown
 - sleep: bedtime/sleep_onset/wake_time/out_of_bed（各自是 {"local_date","local_time"} 或省略）, quality_text, quality_score(1-5，只在用户自己给了分数时)
 - mood: description, score(1-5，只在用户自己给了分数时，不要推断)
 - symptom: status("present"|"explicitly_none"), body_site, description, severity_text, ongoing(true/false)
@@ -91,12 +93,14 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 输入里的 long_term_conditions 是用户已确认的长期身体状况档案
   （结石、慢性病、过敏等），下周建议要把它们考虑进去（比如结石注意
   饮食和饮水、过敏避开过敏原）；recent_temporary_conditions 是近期
-  临时疾病，只影响近期建议。两者都可能为空；
+  临时疾病，只影响近期建议；past_conditions 是用户标记已痊愈或已解除的
+  既往病史，只作背景参考（比如曾有结石，可以温和提一句预防复发），
+  不要当作现在的疾病给建议。三者都可能为空；
 - 不做医疗诊断，不给用药建议；可以温和提示值得留意的模式；
 - 用户手动修改过的值以记录为准，不要质疑。
 ```
 
-状况输入（D-25，2026-09-28 加入）：`long_term_conditions` = 全部已核对（confirmed/edited）的长期状况；`recent_temporary_conditions` = 近 30 天内、active、已核对的临时疾病。未核对的一律不进（D-04）。
+状况输入（D-25，2026-09-28 加入）：`long_term_conditions` = 已核对（confirmed/edited）、未痊愈的长期状况；`past_conditions` = 已核对、标记已痊愈/解除的长期状况（D-41，2026-10-20，此前混在 long_term_conditions 里）；`recent_temporary_conditions` = 近 30 天内、active、已核对的临时疾病。未核对的一律不进（D-04）。
 
 ## 3. 医疗文件结构化提取
 
@@ -114,11 +118,13 @@ data 字段（只填有依据的，缺的字段不要编造）：
   "doc": {
     "doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
     "institution_text": "医疗机构名称" 或 null,
+    "visit_title": "这次就诊或检查的标题" 或 null,
     "exam_date": "YYYY-MM-DD" 或 null（检查/采样/就诊日期）,
     "report_date": "YYYY-MM-DD" 或 null（报告日期）
   },
   "results": [
     {
+      "panel_raw": "所属检查大项的标题（如 血常规、尿常规、肝功能、血脂）" 或 null,
       "item_name_raw": "项目名称",
       "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
@@ -180,6 +186,15 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 解析不出的数值字段（value_num、ref_low、ref_high）留 null，不要猜；
 - source_lines 只能用输入里出现的行号，不要编造；一条内容来自多行时全部列出；
 - 没有检验数值表时 results 为空数组；文字内容不进 results，放进 findings；
+- panel_raw 写该项所在表格或段落的大标题（体检报告常见：血常规、尿常规、
+  便常规、肝功能、肾功能、血脂、血糖、甲状腺功能、肿瘤标志物），按报告原文；
+  尿常规、便常规里的项目（白细胞、红细胞、葡萄糖、蛋白质、胆红素、pH、比重、
+  隐血等）一定要填，它们脱离大项就和血液里的同名项目分不清；项目名照原文写，
+  不要自己加"尿""便"；
+- 输入可能是一份长报告中间的几页（分批发送），表格从上一页续过来、本页没有
+  大标题：这时按项目名称和英文缩写判断它属于哪个大项（如 白细胞计数(WBC)、
+  红细胞计数(RBC)、血红蛋白、血小板 属于血常规），不要因为本页没有标题就留
+  null；只有确实不属于任何检验大项、也判断不出的（如 身高、血压）才留 null；
 - findings 收报告和病历里与健康相关的文字：病历/门诊记录的主诉、现病史、既往史、
   过敏史、体格检查、辅助检查、诊断、处理意见、医嘱，超声/影像/心电图等报告的所见、
   提示、结论、印象，检验单上的结论或备注；按栏目分条，完整保留内容，不要摘要或合并
@@ -193,6 +208,10 @@ data 字段（只填有依据的，缺的字段不要编造）：
   感冒、急性感染等预期痊愈的算 temporary，拿不准按 long_term（会由用户核对）；
   检验数值异常本身不是状况，不要凭数值推断疾病；没有就给空数组；
 - 文本里的【姓名】【证件号】【卡号】是脱敏占位符，不是数据，忽略它们；
+- visit_title 用一个短语说明这次就诊或检查是为什么：有诊断或主诉的写诊断或
+  主诉（如"甲状腺结节复查""急性胃肠炎""腰痛"），体检写"年度体检"或报告上的
+  体检名称，单项检查写检查名和部位（如"腹部超声""血常规"）；不超过 12 个字，
+  不写医院、日期、人名；看不出就留 null；
 - 检查日期和报告日期是两个日期，分不清时只填能确认的那个。
 ```
 
@@ -201,6 +220,8 @@ data 字段（只填有依据的，缺的字段不要编造）：
 文字内容（D-28，2026-09-29 加入）：`findings` 按栏目逐字抄写诊断、所见、结论等，空文字整条丢弃；全部 unreviewed，在医疗文件详情逐段核对。用户在预览里删掉的行不发送，模型引用这些行号时同编造行号一样丢弃。
 
 识别纠错与药品（D-28，2026-09-29 联调第二轮加入）：真机门诊病历暴露两个问题——提示词要求"逐字抄写"导致 OCR 错字（会明部/感來/规辣史）被原样保留；没有药品栏位，处方药被丢。改为：模型按上下文修正明显识别错误、重组被表格拆散的行，**每处修正写进 `ocr_fixes`** 在核对页橙色显示；数值、剂量里的数字只允许修正明确字符混淆，不许按常识改；新增 `medications`。修正前的识别原文保留在 locator 的 `line_text`，可对照原件。
+
+检查大项（D-36，2026-10-14 加入）：体检报告的尿常规项目（白细胞、葡萄糖、胆红素、pH、比重……）脱离"尿常规"大标题就和血里的同名项目分不清。results 每项加 `panel_raw`，按报告大标题写，尿常规、便常规里的一定要填；项目名照原文，不自己加"尿"。分批发送时后一批常从续表开始、没有大标题（2026-10-14 真机：第二页的血常规全成了"未标大项"），提示词要求按项目名称判断，判断不出才留 null。应用据此给尿、便项目的查询键加标本前缀（见 schema §5.3）。
 
 ## 3b. 医疗文件模型识图（兜底）
 
@@ -216,8 +237,8 @@ data 字段（只填有依据的，缺的字段不要编造）：
 只输出一个 JSON 对象，不要输出其他文字，结构如下（各字段含义同检验报告提取）：
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
-          "institution_text": 医疗机构名称 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
-  "results": [{"item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+          "institution_text": 医疗机构名称 或 null, "visit_title": 这次就诊或检查的标题 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
+  "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
   "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
@@ -230,29 +251,118 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 图片只是局部时，只整理图上有的部分，不要推测图外的内容；
 - 不要在任何字段里写出姓名、身份证号、门诊卡号、电话、住址等个人信息；
 - results、findings、medications、conditions 的收录范围与分类规则同检验报告提取：
+  panel_raw 写检验项目所在的大标题（尿常规、便常规里的项目一定要填；图上
+  没有标题时按项目名称判断，判断不出才留 null），
   文字内容按栏目分条放 findings，开具的药品放 medications，
   conditions 只收诊断/结论里明确写出的疾病或状况，拿不准按 long_term；
+- visit_title 规则同检验报告提取（诊断/主诉，或检查名和部位，不超过 12 个字），
+  图片只是局部、看不出时留 null；
 - 没有的部分给空数组。
+```
+
+## 3c. 医疗文件文字整理（D-35）
+
+- **系统提示词：** `findingsTidySystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** JSON `{"findings": [{"id", "section_raw", "text_raw"}]}`，即当前版本的文字内容，id 从 1 编号
+- **触发：** 医疗文件详情"用模型整理"，文字内容两段以上才出现，确认后发送
+- **超时：** 180 秒（同提取）
+- **应用侧防线：** 每个输入 id 都要出现在某条输出的 `from` 里，漏了整个不改；没有合并任何一条时不写新版本；合并条目的 locator 与 ocr_fixes 取来源并集；原样保留的条目保持核对状态，合并出来的回到未核对；写成新版本，可撤销
+
+```
+你在整理一份医疗文件里已经提取出的文字内容。输入是 JSON：
+{"findings": [{"id": 1, "section_raw": "栏目名称或 null", "text_raw": "内容"}]}
+这些条目是按报告栏目机械拆开的，常见问题：同一部位/同一项检查的"所见"和
+"结论/提示"分成了两条（如 条目"甲状腺"：甲状腺形态大小正常，回声均匀；条目
+"检查所见"：甲状腺未见异常）；体检报告汇总页和明细页把同一个问题写了两遍。
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}]}
+
+规则：
+- 同一部位或同一项检查的所见、描述、结论、提示合并成一条：section_raw 写部位或
+  检查名（如"甲状腺""肝胆脾胰超声""心电图"），text_raw 按"所见：……\n结论：……"
+  分行写，标签用原栏目的叫法（所见/描述/提示/结论/印象）；只有一部分时不加标签；
+- 意思相同的重复条目（汇总与明细、同一句换了写法）只留一条，保留写得更完整的那
+  一种措辞；被去掉的条目 id 也要写进保留那条的 from；
+- 主诉、现病史、既往史、诊断、处理意见、建议、医嘱等病历栏目各自独立，不要和
+  检查所见合并，也不要互相合并；
+- 不同部位、不同检查不要合并；拿不准是不是同一部位时不合并；
+- 文字照原文，不要摘要、改写、补充或删减内容，合并时只做拼接和去掉重复的句子；
+  不要修改数字、单位、大小、日期；
+- 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
+- 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
+```
+
+## 3d. 医疗文件补检查大项（D-36）
+
+- **系统提示词：** `panelFillSystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** JSON `{"results": [{"id", "item_name_raw", "panel_raw"}]}`，即当前版本的检验项目名称和已有的大项（没有的为 null），按报告顺序，id 从 1 编号。**不发数值、单位、参考范围**
+- **触发：** 医疗文件详情里有检验项目没有大项时出现"用模型补大项"：D-36 之前提取的报告（全没有），或分批提取时后一页续表没读到标题的
+- **超时：** 180 秒（同提取）
+- **应用侧防线：** 只填还没有大项的项目，已有的不改；编造的 id 丢弃；核对状态不变；写成新版本，可撤销；都有大项时不调用
+
+```
+你在给一份体检或检验报告里已经提取出的检验项目补上所属的检查大项。输入是 JSON：
+{"results": [{"id": 1, "item_name_raw": "项目名称", "panel_raw": "已知大项" 或 null}]}
+项目按报告上的顺序排列，同一大项的项目通常连在一起（如 血常规 一组、尿常规
+一组、肝功能 一组）。panel_raw 已有的是提取时从报告标题读到的，作为参照；
+你要给 panel_raw 为 null 的项目补上。常见情况是长报告分批提取，后一页续表的
+项目没有读到标题：它们前后的项目已标了哪个大项、项目名称像哪个大项，就补哪个。
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"results": [{"id": 1, "panel_raw": "大项名称" 或 null}]}
+只输出输入里 panel_raw 为 null 的项目。
+
+规则：
+- 已有的大项怎么写，同一组补的就怎么写（输入写"血常规"就不要补成"血液常规"）；
+- 大项用体检报告常见的叫法：血常规、尿常规、便常规、肝功能、肾功能、血脂、
+  血糖、电解质、甲状腺功能、肿瘤标志物、凝血功能、乙肝五项 等；
+- 根据项目名称、英文缩写和前后顺序判断：尿常规常见 比重(SG)、pH、白细胞(LEU)、
+  隐血(ERY)、亚硝酸盐(NIT)、酮体(KET)、胆红素(BIL)、尿胆原(UBG)、蛋白质(PRO)、
+  葡萄糖(GLU)，以及镜检的红细胞、白细胞、上皮细胞、管型、结晶；
+  血常规常见 白细胞计数(WBC)、红细胞计数(RBC)、血红蛋白、血小板、各类细胞百分数；
+- 同名项目（白细胞、葡萄糖、胆红素、蛋白）要看它所在的那一组和缩写判断，
+  不要都归到血液；
+- 拿不准的给 null，不要猜。
 ```
 
 ## 4. 主动咨询
 
-- **系统提示词：** `consultSystemPrompt`（consult_service.dart）
-- **用户侧输入：** JSON——`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对长期状况）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`recent_records`（近 7 天记录摘要，勾选才有；每条 date/type/summary 一行摘要。医疗类只发已核对内容：未核对的状况不发，报告提取只发已核对的诊断/结论文字、异常检验值、处方药名，没有已核对要点的报告整条不发——2026-09-29 联调修订）、`conversation`（本会话历史，最多 20 条 + 当前问题）
-- **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）
+- **系统提示词：** `consultSystemPrompt`；允许查阅时追加 `consultLookupPrompt`（consult_service.dart）
+- **用户侧输入：** JSON——`today`（今天日期，模型按它算查询的日期范围）、`profile`（出生年月/生理性别/身高的已填项）、`long_term_conditions`（已核对、未痊愈的长期状况）、`past_conditions`（已核对、已痊愈的长期状况，D-41）、`recent_temporary_conditions`（近 30 天 active 已核对临时疾病）、`conversation`（本会话历史，最多 20 条 + 当前问题）。原"最近 7 天记录摘要"勾选项已由查阅工具取代（D-43）
+- **工具（允许查阅时，`ConsultTools.specs`，consult_tools.dart）：** `get_records`（日期范围内的记录摘要，可按类型筛；医疗类只发已核对的诊断/结论、异常值、药名）、`get_device_data`（睡眠时长与入睡醒来、步数、活动能量、体能训练；没数据的日期单列）、`list_lab_items`（已核对检验项目的最近一次数值、是否异常、次数，可按关键词、只看异常）、`get_lab_history`（某项历次数值、参考范围、是否异常，同名不同标本分开）、`search_medical_documents`（报告里已核对的文字、异常指标、开药，按关键词和日期筛，最多 15 份）。日期范围单次最多 31 天；参数有误时把错误发回模型。**`read_health_live`（D-44，仅 iPhone 且开了健康数据同步时提供）：** 实时读取"健康"App，一次一个指标（心率、静息心率、HRV、心率提醒、房颤负荷、心电图分类、血氧、呼吸频率、体温、手腕温度、血压、血糖、体重/身高/BMI/体脂/去脂体重/腰围、步数、各类距离、爬楼、锻炼与站立时间、步行速度、活动/静息能量、体能训练、睡眠分期、饮水与营养、正念、头痛、月经），时间精确到分钟、单次最多 31 天；高频数据分段汇总，累计量每天只取一个来源。读到的数据不入库，调用记录的 request_text 里只写"（实时健康数据，未保存）读了什么"
+- **约束来源：** D-26（最小上下文、发送范围可查、咨询不进消息流不生成记录）、D-43（agent 与只读工具）、D-44（实时读取健康数据，不入库）、D-04（医疗类只发已核对内容）
 
 ```
 你是一个个人健康助手。用户带着自己的健康档案摘要向你咨询，输入是一个 JSON：
-profile 是基本资料，long_term_conditions 是已确认的长期身体状况，
-recent_temporary_conditions 是近期疾病，recent_records 是最近 7 天的记录
-（用户勾选了才有），conversation 是本次咨询的对话历史，最后一条是当前问题。
+today 是今天的日期，profile 是基本资料，long_term_conditions 是已确认的
+长期身体状况，recent_temporary_conditions 是近期疾病，past_conditions 是
+用户标记已痊愈或已解除的既往病史，conversation 是本次咨询的对话历史，
+最后一条是当前问题。
 
 要求：
 - 结合个人背景回答，让建议贴合这个人（有结石就考虑结石，有过敏就避开过敏原）；
+- 既往病史只作背景（比如问到相关话题时可以提一句预防复发），不要当作现在的疾病；
 - 不做医疗诊断，不给具体用药和剂量；情况可能需要就医时，明确建议就医并说明原因；
 - 背景信息可能不全：缺什么就说明你的假设，不要编造用户没提供的情况；
 - 用中文回答，简洁、分点，不说空泛的养生套话；
 - 直接输出回答正文，不要输出 JSON。
+```
+
+允许查阅时追加：
+
+```
+你可以用工具查用户的数据：日常记录、手机/手表健康数据、检验指标及其历史、
+病历和报告里已核对的文字结论。工具只读，查到的都是用户本人的数据。
+- 问题和具体数据有关时（最近睡得怎样、某项指标的变化、以前查出过什么），
+  先查再答，不要凭空推测；和个人数据无关的常识问题不必查；
+- 只查回答需要的范围：日期从近到远，够用就停，不要为了"全面"把能查的都查一遍；
+- 检验项目先用 list_lab_items 找到项目名，再查历史；
+- 有 read_health_live 工具时，睡眠细节、心率、血氧、血压、体重等手机"健康"
+  里的数据用它实时读：先想清楚问的是哪段时间（"昨晚""这次运动"），
+  先找到对应的时间段再读指标；没有这个工具时用 get_device_data；
+- 查不到数据就直说没有记录（没有记录不等于没有发生），不要编造；
+- 回答里用到具体数据时注明日期，让用户知道依据是什么。
 ```
 
 ## 5. 测试连接

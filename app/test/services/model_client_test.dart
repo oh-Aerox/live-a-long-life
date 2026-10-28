@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/db/app_database.dart';
 import 'package:live_a_long_life/services/data_boundary.dart';
 import 'package:live_a_long_life/services/model_client.dart';
+import 'package:live_a_long_life/services/tool_chat.dart';
 
 ModelConfig _config({
   required ModelProtocol protocol,
@@ -271,6 +272,183 @@ void main() {
       // 172.32 不是私有段
       expect(
           inferDataBoundary('http://172.32.0.1/v1'), DataBoundary.cloud);
+    });
+  });
+
+  group('ModelClient · 带工具的对话（D-43）', () {
+    late HttpServer server;
+    late List<Map<String, Object?>> bodies;
+    late Object Function() respond;
+
+    setUp(() async {
+      bodies = [];
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((req) async {
+        bodies.add((jsonDecode(await utf8.decoder.bind(req).join()) as Map)
+            .cast<String, Object?>());
+        req.response.write(jsonEncode(respond()));
+        await req.response.close();
+      });
+    });
+
+    tearDown(() => server.close(force: true));
+
+    const tool = ToolSpec(
+      name: 'get_records',
+      description: '查记录',
+      parameters: {'type': 'object', 'properties': {}},
+    );
+
+    test('openai_compatible：工具定义、tool_calls 解析、思考内容与工具结果回传', () async {
+      respond = () => {
+            'choices': [
+              {
+                'message': {
+                  'role': 'assistant',
+                  'content': null,
+                  'reasoning_content': '先查一下',
+                  'refusal': null,
+                  'tool_calls': [
+                    {
+                      'id': 'call_1',
+                      'type': 'function',
+                      'function': {
+                        'name': 'get_records',
+                        'arguments': '{"start_date":"2026-10-20"}',
+                      },
+                    },
+                    {
+                      'id': 'call_2',
+                      'type': 'function',
+                      'function': {'name': 'get_records', 'arguments': '{坏的'},
+                    },
+                  ],
+                },
+              },
+            ],
+            'usage': {'prompt_tokens': 50, 'completion_tokens': 9},
+          };
+      final client = ModelClient();
+      final config = _config(
+          protocol: ModelProtocol.openaiCompatible,
+          baseUrl: 'http://127.0.0.1:${server.port}/v1');
+      final first = await client.chatWithTools(
+        config: config,
+        apiKey: 'k',
+        system: '系统',
+        messages: const [UserText('问题')],
+        tools: const [tool],
+      );
+      expect(first.toolCalls, hasLength(2));
+      expect(first.toolCalls[0].arguments, {'start_date': '2026-10-20'});
+      expect(first.toolCalls[1].argumentsError, contains('不是合法的 JSON'));
+      expect(first.tokensIn, 50);
+
+      final req = bodies.single;
+      expect((req['tools'] as List).single, {
+        'type': 'function',
+        'function': {
+          'name': 'get_records',
+          'description': '查记录',
+          'parameters': {'type': 'object', 'properties': {}},
+        },
+      });
+      expect(req['tool_choice'], 'auto');
+
+      respond = () => {
+            'choices': [
+              {'message': {'role': 'assistant', 'content': '回答'}},
+            ],
+          };
+      final second = await client.chatWithTools(
+        config: config,
+        apiKey: 'k',
+        messages: [
+          const UserText('问题'),
+          first.assistant,
+          const ToolResults([ToolResult(callId: 'call_1', content: '{"records":[]}')]),
+        ],
+        tools: const [tool],
+        allowTools: false,
+      );
+      expect(second.text, '回答');
+      expect(second.toolCalls, isEmpty);
+      final msgs = bodies.last['messages'] as List;
+      final assistant = msgs[1] as Map;
+      expect(assistant['reasoning_content'], '先查一下');
+      expect(assistant.containsKey('refusal'), isFalse); // 只回传需要的字段
+      expect((assistant['tool_calls'] as List), hasLength(2));
+      expect(msgs[2], {
+        'role': 'tool',
+        'tool_call_id': 'call_1',
+        'content': '{"records":[]}',
+      });
+      expect(bodies.last['tool_choice'], 'none');
+    });
+
+    test('anthropic：tool_use 解析，内容块原样回传，工具结果放在 user 消息里', () async {
+      final blocks = [
+        {'type': 'thinking', 'thinking': '想想', 'signature': 'sig'},
+        {'type': 'text', 'text': '我查一下。'},
+        {
+          'type': 'tool_use',
+          'id': 'toolu_1',
+          'name': 'get_records',
+          'input': {'start_date': '2026-10-20'},
+        },
+      ];
+      respond = () => {
+            'content': blocks,
+            'usage': {'input_tokens': 30, 'output_tokens': 8},
+          };
+      final client = ModelClient();
+      final config = _config(
+          protocol: ModelProtocol.anthropic,
+          baseUrl: 'http://127.0.0.1:${server.port}');
+      final first = await client.chatWithTools(
+        config: config,
+        apiKey: 'k',
+        system: '系统',
+        messages: const [UserText('问题')],
+        tools: const [tool],
+      );
+      expect(first.text, '我查一下。');
+      expect(first.toolCalls.single.id, 'toolu_1');
+      expect(first.toolCalls.single.arguments, {'start_date': '2026-10-20'});
+      final req = bodies.single;
+      expect(req['system'], '系统');
+      expect((req['tools'] as List).single, {
+        'name': 'get_records',
+        'description': '查记录',
+        'input_schema': {'type': 'object', 'properties': {}},
+      });
+      expect(req['tool_choice'], {'type': 'auto'});
+
+      respond = () => {
+            'content': [
+              {'type': 'text', 'text': '回答'},
+            ],
+          };
+      await client.chatWithTools(
+        config: config,
+        apiKey: 'k',
+        messages: [
+          const UserText('问题'),
+          first.assistant,
+          const ToolResults([ToolResult(callId: 'toolu_1', content: '结果')]),
+        ],
+        tools: const [tool],
+        allowTools: false,
+      );
+      final msgs = bodies.last['messages'] as List;
+      expect(msgs[1], {'role': 'assistant', 'content': blocks});
+      expect(msgs[2], {
+        'role': 'user',
+        'content': [
+          {'type': 'tool_result', 'tool_use_id': 'toolu_1', 'content': '结果'},
+        ],
+      });
+      expect(bodies.last['tool_choice'], {'type': 'none'});
     });
   });
 }

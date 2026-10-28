@@ -550,6 +550,37 @@ void main() {
     expect(await records.byDate('2026-09-26'), hasLength(1));
   });
 
+  test('模型不可用：对话流提示一次，恢复后提示已恢复并整理', () async {
+    await addConfig();
+    final m = await say('晚饭吃了面');
+    List<Message> notices(List<Message> t) =>
+        t.where((x) => x.kind == MessageKind.appNotice).toList();
+
+    model.reply(ModelClientException('网络错误', retriable: true));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    model.reply(ModelClientException('网络错误', retriable: true));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    var n = notices(await messages.thread());
+    expect(n, hasLength(1)); // 连续失败只提示一次
+    expect(n.single.body, contains('当前模型不可用'));
+    expect(n.single.body, contains('自动整理'));
+
+    // 日视图能看到这条待整理的原文。
+    final pending = await messages.pendingOrganizeBetween(
+        m.sentAt - 1000, m.sentAt + 1000);
+    expect(pending.single.id, m.id);
+
+    model.reply(mealJson([m.id]));
+    await service.enqueue(OrganizeTrigger.doneMarker);
+    await service.pump();
+    n = notices(await messages.thread());
+    expect(n.where((x) => x.body!.contains('模型已恢复')), hasLength(1));
+    expect((await messages.byId(m.id))!.organizeState,
+        OrganizeState.organized);
+  });
+
   test('dedupeExactDuplicates：内容与来源全同的重复只留一条', () async {
     // 手动造 3 条 data/来源相同、但 occurred 来源标记不同的记录
     // （模拟不同批次整理同一句话时时间片段有无的差异）——仍应判为重复。

@@ -290,7 +290,7 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
     final uploaded =
         DateTime.fromMillisecondsSinceEpoch(d.uploadedAt, isUtc: true).toLocal();
     return [
-      medicalDocTypeLabels[d.docType]!,
+      d.visitTitle ?? medicalDocTypeLabels[d.docType]!,
       if (d.institutionText != null) d.institutionText!,
       date != null
           ? '检查日期 $date'
@@ -370,13 +370,15 @@ class _MedicalFolderPageState extends State<MedicalFolderPage> {
                 final pages = MedicalPageRef.decodeList(d.pages);
                 final date = _examDate(d);
                 final detail = [
+                  // 有就诊标题时它当主标题，类型挪到这一行。
+                  if (d.visitTitle != null) medicalDocTypeLabels[d.docType]!,
                   if (d.institutionText != null) d.institutionText!,
                   '${pages.length} 页',
                   '上传于 ${_day(_uploaded(d))}',
                 ].join(' · ');
                 return ListTile(
                   leading: const Icon(Icons.description_outlined),
-                  title: Text(medicalDocTypeLabels[d.docType]!),
+                  title: Text(d.visitTitle ?? medicalDocTypeLabels[d.docType]!),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../data/field_meta.dart';
+import '../data/same_item.dart';
 
 /// 逐项核对的纯数据变换（D-04：项目、数值、单位、参考范围、检查日期
 /// 五个关键字段 confirmed/edited 后，该项才作为事实参与分析）。
@@ -80,12 +81,56 @@ class LabReview {
     return (jsonEncode(data), FieldMetaMap(fields));
   }
 
+  /// 删除 [list] 第 [index] 条（模型收进来的无意义条目，如空的备注栏）。
+  /// 后面各条前移一位，核对状态跟着移；旧内容留在记录的修改历史里。
+  static (String, FieldMetaMap) deleteEntry(
+      String dataJson, FieldMetaMap meta, String list, int index) {
+    final data = jsonDecode(dataJson) as Map<String, Object?>;
+    final entries = (data[list] as List? ?? const []).toList();
+    if (index < 0 || index >= entries.length) {
+      throw RangeError('$list 不存在第 $index 条');
+    }
+    entries.removeAt(index);
+    data[list] = entries;
+    final fields = Map<String, FieldMeta>.from(meta.fields)
+      ..remove('$list.$index');
+    for (var i = index + 1; i <= entries.length; i++) {
+      final moved = fields.remove('$list.$i');
+      if (moved != null) fields['$list.${i - 1}'] = moved;
+    }
+    return (jsonEncode(data), FieldMetaMap(fields));
+  }
+
+  /// 删除检验结果第 [index] 项（体检报告里不需要的行，如身高、备注）。
+  /// 同一份报告汇总与明细重复的同项目同数值在列表里只显示一行
+  /// （[SameItem.dedupeResults]），一起删掉，免得删了一条又露出另一条。
+  static (String, FieldMetaMap) deleteResult(
+      String dataJson, FieldMetaMap meta, int index) {
+    _requireIndex(dataJson, index);
+    final results = _results(dataJson);
+    String? keyOf(Object? r) {
+      if (r is! Map || r['item_name_raw'] is! String) return null;
+      return '${SameItem.labKey(r['item_name_raw'] as String, panel: r['panel_raw'] as String?)}'
+          '|${SameItem.labValue(r)}';
+    }
+
+    final target = keyOf(results[index]);
+    var out = (dataJson, meta);
+    for (var i = results.length - 1; i >= 0; i--) {
+      if (i == index || (target != null && keyOf(results[i]) == target)) {
+        out = deleteEntry(out.$1, out.$2, 'results', i);
+      }
+    }
+    return out;
+  }
+
   /// 修改第 [index] 项：只更新传入的字段，results.{i} 状态转 edited。
   /// 数值原文改动时同步重算 value_num（能解析才填，不猜）。
   static (String, FieldMetaMap) editResult(
     String dataJson,
     FieldMetaMap meta,
     int index, {
+    String? panelRaw,
     String? itemNameRaw,
     String? valueRaw,
     String? unitRaw,
@@ -97,6 +142,7 @@ class LabReview {
       throw RangeError('结果项不存在：$index');
     }
     final r = Map<String, Object?>.from(results[index]);
+    if (panelRaw != null) r['panel_raw'] = panelRaw.isEmpty ? null : panelRaw;
     if (itemNameRaw != null) r['item_name_raw'] = itemNameRaw;
     if (valueRaw != null) {
       r['value_raw'] = valueRaw;
