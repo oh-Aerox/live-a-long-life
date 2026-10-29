@@ -268,17 +268,56 @@ void main() {
     final dia = await records.labResultHistory('舒张压');
     expect([for (final r in dia) r.valueNum], [86, 80, 84]);
     expect(await records.labResultHistory('血压'), isEmpty);
-    final hct = await records.labResultHistory('红细胞压积');
+    final hct = await records.labResultHistory('血细胞比容');
     expect([for (final r in hct) r.valueNum], [45, 44]);
     expect(hct.first.unitRaw, '%');
 
     // 搜索用：每个项目出现过的写法。
     final names = await records.labItemNames();
-    expect(names['红细胞压积'], {'红细胞压积(HCT)', '红细胞压积'});
+    expect(names['血细胞比容'], {'红细胞压积(HCT)', '红细胞压积'});
 
     final latest = await records.labResultLatestPerItem();
     expect(latest.map((r) => r.itemKey), isNot(contains('血压')));
     expect(latest.firstWhere((r) => r.itemKey == '收缩压').valueNum, 129);
   });
-}
 
+  test('标准名（D-49）：合并写进记录新版本，核对状态不变；撤销回到自动归类', () async {
+    Future<void> panel(String date, String name) => records.create(
+          recordType: RecordType.labPanel,
+          occurred: day(date),
+          dataJson: jsonEncode({
+            'results': [
+              {'item_name_raw': name, 'value_raw': '1.0', 'value_num': 1.0}
+            ],
+          }),
+          fieldMeta: FieldMetaMap({
+            'results.0': const FieldMeta(
+                origin: FieldOrigin.modelInferred,
+                reviewStatus: ReviewStatus.confirmed),
+          }),
+          producedBy: ProducedBy.medicalExtract('call-1'),
+        );
+    await panel('2023-07-26', '最大通气量甲');
+    await panel('2025-07-26', '最大通气量乙');
+
+    final n = await records.updateLabResults((r) {
+      if (r['item_name_raw'] != '最大通气量甲') return false;
+      r['item_std'] = '最大通气量乙';
+      return true;
+    }, producedBy: ProducedBy.userEdit());
+    expect(n, 1);
+    final history = await records.labResultHistory('最大通气量乙');
+    expect([for (final r in history) r.examDate], ['2023-07-26', '2025-07-26']);
+    expect(history.first.itemStd, '最大通气量乙');
+    expect(history.first.reviewStatus, ReviewStatus.confirmed);
+    expect(await records.labStdNames(), {'最大通气量甲': '最大通气量乙'});
+    // 改动走变更日志同步到 Mac。
+    final changes = await env.db.select(env.db.changeLogs).get();
+    expect(changes.where((c) => c.entityType == 'record_revisions'), hasLength(3));
+
+    await records.updateLabResults((r) => r.remove('item_std') != null,
+        producedBy: ProducedBy.userEdit());
+    expect(await records.labResultHistory('最大通气量甲'), hasLength(1));
+    expect(await records.labStdNames(), isEmpty);
+  });
+}

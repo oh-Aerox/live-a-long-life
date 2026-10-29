@@ -360,7 +360,7 @@ class _MacHomePageState extends State<MacHomePage> {
                 entry(Icons.health_and_safety_outlined, '长期状况档案',
                     () => ConditionsPage(services: s, readOnly: true)),
                 entry(Icons.show_chart, '指标趋势',
-                    () => LabTrendsPage(services: s)),
+                    () => LabTrendsPage(services: s, readOnly: true)),
                 entry(Icons.timeline_outlined, '就诊时间线',
                     () => VisitTimelinePage(services: s, readOnly: true)),
               ],

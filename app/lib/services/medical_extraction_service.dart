@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
+import '../data/lab_catalog.dart';
+import '../data/lab_names.dart';
 import '../data/ocr_fixes.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
@@ -41,6 +43,7 @@ const labExtractSystemPrompt = '''
     {
       "panel_raw": "所属检查大项的标题（如 血常规、尿常规、肝功能、血脂）" 或 null,
       "item_name_raw": "项目名称",
+      "item_std": "标准项目名（见文末）" 或 null,
       "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
       "unit_raw": "单位" 或 null,
@@ -146,7 +149,7 @@ const labExtractImageSystemPrompt = '''
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
           "institution_text": 医疗机构名称 或 null, "visit_title": 这次就诊或检查的标题 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
-  "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "results": [{"panel_raw", "item_name_raw", "item_std", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
   "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
@@ -166,6 +169,54 @@ const labExtractImageSystemPrompt = '''
 - visit_title 规则同检验报告提取（诊断/主诉，或检查名和部位，不超过 12 个字），
   图片只是局部、看不出时留 null；
 - 没有的部分给空数组。
+''';
+
+/// 标准项目名的规则与指标目录（D-49），接在两个提取提示词后面。目录是
+/// 代码常量（[LabCatalog]），趋势里已有、目录里没有的项目名随用户侧输入
+/// 发送（[MedicalExtractionService._knownNamesText]）。
+/// 改动时同步更新 docs/prompts.md。
+String labStdPromptRules() => '''
+
+关于标准项目名 item_std：
+- 每个检验结果都给 item_std：这个项目在下方"指标目录"或输入末尾"已有项目名"
+  里对应的名字。优先用目录里的标准名，其次用已有项目名，名字照抄，不要改写；
+- 只有确定是同一个指标（同一标本、同一测法、同一单位口径）才对应：尿素与尿素氮、
+  游离与总前列腺特异性抗原、肌酸激酶与肌酸激酶同工酶、尿常规的葡萄糖与血糖、
+  脉搏与心率都不是同一个；拿不准时给 null；
+- 目录和已有项目名里都没有的，给这个项目规范的中文全称（报告只写缩写"BMI"
+  的给"体重指数"，有错别字的给正确写法），不带英文缩写和检测方法；看不出给 null；
+- 尿常规、便常规里的项目，标准名带"尿""便"（尿葡萄糖、尿白细胞、便隐血）；
+- item_name_raw 仍按报告原文写，不要用标准名替换。
+
+指标目录（分组：标准名（别名、缩写））：
+${LabCatalog.promptText()}
+''';
+
+/// 整理现有检验项目名称的提示词（D-49）：趋势里规则和目录都认不出的
+/// 项目名，让模型对到目录或已有项目上，或给出规范的中文名。只发名称、
+/// 分组和单位，不发数值。改动时同步更新 docs/prompts.md。
+String labNameTidySystemPrompt() => '''
+你在整理一个人历年检验报告里的检验项目名称。不同医院、不同年份对同一个指标
+写法不同（缩写、旧称、错别字、带部位前缀），要把它们对到同一个标准名上。
+输入是 JSON：
+{"items": [{"item": "现在的项目名", "names": ["报告上的写法"], "group": "所在分组", "units": ["单位"]}],
+ "existing": ["趋势里已有的全部项目名"]}
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"items": [{"item": "现在的项目名", "std": "标准名"}]}
+只列需要改名或合并的项目；不需要改的不要列。
+
+规则：
+- std 优先用下方"指标目录"里的标准名，其次用 existing 里已有的项目名，照抄；
+- 只有确定是同一个指标（同一标本、同一测法、同一单位口径）才对应：尿素与尿素氮、
+  游离与总前列腺特异性抗原、肌酸激酶与同工酶、尿里的项目与血里的项目、脉搏与
+  心率、左侧与右侧都不是同一个；拿不准的不要列；
+- 目录和 existing 里都没有、但名字是缩写、旧称或有错别字的，给规范的中文全称，
+  不带英文缩写和检测方法；名字本身已经规范的不要列；
+- 尿、便里的项目，标准名带"尿""便"。
+
+指标目录（分组：标准名（别名、缩写））：
+${LabCatalog.promptText()}
 ''';
 
 /// 文字内容整理提示词（D-35）：提取按栏目分条，超声等报告常把同一部位的
@@ -663,7 +714,7 @@ class MedicalExtractionService {
     final sentSummary = '模型识图：第 ${send.pageNo} 页'
         '${box == null ? '整页（未裁剪）' : '裁剪后的局部（约占整页 $area%）'}，'
         '图片 ${send.width}×${send.height}，只用于这次发送，不保存';
-    const userText = '请整理这张医疗文件图片。';
+    final userText = '请整理这张医疗文件图片。${await _knownNamesText()}';
     final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
         ? ''
@@ -677,7 +728,7 @@ class MedicalExtractionService {
       response = await _imageCall(
         config: config,
         apiKey: apiKey,
-        system: labExtractImageSystemPrompt,
+        system: '$labExtractImageSystemPrompt${labStdPromptRules()}',
         userText: userText,
         maxTokens: 8192,
         imagePngBase64: base64Encode(send.png),
@@ -911,6 +962,79 @@ class MedicalExtractionService {
       requestText: payload,
     );
     return (response, call.id);
+  }
+
+  /// 用户侧输入末尾的"已有项目名"（D-49）：趋势里已有、目录里没有的
+  /// 项目名，让模型对号入座。没有时为空串。
+  Future<String> _knownNamesText() async {
+    final names = [
+      for (final r in await _records.labResultLatestPerItem())
+        if (!LabCatalog.byName.containsKey(r.itemKey)) r.itemKey
+    ];
+    return names.isEmpty ? '' : '\n\n已有项目名：${names.join('、')}';
+  }
+
+  /// 整理现有检验项目名称（D-49）：规则和目录都没认出的项目（没有用户定
+  /// 过的标准名），连同报告上的写法、分组、单位发给模型，建议对到目录或
+  /// 已有项目上、或换成规范的中文名。建议经本地检查后写成待确认
+  /// （item_std_suggested），由用户逐条确认；[dismissed] 是用户点过
+  /// "不合并"的（现在的键|建议名）。不发数值。返回新增的建议数。
+  Future<int> proposeLabNames({Set<String> dismissed = const {}}) async {
+    final latest = await _records.labResultLatestPerItem();
+    final names = await _records.labItemNames();
+    final groups = await _records.labItemGroups();
+    final units = await _records.labUnitsByKey();
+    final std = await _records.labStdNames();
+    final userKeys = std.values.toSet();
+    final items = [
+      for (final r in latest)
+        if (!LabCatalog.byName.containsKey(r.itemKey) &&
+            !userKeys.contains(r.itemKey))
+          {
+            'item': r.itemKey,
+            'names': {
+              for (final n in names[r.itemKey] ?? const <String>{})
+                SameItem.itemName(n)
+            }.take(4).toList(),
+            'group': groups[r.itemKey] ?? '其他',
+            'units': (units[r.itemKey] ?? const <String>{}).toList(),
+          }
+    ];
+    if (items.isEmpty) return 0;
+    final payload = jsonEncode({
+      'items': items,
+      'existing': [for (final r in latest) r.itemKey],
+    });
+    final (response, callId) = await _callAndRecord(
+      system: labNameTidySystemPrompt(),
+      payload: payload,
+      summary: '检验项目名称 ${items.length} 个及其分组、单位（整理名称，不含数值）',
+    );
+    final out = _parse(response.text)?['items'];
+    if (out is! List) {
+      AppLog.I.w('extract', '整理项目名称解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析，没有改动');
+    }
+    final proposals = <String, String>{};
+    for (final raw in out) {
+      if (raw is! Map || raw['item'] is! String) continue;
+      final from = raw['item'] as String;
+      if (!items.any((i) => i['item'] == from)) continue;
+      final to = LabNames.checkProposal(from, raw['std'],
+          fromUnits: units[from] ?? const {}, units: units);
+      if (to == null || dismissed.contains('$from|$to')) continue;
+      proposals[from] = to;
+    }
+    if (proposals.isEmpty) return 0;
+    await _records.updateLabResults((r) {
+      if (r['item_std'] is String) return false;
+      final to = proposals[SameItem.resultKey(r)];
+      if (to == null || r['item_std_suggested'] == to) return false;
+      r['item_std_suggested'] = to;
+      return true;
+    }, producedBy: ProducedBy.medicalExtract(callId));
+    AppLog.I.i('extract', '整理项目名称：${items.length} 项中建议 ${proposals.length} 项');
+    return proposals.length;
   }
 
   /// 给没有检查大项的检验项目补上（D-36）：按顺序发项目名称和已有的大项
@@ -1156,7 +1280,7 @@ class MedicalExtractionService {
     required String apiKey,
     required Set<String> attachmentIds,
   }) async {
-    final payload = draft.payloadOf(pages);
+    final payload = '${draft.payloadOf(pages)}${await _knownNamesText()}';
     final lines = pages.fold(0, (n, p) => n + draft.sentLinesOf(p));
     final summary = total == 1
         ? draft.summary
@@ -1169,7 +1293,7 @@ class MedicalExtractionService {
       response = await _modelCall(
         config: config,
         apiKey: apiKey,
-        system: labExtractSystemPrompt,
+        system: '$labExtractSystemPrompt${labStdPromptRules()}',
         userText: payload,
         maxTokens: 8192,
       );
@@ -1263,6 +1387,7 @@ class MedicalExtractionService {
             ? panel.trim()
             : null,
         'item_name_raw': r['item_name_raw'],
+        '_model_std': r['item_std'],
         'value_raw': r['value_raw'],
         'value_num': r['value_num'],
         'unit_raw': r['unit_raw'],
@@ -1280,6 +1405,21 @@ class MedicalExtractionService {
     // 体检报告前面汇总、后面明细会把同一项写两遍，分批时还落在不同批里：
     // 同项目同数值只留一条（D-32）。
     results = SameItem.dedupeResults(results);
+
+    // 标准项目名（D-49）：模型对号入座，本地检查后写 item_std（直接生效）
+    // 或 item_std_suggested（待用户在"整理项目名称"里确认）。
+    final known = await _records.labStdNames();
+    final existingKeys = {
+      for (final r in await _records.labResultLatestPerItem()) r.itemKey
+    };
+    final units = await _records.labUnitsByKey();
+    for (final r in results) {
+      LabNames.assign(r,
+          modelStd: r.remove('_model_std'),
+          known: known,
+          existingKeys: existingKeys,
+          units: units);
+    }
 
     // 文字内容（D-28）：病历的主诉/诊断/处理意见、超声等报告的所见/结论。
     // 只有文字、没有数值的报告靠它保留，不因 results 为空而丢掉。

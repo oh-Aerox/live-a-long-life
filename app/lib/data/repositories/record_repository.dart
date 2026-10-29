@@ -7,6 +7,7 @@ import '../change_log.dart';
 import '../db/app_database.dart';
 import '../field_meta.dart';
 import '../ids.dart';
+import '../lab_names.dart';
 import '../ocr_fixes.dart';
 import '../same_item.dart';
 import '../time_value.dart';
@@ -321,7 +322,8 @@ class RecordRepository {
             revisionId: revisionId,
             medicalDocumentId: Value(medicalDocumentId),
             itemNameRaw: name,
-            itemKey: labItemKey(name, panel: panel),
+            itemKey: SameItem.resultKey(r),
+            itemStd: Value(r['item_std'] is String ? r['item_std'] as String : null),
             panelRaw: Value(panel),
             valueRaw: valueRaw,
             valueNum: Value(valueNum),
@@ -481,6 +483,94 @@ class RecordRepository {
       (names[r.itemKey] ??= {}).add(r.itemNameRaw);
     }
     return names;
+  }
+
+  // ---- 检验项目标准名（D-49）----
+
+  /// 逐条改写 lab_panel 当前版本里的检验结果：[apply] 改了这一项就返回
+  /// true，有改动的记录写一个新版本（核对状态不变，走变更日志同步到 Mac，
+  /// 索引随版本重建）。返回改动的结果数。只在手机上调用（Mac 只读，D-12）。
+  Future<int> updateLabResults(
+    bool Function(Map<String, Object?> r) apply, {
+    required ProducedBy producedBy,
+  }) async {
+    var changed = 0;
+    for (final rec in await byType(RecordType.labPanel)) {
+      if (rec.currentRevisionId == null) continue;
+      final rev = await currentRevisionOf(rec.id);
+      final data = jsonDecode(rev.data);
+      if (data is! Map || data['results'] is! List) continue;
+      final results = [
+        for (final raw in data['results'] as List)
+          raw is Map ? Map<String, Object?>.from(raw.cast<String, Object?>()) : raw
+      ];
+      var n = 0;
+      for (final r in results) {
+        if (r is Map<String, Object?> &&
+            r['item_name_raw'] is String &&
+            apply(r)) {
+          n++;
+        }
+      }
+      if (n == 0) continue;
+      data['results'] = results;
+      await addRevision(
+        recordId: rec.id,
+        baseVersion: rec.version,
+        occurred: TimeValue.decode(rev.occurred),
+        occurredEnd:
+            rev.occurredEnd == null ? null : TimeValue.decode(rev.occurredEnd!),
+        dataJson: jsonEncode(data),
+        fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
+        producedBy: producedBy,
+      );
+      changed += n;
+    }
+    return changed;
+  }
+
+  /// 检验索引的全部行（整理名称页用）。
+  Future<List<LabResult>> labResultRows() => _db.select(_db.labResults).get();
+
+  /// 记录里已定的标准名：自动归类的键（规则 + 目录）→ 标准名；同一写法
+  /// 几处不同时取检查日期最新的。提取新报告时照它对号入座。
+  Future<Map<String, String>> labStdNames() async {
+    final out = <String, String>{};
+    for (final r in await (_db.select(_db.labResults)
+          ..where((t) => t.itemStd.isNotNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.examDate)]))
+        .get()) {
+      out[SameItem.labKey(r.itemNameRaw, panel: r.panelRaw)] = r.itemStd!;
+    }
+    return out;
+  }
+
+  /// 各检验项目出现过的单位（[LabNames.normUnit] 后，空的不算）。
+  Future<Map<String, Set<String>>> labUnitsByKey() async {
+    final out = <String, Set<String>>{};
+    for (final r in await _db.select(_db.labResults).get()) {
+      final u = LabNames.normUnit(r.unitRaw);
+      if (u.isNotEmpty) (out[r.itemKey] ??= {}).add(u);
+    }
+    return out;
+  }
+
+  /// 待确认的标准名建议：（现在的键, 建议的名字）→ 涉及几次结果。
+  Future<Map<(String, String), int>> labStdSuggestions() async {
+    final out = <(String, String), int>{};
+    for (final rec in await byType(RecordType.labPanel)) {
+      if (rec.currentRevisionId == null) continue;
+      final data = jsonDecode((await currentRevisionOf(rec.id)).data);
+      if (data is! Map || data['results'] is! List) continue;
+      for (final r in data['results'] as List) {
+        if (r is! Map || r['item_name_raw'] is! String) continue;
+        final s = r['item_std_suggested'];
+        if (s is! String || r['item_std'] is String) continue;
+        final pair = (SameItem.resultKey(r), s);
+        out[pair] = (out[pair] ?? 0) + 1;
+      }
+    }
+    return out;
   }
 
   Future<RecordRow?> byId(String recordId) => (_db.select(_db.records)

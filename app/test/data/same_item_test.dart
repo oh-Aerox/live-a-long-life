@@ -18,7 +18,7 @@ void main() {
     expect(SameItem.labKey('中性粒细胞绝对值（GRA#）'), '中性粒细胞绝对值');
     expect(SameItem.labKey('甲胎蛋白(AFP)（酶免法）'), '甲胎蛋白');
     expect(SameItem.labKey('体重指数/BMI'), '体重指数');
-    expect(SameItem.labKey('F-PSA/T-PSA'), 'F-PSA/T-PSA');
+    expect(SameItem.ruleKey('F-PSA/T-PSA'), 'F-PSA/T-PSA');
     expect(SameItem.labKey('白细胞（尿沉渣）'), '白细胞（尿沉渣）');
     expect(SameItem.labKey('血 红 蛋白'), '血红蛋白');
   });
@@ -34,9 +34,9 @@ void main() {
     expect(SameItem.labKey('甲胎蛋白（联）'), SameItem.labKey('甲胎蛋白(AFP)（酶免法）'));
     expect(SameItem.labKey('前列腺特异性抗原（联）'),
         SameItem.labKey('前列腺特异性抗原（T-PSA）（发光法）'));
-    expect(SameItem.labKey('促甲状腺素（TSH）电发光'), '促甲状腺素');
+    expect(SameItem.labKey('促甲状腺素（TSH）电发光'), '促甲状腺激素');
     expect(SameItem.labKey('幽门螺杆菌抗体检测'), SameItem.labKey('幽门螺杆菌抗体定量'));
-    expect(SameItem.labKey('抗甲状腺球蛋白抗体测定（TG-Ab）（发光法）'), '抗甲状腺球蛋白抗体');
+    expect(SameItem.labKey('抗甲状腺球蛋白抗体测定（TG-Ab）（发光法）'), '甲状腺球蛋白抗体');
     expect(SameItem.labKey('升主动脉内径 AOD'), '升主动脉内径');
     // 常见别名。
     expect(SameItem.labKey('谷丙转氨酶'), SameItem.labKey('丙氨酸氨基转移酶（ALT）'));
@@ -140,8 +140,8 @@ void main() {
     expect(SameItem.trendGroup(null, '乙肝表面抗原'), '传染病筛查');
     expect(SameItem.trendGroup(null, 'TRUST'), '传染病筛查');
     expect(SameItem.trendGroup(null, '尿比重'), '尿常规');
-    expect(SameItem.trendGroup(null, '尿酸'), '其他'); // 血尿酸不归尿常规
-    expect(SameItem.trendGroup('生化检验', '尿酸'), '生化');
+    expect(SameItem.trendGroup(null, '尿酸'), '肾功能'); // 血尿酸不归尿常规
+    expect(SameItem.trendGroup('生化检验', '尿酸'), '肾功能'); // 目录分组先于大项（D-49）
     expect(SameItem.trendGroup(null, 'PH值'), '其他'); // 分不出尿还是血
   });
 
@@ -166,8 +166,8 @@ void main() {
   test('血小板压积/比积/比容同一项，写成小数的换算成百分数；MPV、PDW 的两种叫法同一项', () {
     Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
         {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};
-    expect(SameItem.labKey('血小板比积'), '血小板压积');
-    expect(SameItem.labKey('血小板比容（PCT）'), '血小板压积');
+    expect(SameItem.labKey('血小板比积'), '血小板比容');
+    expect(SameItem.labKey('血小板比容（PCT）'), '血小板比容');
     expect(SameItem.labPercentFactor(r('血小板比容（PCT）', 0.0022, high: 0.0028)), 100);
     expect(SameItem.labPercentFactor(r('血小板比容（PCT）', 0.0025, unit: 'fL', high: 0.0028)), 100);
     expect(SameItem.labPercentFactor(r('血小板比积', 0.23, high: 0.22)), 1);
@@ -277,8 +277,8 @@ void main() {
   test('尿常规、便常规的项目键带标本（D-36，用户 2019/2022/2023 体检实测）', () {
     String urine(String name) => SameItem.labKey(name, panel: '尿常规');
     expect(urine('白细胞(LEU)'), '尿白细胞');
-    expect(urine('葡萄糖(GLU)'), '尿糖');
-    expect(urine('葡萄糖 （Glu）'), '尿糖');
+    expect(urine('葡萄糖(GLU)'), '尿葡萄糖');
+    expect(urine('葡萄糖 （Glu）'), '尿葡萄糖');
     expect(urine('胆红素(BIL)'), '尿胆红素');
     expect(urine('蛋白质(PRO)'), '尿蛋白');
     expect(urine('隐血(ERY)'), '尿隐血');
