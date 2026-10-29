@@ -78,6 +78,8 @@ class AppServices {
       organize: organize,
       keyStore: keyStore,
       deviceId: ctx.deviceId,
+      // healthService 在 main 里按平台创建，查询时才取。
+      deviceData: (date) => healthService.dayData(date),
     );
     suggestionService = SuggestionService(
       db: db,
