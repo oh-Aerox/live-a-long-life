@@ -315,6 +315,11 @@ class RecordRepository {
         refHigh = refHigh == null ? null : refHigh * factor;
         unitRaw = '%';
       }
+      // 尿、便的阴性、未见、+ 分级折成数值进趋势，原文照旧显示。
+      final itemKey = SameItem.resultKey(r);
+      if (valueNum == null && LabNames.specimenOfKey(itemKey) != null) {
+        valueNum = SameItem.qualitativeValue(valueRaw);
+      }
       await _db.into(_db.labResults).insert(LabResultsCompanion.insert(
             recordId: recordId,
             resultIndex: i,
@@ -322,7 +327,7 @@ class RecordRepository {
             revisionId: revisionId,
             medicalDocumentId: Value(medicalDocumentId),
             itemNameRaw: name,
-            itemKey: SameItem.resultKey(r),
+            itemKey: itemKey,
             itemStd: Value(r['item_std'] is String ? r['item_std'] as String : null),
             panelRaw: Value(panel),
             valueRaw: valueRaw,

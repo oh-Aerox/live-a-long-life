@@ -245,6 +245,10 @@ class SameItem {
   /// （"0.0022"，参考 0.0011-0.0028），两种都不带 %；按量级判断，参考上限
   /// （没有时看数值）小于 0.05 的乘 100。单位只看是不是 %：有报告把它的
   /// 单位印成了 fL。
+  ///
+  /// 大血小板比率按百分数是 13–48，写成小数是 0.13–0.48，同样不带 %
+  /// 或误印成 fL（2026-10-30 用户数据）；参考上限（没有时看数值）不超过 1
+  /// 的乘 100。
   static double labPercentFactor(Map<Object?, Object?> r) {
     final name = r['item_name_raw'];
     if (name is! String) return 1;
@@ -255,7 +259,9 @@ class SameItem {
       final scale = (r['ref_high'] as num?) ?? (r['value_num'] as num?);
       return scale != null && scale < 0.05 ? 100 : 1;
     }
-    if (key == '血细胞比容') {
+    if (key == '大血小板比率') {
+      if (unit == '%') return 1;
+    } else if (key == '血细胞比容') {
       if (unit.isNotEmpty && unit != '-' && unit.toLowerCase() != 'l/l') {
         return 1;
       }
@@ -316,6 +322,30 @@ class SameItem {
   static bool isPlaceholderValue(String valueRaw) => RegExp(
           r'^[\s\-—–－/]*$|^未[测查做检]$')
       .hasMatch(valueRaw);
+
+  /// 尿、便定性结果画趋势用的数值：阴性、neg、未见记 0，±（弱阳性）记
+  /// 0.5，+ 到 ++++（1+ 到 4+）记 1 到 4；只记阴性不记阳性会让趋势平在 0，
+  /// 把异常藏起来。认不出的返回 null。裸的"-"仍按没测的占位值
+  /// （[isPlaceholderValue]），"阴性（-）"这样写明的才算阴性。
+  static double? qualitativeValue(String valueRaw) {
+    final v = valueRaw
+        .replaceAll(RegExp(r'\s'), '')
+        .replaceAll('＋', '+')
+        .replaceAll(RegExp('[－—–]'), '-')
+        .toLowerCase();
+    if (RegExp(r'^(?:阴性|neg(?:ative)?|未见|未检出|无)(?:[（(][-]?[）)])?$')
+        .hasMatch(v)) {
+      return 0;
+    }
+    final grade = RegExp(r'^(?:阳性|弱阳性)?[（(]?(\+-|±|\+{1,4}|[1-4]\+)[）)]?$')
+        .firstMatch(v);
+    if (grade == null) return v == '弱阳性' ? 0.5 : null;
+    final g = grade[1]!;
+    if (g == '±' || g == '+-') return 0.5;
+    return g.endsWith('+') && g.length == 2 && g[0] != '+'
+        ? double.parse(g[0])
+        : g.length.toDouble();
+  }
 
   /// 检验结果的值（比较用）：有解析出的数值用数值，否则用原文去掉单位与空白。
   static String labValue(Map<Object?, Object?> r) {

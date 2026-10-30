@@ -176,6 +176,17 @@ void main() {
     expect(SameItem.labKey('血小板体积分布宽度'), SameItem.labKey('血小板容积分布宽度（PDW）'));
   });
 
+  test('大血小板比率写成小数（不写单位或误印 fL）换算成百分数', () {
+    Map<String, Object?> r(String name, num v, {String? unit, num? high}) =>
+        {'item_name_raw': name, 'value_num': v, 'unit_raw': unit, 'ref_high': high};
+    expect(SameItem.labKey('大血小板比率（P-LCR）'), '大血小板比率');
+    expect(SameItem.labPercentFactor(r('大血小板比率（P-LCR）', 0.27, high: 0.48)), 100);
+    expect(SameItem.labPercentFactor(r('大血小板比率（P-LCR）', 0.26, unit: 'fL', high: 0.48)), 100);
+    expect(SameItem.labPercentFactor(r('大血小板比率', 0.23)), 100);
+    expect(SameItem.labPercentFactor(r('大血小板比率', 27.3, high: 48)), 1);
+    expect(SameItem.labPercentFactor(r('大血小板比率', 20.8, unit: '%', high: 43)), 1);
+  });
+
   test('复测和首次测量同一个键；血压一项写的拆成收缩压、舒张压', () {
     expect(SameItem.labKey('复测血压'), '血压');
     expect(SameItem.labKey('收缩压（复测第1次）'), '收缩压');
@@ -295,6 +306,25 @@ void main() {
     expect(SameItem.labKey('白细胞计数（WBC）', panel: '血常规'), '白细胞计数');
     expect(SameItem.labKey('尿酸（UA）', panel: '肾功能'), '尿酸');
     expect(SameItem.labKey('白细胞(LEU)'), '白细胞');
+  });
+
+  test('尿便定性结果折成数值：阴性/未见为 0，± 为 0.5，+ 分级为 1–4，裸"-"仍是占位', () {
+    for (final v in ['neg', 'NEG', '阴性', '阴性（-）', '阴性(-)', '未见', '未检出', 'Negative']) {
+      expect(SameItem.qualitativeValue(v), 0, reason: v);
+    }
+    expect(SameItem.qualitativeValue('±'), 0.5);
+    expect(SameItem.qualitativeValue('弱阳性（±）'), 0.5);
+    expect(SameItem.qualitativeValue('弱阳性'), 0.5);
+    expect(SameItem.qualitativeValue('+'), 1);
+    expect(SameItem.qualitativeValue('阳性（+）'), 1);
+    expect(SameItem.qualitativeValue('++'), 2);
+    expect(SameItem.qualitativeValue('2+'), 2);
+    expect(SameItem.qualitativeValue('＋＋＋'), 3);
+    expect(SameItem.qualitativeValue('4+'), 4);
+    expect(SameItem.qualitativeValue('-'), isNull);
+    expect(SameItem.qualitativeValue('-（3.2）'), isNull);
+    expect(SameItem.qualitativeValue('淡黄色'), isNull);
+    expect(SameItem.qualitativeValue('1.025'), isNull);
   });
 
   test('趋势分组名（D-36）', () {

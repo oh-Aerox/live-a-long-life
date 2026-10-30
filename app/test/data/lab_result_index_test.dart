@@ -185,6 +185,9 @@ void main() {
     expect([for (final r in rows) r.itemKey], ['白细胞计数', '尿白细胞', '尿比重']);
     expect(rows[1].panelRaw, '尿常规');
     expect(await records.labResultHistory('尿比重'), hasLength(1));
+    // 尿的 neg 折成 0 进趋势，原文照旧；血液项目不折。
+    expect(rows[1].valueRaw, 'neg');
+    expect(rows[1].valueNum, 0);
   });
   test('识别修正只写进 ocr_fixes 的单位：启动修复按说明改字段，已核对的不动', () async {
     Map<String, Object?> rbc(String name) => {
