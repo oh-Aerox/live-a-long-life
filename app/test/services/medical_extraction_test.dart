@@ -548,6 +548,53 @@ void main() {
       expect(outcome.previousData, contains('检查所见'));
     });
 
+    test('没有内容的条目删掉；带数字或太长的不像套话，驳回后按原位保留', () async {
+      final (service, docId) = await extracted();
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '甲状腺', 'text_raw': '甲状腺形态大小正常，回声均匀', 'from': [1]},
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'from': [2]},
+        ],
+        'drop': [3], // 本地只按长度与数字把关，借第 3 段测删除的流程
+      }));
+      final outcome = await service.tidyFindings(docId);
+      expect((outcome.before, outcome.after, outcome.dropped), (3, 2, 1));
+      var rev = await records.currentRevisionOf(outcome.record.id);
+      var findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+      expect([for (final f in findings) f['section_raw']], ['甲状腺', '检查所见']);
+      expect(FieldMetaMap.decode(rev.fieldMeta)['findings.2'], isNull);
+
+      // 模型想删带数字的一段：本地驳回，放回原来的位置，核对状态不丢。
+      final (service2, docId2) = await extracted();
+      final record = (await records.labPanelOfDocument(docId2))!;
+      rev = await records.currentRevisionOf(record.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      (data['findings'] as List)[0] = {
+        ...(data['findings'] as List)[0] as Map,
+        'text_raw': '甲状腺右叶结节 0.5cm',
+      };
+      await records.addRevision(
+        recordId: record.id,
+        baseVersion: record.version,
+        occurred: TimeValue.decode(rev.occurred),
+        dataJson: jsonEncode(data),
+        fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
+        producedBy: ProducedBy.userEdit(),
+      );
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'from': [2]},
+        ],
+        'drop': [1, 3],
+      }));
+      final o2 = await service2.tidyFindings(docId2);
+      expect((o2.after, o2.dropped), (2, 1));
+      rev = await records.currentRevisionOf(o2.record.id);
+      findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+      expect([for (final f in findings) f['text_raw']],
+          ['甲状腺右叶结节 0.5cm', '甲状腺未见异常']);
+    });
+
     test('模型漏了某一段：整个不改；没有可合并的不写新版本', () async {
       final (service, docId) = await extracted();
       final version = (await records.labPanelOfDocument(docId))!.version;

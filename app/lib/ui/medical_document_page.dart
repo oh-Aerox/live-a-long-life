@@ -325,7 +325,8 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         title: const Text('用模型整理文字？'),
         content: Text(
           '把下面 ${_entryList('findings').length} 段诊断与检查文字发给默认模型，'
-          '同一部位的所见和结论合并成一条，重复的去掉，原文不改写。'
+          '同一部位的所见和结论合并成一条，重复的去掉，"其他：未见异常"、'
+          '模板上的说明套话删掉，原文不改写。'
           '\n\n只发这些已提取的文字，不发图片。合并出来的条目要重新核对，'
           '整理前的版本保留在修改历史里。',
         ),
@@ -348,14 +349,15 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
         widget.documentId,
       );
       if (!outcome.changed) {
-        messenger.showSnackBar(const SnackBar(content: Text('没有需要合并的条目，未改动')));
+        messenger.showSnackBar(const SnackBar(content: Text('没有需要合并或删掉的条目，未改动')));
         return;
       }
       messenger.showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
           content: Text(
-            '已整理：${outcome.before} 段合并为 ${outcome.after} 段，'
+            '已整理：${outcome.before} 段整理为 ${outcome.after} 段'
+            '${outcome.dropped > 0 ? '（删掉 ${outcome.dropped} 段模板说明等没有内容的）' : ''}，'
             '合并的条目需要重新核对',
           ),
           action: SnackBarAction(
@@ -1051,7 +1053,7 @@ class _MedicalDocumentPageState extends State<MedicalDocumentPage> {
           const SheetAction(
             value: 'tidy',
             label: '用模型整理文字',
-            subtitle: '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复的去掉',
+            subtitle: '诊断与检查文字拆得太碎时用：同一部位的所见和结论合并，重复和没有内容的去掉',
             icon: Icons.auto_fix_high_outlined,
           ),
         if (_results.any((r) => r.panelRaw == null))

@@ -231,7 +231,8 @@ const findingsTidySystemPrompt = '''
 "检查所见"：甲状腺未见异常）；体检报告汇总页和明细页把同一个问题写了两遍。
 
 只输出一个 JSON 对象，不要输出其他文字：
-{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}]}
+{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}],
+ "drop": [删掉的输入 id]}
 
 规则：
 - 同一部位或同一项检查的所见、描述、结论、提示合并成一条：section_raw 写部位或
@@ -244,7 +245,15 @@ const findingsTidySystemPrompt = '''
 - 不同部位、不同检查不要合并；拿不准是不是同一部位时不合并；
 - 文字照原文，不要摘要、改写、补充或删减内容，合并时只做拼接和去掉重复的句子；
   不要修改数字、单位、大小、日期；
-- 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
+- 对这份报告没有任何信息的条目放进 drop，不输出：
+  · 报告模板上的说明和免责套话（如"对结果值的说明""检测结果及疾病诊断，请咨询
+    医生""本报告仅对所检标本负责""结果仅供临床参考"）；
+  · 栏目名不指向任何部位或检查（如"其他""小结""备注""结果提示""总检"），内容
+    只有"未见异常""正常""无""未见明显异常"一类的；如果它明显是相邻某项检查的
+    结论，就合并进那一条，不要删；
+  只删这两类。写着具体部位或检查的"未见异常"（如"肺野：未见异常"）、病历栏目里的
+  "无""否认"、任何带数字或异常描述的内容都要保留；拿不准的保留；
+- 每个输入 id 必须出现在且只出现在一处：某条输出的 from 里，或 drop 里，不能遗漏；
 - 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
 ''';
 
@@ -353,6 +362,7 @@ class FindingsTidyOutcome {
   const FindingsTidyOutcome({
     required this.before,
     required this.after,
+    this.dropped = 0,
     required this.record,
     this.previousData,
     this.previousFieldMeta,
@@ -360,6 +370,9 @@ class FindingsTidyOutcome {
 
   final int before;
   final int after;
+
+  /// 删掉的没有内容的条目（模板说明、"其他：未见异常"）。
+  final int dropped;
   final RecordRow record;
   final String? previousData;
   final String? previousFieldMeta;
@@ -796,8 +809,9 @@ class MedicalExtractionService {
   /// 用模型整理文字内容（D-35）：把当前版本的 findings 发给模型，同一部位的
   /// 所见与结论合并、重复的去掉，写成记录的新版本（旧版本保留，可撤销）。
   /// 只发已提取的文字（来自脱敏后的文本），不发图片和原始识别文本。
-  /// 每段输入都要落进某一条输出，漏了就整个不改；没合并任何一条时不写新版本。
-  /// 原样保留的条目保持核对状态，合并出来的条目回到未核对。
+  /// 每段输入都要落进某一条输出或删除清单，漏了就整个不改；没合并也没删
+  /// 任何一条时不写新版本。原样保留的条目保持核对状态，合并出来的条目回到
+  /// 未核对。模型要删的条目本地再看一遍（[_droppable]），不像套话的照原样留下。
   Future<FindingsTidyOutcome> tidyFindings(String documentId) async {
     final record = await _records.labPanelOfDocument(documentId);
     if (record == null) throw StateError('这份文件还没有提取');
@@ -832,9 +846,8 @@ class MedicalExtractionService {
       throw StateError('模型返回无法解析，没有改动');
     }
     final meta = FieldMetaMap.decode(rev.fieldMeta);
-    final tidied = <Map<String, Object?>>[];
-    final fields = Map<String, FieldMeta>.from(meta.fields)
-      ..removeWhere((k, _) => k.startsWith('findings.'));
+    // 先收齐（第一个来源下标、条目、核对状态），删除被驳回的插回原位后再排序编号。
+    final kept = <(int, Map<String, Object?>, FieldMeta?)>[];
     final covered = <int>{};
     for (final raw in out) {
       if (raw is! Map) continue;
@@ -867,12 +880,33 @@ class MedicalExtractionService {
       final unchanged = from.length == 1 &&
           entry['section_raw'] == source['section_raw'] &&
           entry['text_raw'] == source['text_raw'];
-      final kept = unchanged ? meta['findings.${from.first}'] : null;
-      fields['findings.${tidied.length}'] = kept ??
+      kept.add((
+        from.first,
+        entry,
+        unchanged ? meta['findings.${from.first}'] : null,
+      ));
+    }
+    var dropped = 0;
+    for (final id in parsed!['drop'] as List? ?? const []) {
+      if (id is! num || id < 1 || id > findings.length) continue;
+      final i = id.toInt() - 1;
+      if (!covered.add(i)) continue; // 已经合进某一条的以合并为准
+      if (_droppable(findings[i])) {
+        dropped++;
+      } else {
+        AppLog.I.w('extract', '文字整理要删第 ${i + 1} 段，不像套话，保留');
+        kept.add((i, findings[i], meta['findings.$i']));
+      }
+    }
+    kept.sort((a, b) => a.$1.compareTo(b.$1));
+    final tidied = [for (final (_, e, _) in kept) e];
+    final fields = Map<String, FieldMeta>.from(meta.fields)
+      ..removeWhere((k, _) => k.startsWith('findings.'));
+    for (final (n, (_, _, m)) in kept.indexed) {
+      fields['findings.$n'] = m ??
           const FieldMeta(
               origin: FieldOrigin.modelInferred,
               reviewStatus: ReviewStatus.unreviewed);
-      tidied.add(entry);
     }
     final missing = [
       for (var i = 0; i < findings.length; i++)
@@ -898,13 +932,23 @@ class MedicalExtractionService {
       fieldMeta: FieldMetaMap(fields),
       producedBy: ProducedBy.medicalExtract(callId),
     );
-    AppLog.I.i('extract', '文字整理：${findings.length} 段合并为 ${tidied.length} 段');
+    AppLog.I.i('extract',
+        '文字整理：${findings.length} 段整理为 ${tidied.length} 段，删掉 $dropped 段');
     return FindingsTidyOutcome(
         before: findings.length,
         after: tidied.length,
+        dropped: dropped,
         record: updated,
         previousData: rev.data,
         previousFieldMeta: rev.fieldMeta);
+  }
+
+  /// 模型要删的一段是否真像没有内容的套话：短（不超过 40 字）、不带数字。
+  /// 量值、大小、日期和长段描述一律不删，防模型删掉真内容。
+  static bool _droppable(Map<String, Object?> f) {
+    final text = '${f['section_raw'] ?? ''}${f['text_raw'] ?? ''}'
+        .replaceAll(RegExp(r'\s'), '');
+    return text.length <= 40 && !RegExp(r'\d').hasMatch(text);
   }
 
   /// 事后整理类调用（文字整理、补大项）：用默认模型发一段已提取的数据，
