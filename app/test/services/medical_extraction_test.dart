@@ -326,6 +326,59 @@ void main() {
     expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
+  test('重新提取：这份文件没核对、这次没提取出的旧状况建议删掉，确认过的和其他文件的保留', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '结论：胆囊结石（多发） 肝囊肿 脂肪肝', x: 0.1, y: 0.3, w: 0.6, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    String reply(List<String> names) => jsonEncode({
+          'doc': {'doc_type': 'imaging_report', 'exam_date': '2026-09-20'},
+          'results': [],
+          'conditions': [
+            for (final n in names)
+              {'name': n, 'persistence': 'long_term', 'source_lines': ['P1L1']},
+          ],
+        });
+
+    final doc = await importDoc();
+    model.reply(reply(['胆囊结石', '肝囊肿', '肝脏钙化灶']));
+    final first = await service.extractDocument(doc.id);
+    // 用户确认了"肝囊肿"。
+    final confirmed = first.conditionRecords[1];
+    final rev = await records.currentRevisionOf(confirmed.id);
+    await records.addRevision(
+      recordId: confirmed.id,
+      baseVersion: confirmed.version,
+      occurred: TimeValue.decode(rev.occurred),
+      dataJson: rev.data,
+      fieldMeta: const FieldMetaMap({
+        'condition': FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.confirmed),
+      }),
+      producedBy: ProducedBy.userEdit(),
+    );
+
+    // 重新识别：钙化灶是旧识别认错的，这次没有；多了脂肪肝。
+    model.reply(reply(['胆囊结石（多发）', '脂肪肝']));
+    final second = await service.extractDocument(doc.id);
+    expect([for (final r in second.conditionRecords) r.id], hasLength(1));
+    final names = [
+      for (final r in await records.byType(RecordType.condition))
+        (jsonDecode((await records.currentRevisionOf(r.id)).data) as Map)['name']
+    ]..sort();
+    // 胆囊结石沿用旧的那条（同一问题不重复建），已确认的肝囊肿保留。
+    expect(names, ['肝囊肿', '胆囊结石', '脂肪肝']..sort());
+  });
+
   test('体检报告汇总与明细重复（D-32）：同一份文件里同一问题、同项目同数值只留一条',
       () async {
     await configs.add(

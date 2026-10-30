@@ -1290,8 +1290,12 @@ class MedicalExtractionService {
         lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
       }
     }
+    // 有批次失败时新结果不全，旧的状况建议先不清（重新提取补上后再清）。
     final saved = await _saveParsed(doc, parsed,
-        lineIndex: lineIndex, callId: callId, attachmentIds: attachmentIds);
+        lineIndex: lineIndex,
+        callId: callId,
+        attachmentIds: attachmentIds,
+        pruneConditions: failedPages.isEmpty);
     AppLog.I.i('extract',
         '结构化提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
         '药品 ${saved.medications} 种，'
@@ -1408,6 +1412,7 @@ class MedicalExtractionService {
   /// 建成 lab_panel（全部 unreviewed，D-04；重新提取追加版本），回填文件级
   /// 信息，查近似重复，建状况建议。source_lines 对不上 [lineIndex] 时用
   /// [fallback] 定位（识图路径没有行号：页码 + 裁剪区域）。
+  /// [pruneConditions] 见 [_createConditionSuggestions]。
   Future<_Saved> _saveParsed(
     MedicalDocument doc,
     Map<String, Object?> parsed, {
@@ -1415,6 +1420,7 @@ class MedicalExtractionService {
     Map<String, Object?>? fallback,
     required String callId,
     required Set<String> attachmentIds,
+    bool pruneConditions = false,
   }) async {
     final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
     final rawResults = (parsed['results'] as List?) ?? const [];
@@ -1600,6 +1606,7 @@ class MedicalExtractionService {
       documentId: doc.id,
       callId: callId,
       attachmentIds: attachmentIds,
+      prune: pruneConditions,
     );
     return _Saved(
       record: record,
@@ -1734,6 +1741,11 @@ class MedicalExtractionService {
   /// 不同，D-32），留名称更具体的那条；这份文件或同一检查日期的文件（同一
   /// 份报告重复上传）已经建过的不再建。其他日期报告里的同一问题照样建：
   /// 每份报告各有一条、各自关联原文件，看当前状况时按日期取最新（D-32）。
+  ///
+  /// [prune]（整份重新提取且没有批次失败时）：这份文件以前建议、还没核对、
+  /// 这次又没提取出来的状况标记删除，旧识别认错或写偏的不再留在档案和人体
+  /// 图上；用户确认或改过的是事实，保留（同 [deleteDocument]）。识图常只发
+  /// 一页的局部，不清。
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
     required Map<String, (DraftPage, OcrLine)> lineIndex,
@@ -1742,17 +1754,32 @@ class MedicalExtractionService {
     required String documentId,
     required String callId,
     required Set<String> attachmentIds,
+    bool prune = false,
   }) async {
-    if (raw.isEmpty) return const [];
+    final newNames = [
+      for (final c in raw)
+        if (c is Map && c['name'] is String) c['name'] as String
+    ];
     final existingNames = <String>[];
     for (final rec in await _records.byType(RecordType.condition)) {
       final rev = await _records.currentRevisionOf(rec.id);
       final data = jsonDecode(rev.data) as Map;
+      final name = data['name'];
+      if (prune &&
+          data['medical_document_id'] == documentId &&
+          (FieldMetaMap.decode(rev.fieldMeta)['condition']?.reviewStatus ??
+                  ReviewStatus.unreviewed) ==
+              ReviewStatus.unreviewed &&
+          !(name is String && newNames.any((n) => SameItem.sameProblem(n, name)))) {
+        await _records.markDeleted(rec.id);
+        continue;
+      }
       final sameReport = data['medical_document_id'] == documentId ||
           (examDate != null && rec.localDate == examDate);
       if (!sameReport) continue;
-      if (data['name'] is String) existingNames.add(data['name'] as String);
+      if (name is String) existingNames.add(name);
     }
+    if (raw.isEmpty) return const [];
 
     final picked = <Map<Object?, Object?>>[];
     for (final c in raw) {
