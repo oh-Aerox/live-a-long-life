@@ -166,7 +166,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       builder: (context) => AlertDialog.adaptive(
         title: const Text('删除这条记录？'),
         content: Text([
-          '记录从日视图移除，不再参与周报和分析；同步后 Mac 上也会移除。',
+          '记录从日视图移除，不再参与周报和分析；同步后电脑上也会移除。',
           if (messageIds.isNotEmpty)
             '原消息（${messageIds.length} 条）还在对话里，可以一起删掉。'
                 '${others.isEmpty ? '' : '这些消息还整理出了另外 ${others.length} 条记录，删消息不影响那些记录。'}',
@@ -391,7 +391,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
         ? '在本机 · 点开查看原件'
         : a.state == CopyState.offloaded
             ? '手机上已清理，记录保留 · '
-                '${a.archivedOnMac ? 'Mac 已归档，可取回（需 Mac 在线）' : '没有确认的其他副本，可重新上传同一文件补回'}'
+                '${a.archivedOnMac ? '电脑已归档，可取回（需电脑在线）' : '没有确认的其他副本，可重新上传同一文件补回'}'
             : '本机没有这份文件，记录保留';
     return ListTile(
       dense: true,
@@ -429,8 +429,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final ok = await widget.services.medicalSpace.retrieve(a.attachment.id);
     messenger.showSnackBar(SnackBar(
       content: Text(ok
-          ? '已从 Mac 取回，原件可以查看了'
-          : 'Mac 不可达或没有这份文件；记录不受影响，也可以重新上传同一文件补回'),
+          ? '已从电脑取回，原件可以查看了'
+          : '电脑不可达或没有这份文件；记录不受影响，也可以重新上传同一文件补回'),
     ));
     await _load();
   }

@@ -85,7 +85,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
         title: const Text('清理手机原件'),
         content: Text(
           '将清理手机上的 ${chosen.length} 份医疗文件，释放约 ${_size(_selectedBytes)}。'
-          '历史医疗记录保留，Mac 上的已归档原件不受影响。'
+          '历史医疗记录保留，电脑上的已归档原件不受影响。'
           '${noRemote > 0 ? '\n\n注意：其中 $noRemote 份没有确认过的其他副本，清理后可能无法再查看原件（数据保留，未核对的仍是未核对）。' : ''}'
           '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（$exportWhere），清理不会删除它们，需要时可自行删除。' : ''}',
         ),
@@ -122,8 +122,8 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok
-            ? '已从 Mac 取回，原件可以查看了'
-            : 'Mac 不可达或没有这份文件；提取过的数据不受影响，也可以重新上传同一文件补回'),
+            ? '已从电脑取回，原件可以查看了'
+            : '电脑不可达或没有这份文件；提取过的数据不受影响，也可以重新上传同一文件补回'),
       ));
       await _load();
     } finally {
@@ -145,7 +145,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
       docType,
       '引用 ${f.referenceCount} 处',
       if (f.extracted) f.reviewed ? '已核对' : '有未核对项' else '未提取',
-      f.archivedOnMac ? 'Mac 已归档' : '无确认的其他副本',
+      f.archivedOnMac ? '电脑已归档' : '无确认的其他副本',
     ].where((s) => s.isNotEmpty).join(' · ');
 
     if (cleanable) {
@@ -166,7 +166,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
     return ListTile(
       dense: true,
       title: Text(att.originalFilename ?? att.sha256.substring(0, 12)),
-      subtitle: Text('已清理 · ${f.archivedOnMac ? '可从 Mac 取回' : 'Mac 副本未确认，可重新上传同一文件补回'}'),
+      subtitle: Text('已清理 · ${f.archivedOnMac ? '可从电脑取回' : '电脑副本未确认，可重新上传同一文件补回'}'),
       trailing: TextButton(
         onPressed: _busy ? null : () => _retrieve(f),
         child: const Text('取回'),
@@ -202,7 +202,7 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
                   padding: EdgeInsets.all(16),
                   child: Text(
                     '清理只释放手机上的文件和缓存；诊断、指标、日期、来源索引和核对状态'
-                    '都不变，Mac 与备份中的原件继续保留。正在提取或发送中的文件请稍后再清。',
+                    '都不变，电脑与备份中的原件继续保留。正在提取或发送中的文件请稍后再清。',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),

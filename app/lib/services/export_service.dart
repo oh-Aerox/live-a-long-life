@@ -48,7 +48,7 @@ const exportExcludedTables = {
   'change_logs': '同步变更日志属于本机代次，恢复后回填',
   'sync_states': '同步游标属于本机与对端',
   'peers': '配对关系属于本机，恢复后重新配对',
-  'backup_runs': 'Mac 备份记录',
+  'backup_runs': '电脑端备份记录',
   // 不进备份（schema §4.3）
   'model_configs': '模型配置与 key 不导出',
   'model_calls': '本机调试记录',

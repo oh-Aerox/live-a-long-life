@@ -117,7 +117,7 @@ class _PairMacPageState extends State<PairMacPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('连接 Mac')),
+      appBar: AppBar(title: const Text('连接电脑')),
       body: Column(
         children: [
           if (_paired.isNotEmpty)
@@ -136,8 +136,8 @@ class _PairMacPageState extends State<PairMacPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(_paired.isEmpty
-                ? '在 Mac 上打开 长命百岁 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
-                : '重新配对：在 Mac 上点「重新配对」后扫新的二维码。'),
+                ? '在电脑上打开 长命百岁 → 点「开始配对」，然后用下面的取景框对准屏幕上的二维码。'
+                : '重新配对：在电脑上点「重新配对」后扫新的二维码。'),
           ),
           Expanded(
             child: Stack(

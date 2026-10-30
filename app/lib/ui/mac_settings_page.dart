@@ -213,7 +213,7 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('用手机打开 长命百岁 → 设置 → 连接 Mac，扫这个码：'),
+                  const Text('用手机打开 长命百岁 → 设置 → 连接电脑，扫这个码：'),
                   const SizedBox(height: 12),
                   Center(
                     child: Container(

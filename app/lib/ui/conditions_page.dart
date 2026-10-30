@@ -278,7 +278,7 @@ class _ConditionsPageState extends State<ConditionsPage> {
         title: Text('删除「${e.name}」？'),
         content: Text([
           '用于提取错了、本来就不是疾病或状况的条目。删除后不出现在档案、人体图、'
-              '周报和咨询里，重新提取报告也不会再建议它；同步后 Mac 上也会移除。',
+              '周报和咨询里，重新提取报告也不会再建议它；同步后电脑上也会移除。',
           if (group.length > 1) '这一行合并了 ${group.length} 份报告里的记录，会一起删除。',
           '原件和检验数据不受影响。曾经有过、现在好了的，请用"标记已痊愈/解除"。',
         ].join('\n\n')),

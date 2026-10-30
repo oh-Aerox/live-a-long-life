@@ -178,9 +178,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ]),
           AdaptiveSection(header: '数据与同步', children: [
             AdaptiveTile(
-              title: Text(_pairedMacName == null ? '连接 Mac' : '已连接 Mac'),
+              title: Text(_pairedMacName == null ? '连接电脑' : '已连接电脑'),
               subtitle: Text(_pairedMacName == null
-                  ? '扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'
+                  ? '扫电脑上的二维码配对，数据同步到电脑保存副本'
                   : '$_pairedMacName · $_syncSummary'),
               trailing: chevron,
               onTap: () async {
@@ -207,13 +207,13 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             AdaptiveTile(
               title: const Text('数据存储位置'),
-              subtitle: const Text('保存在本机；配对后 Mac 上有一份副本'),
+              subtitle: const Text('保存在本机；配对后电脑上有一份副本'),
               onTap: () => showAdaptiveDialog<void>(
                 context: context,
                 builder: (context) => AlertDialog.adaptive(
                   title: const Text('数据存储位置'),
                   content: const Text('消息、照片、PDF 和资料保存在本机应用'
-                      '沙盒里。配对 Mac 后，数据通过局域网同步到 Mac 保存副本，'
+                      '沙盒里。配对电脑后，数据通过局域网同步到电脑保存副本，'
                       '不经过云端。整理消息、识别病历时，相关内容会发给你配置的'
                       '模型服务，发了什么可以在"模型 → 调用记录"里查看。'
                       '删除应用会一并删除本机数据，重要内容请先用"导出数据"备份。'),
