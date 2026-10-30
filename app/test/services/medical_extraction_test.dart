@@ -1261,4 +1261,40 @@ void main() {
     final day = await records.byDate(DateTime.now().toString().substring(0, 10));
     expect(day, isEmpty);
   });
+
+  test('指标说明（D-50）：只发项目名、写法、分组、单位，不发数值；定性项目标阳性；不需要的返回 null', () async {
+    await addConfig();
+    await records.create(
+      recordType: RecordType.labPanel,
+      occurred: TimeValue(
+          localDate: '2023-07-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated),
+      dataJson: jsonEncode({
+        'results': [
+          {'item_name_raw': 'MTHFR', 'value_raw': 'CT', 'panel_raw': '基因检测'},
+        ],
+      }),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+    final service = buildService(FakeExtractor(ocrResults: const []));
+    model.reply(jsonEncode({
+      'meaning': '叶酸代谢相关的基因',
+      'high': '突变型可能使同型半胱氨酸偏高',
+      'low': '不该有',
+      'related': '同型半胱氨酸、叶酸',
+      'qualitative': true,
+    }));
+    final e = (await service.explainLabItem('MTHFR', group: '基因检测'))!;
+    expect(e.meaning, '叶酸代谢相关的基因');
+    expect(e.highLabel, '阳性');
+    expect(e.low, isNull);
+    expect(model.calls.last, contains('MTHFR'));
+    expect(model.calls.last, isNot(contains('CT')));
+    expect(model.calls.last, isNot(contains('2023')));
+
+    model.reply(jsonEncode({'skip': true}));
+    expect(await service.explainLabItem('MTHFR', group: '基因检测'), isNull);
+  });
 }

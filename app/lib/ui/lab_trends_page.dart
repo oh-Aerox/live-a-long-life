@@ -5,6 +5,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/lab_abnormal.dart';
+import '../data/lab_explain.dart';
 import '../data/same_item.dart';
 import 'adaptive.dart';
 import 'lab_names_page.dart';
@@ -194,6 +195,7 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
                               services: widget.services,
                               itemKey: r.itemKey,
                               itemName: _titleOf(r),
+                              group: _groupOf(r),
                               readOnly: widget.readOnly,
                               others: [
                                 for (final o in _items)
@@ -220,6 +222,7 @@ class _TrendDetailPage extends StatefulWidget {
     required this.services,
     required this.itemKey,
     required this.itemName,
+    required this.group,
     required this.readOnly,
     required this.others,
   });
@@ -227,6 +230,7 @@ class _TrendDetailPage extends StatefulWidget {
   final AppServices services;
   final String itemKey;
   final String itemName;
+  final String group;
   final bool readOnly;
 
   /// 可以合并过去的其他项目（键, 分组）。
@@ -242,6 +246,10 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
   /// 这一项里各种写法（按规则清洗、未查目录的键）→ 对应的行。
   Map<String, List<LabResult>> _spellings = {};
 
+  /// 模型生成过的说明（目录外的项目，D-50）；没生成过为 null。
+  GeneratedLabExplanation? _generated;
+  bool _explaining = false;
+
   @override
   void initState() {
     super.initState();
@@ -250,6 +258,8 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
 
   Future<void> _load() async {
     final rows = await widget.services.records.labResultHistory(widget.itemKey);
+    final generated =
+        await LabExplain.generated(widget.services.settings, widget.itemKey);
     final spellings = <String, List<LabResult>>{};
     for (final r in rows) {
       (spellings[SameItem.ruleKey(r.itemNameRaw, panel: r.panelRaw)] ??= [])
@@ -259,8 +269,122 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
       setState(() {
         _history = rows;
         _spellings = spellings;
+        _generated = generated;
       });
     }
+  }
+
+  /// 目录外的项目用模型生成说明（D-50）：只发项目名、写法、分组、单位，
+  /// 确认后发送；结果存本机设置，模型认为不需要说明的也记下，不再提示。
+  Future<void> _explain() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: const Text('用模型生成说明？'),
+        content: Text(
+          '把项目名"${widget.itemName}"、报告上的写法、分组和单位发给默认模型，'
+          '生成这一项是什么、偏高偏低意味着什么的通用说明。\n\n'
+          '不发数值和日期。说明保存在本机，以后打开直接显示。',
+        ),
+        actions: [
+          DialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          DialogAction(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('生成'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _explaining = true);
+    try {
+      final e = await widget.services.medicalExtraction
+          .explainLabItem(widget.itemKey, group: widget.group);
+      final t = DateTime.now();
+      await LabExplain.saveGenerated(
+          widget.services.settings,
+          widget.itemKey,
+          e,
+          '${t.year}-${t.month.toString().padLeft(2, '0')}-'
+          '${t.day.toString().padLeft(2, '0')}');
+      if (e == null) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('模型认为这一项不需要额外说明')));
+      }
+      await _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('没有生成：$e')));
+    } finally {
+      if (mounted) setState(() => _explaining = false);
+    }
+  }
+
+  /// "这一项是什么"：内置说明优先，其次模型生成的；目录外、没生成过的
+  /// 给一个生成按钮；常识项目和过敏原什么都不显示。
+  Widget _explanation(BuildContext context) {
+    final builtIn = LabExplain.builtIn(widget.itemKey);
+    final generated = builtIn == null ? _generated : null;
+    final e = builtIn ?? generated?.explanation;
+    if (e == null) {
+      if (generated != null ||
+          !LabExplain.canGenerate(widget.itemKey, group: widget.group)) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: OutlinedButton.icon(
+          icon: _explaining
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2))
+              : const Icon(Icons.help_outline),
+          label: Text(_explaining ? '生成中…' : '这一项是什么？用模型生成说明'),
+          onPressed: _explaining ? null : _explain,
+        ),
+      );
+    }
+    final theme = Theme.of(context);
+    final muted = TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant);
+    Widget row(String label, String text) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text.rich(TextSpan(children: [
+            TextSpan(
+                text: '$label　',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            TextSpan(text: text),
+          ])),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          shape: const Border(),
+          title: const Text('这一项是什么'),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(e.meaning),
+            if (e.high != null) row(e.highLabel, e.high!),
+            if (e.low != null) row('偏低', e.low!),
+            if (e.related != null) row('一起看', e.related!),
+            const SizedBox(height: 8),
+            Text(
+              generated == null
+                  ? '通用说明，不针对你的结果；以医生的判断为准。'
+                  : '由模型生成（${generated.date}），仅供参考；以医生的判断为准。',
+              style: muted,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// 改写这一项相关结果的标准名（D-49），写成记录新版本；完成后回列表页。
@@ -361,6 +485,7 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
                 style: TextStyle(color: Colors.grey),
               ),
             ),
+          _explanation(context),
           const Divider(),
           for (final r in _history.reversed)
             ListTile(

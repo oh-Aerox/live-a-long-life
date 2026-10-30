@@ -14,6 +14,7 @@
 | 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
 | 医疗文件文字整理 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 当前版本已提取的文字内容（栏目 + 内容，来自脱敏后的文本）。**不发图片、行号和原始识别文本** | 医疗文件详情"用模型整理"（文字内容两段以上，确认后发送） |
 | 整理检验项目名称 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 目录认不出的检验项目名、报告上的写法、所在分组、单位，以及趋势里已有的项目名。**不发数值、日期、图片** | 指标趋势"整理项目名称"→"用模型整理现有项目名称"（确认后发送） |
+| 生成指标说明 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 一个目录外检验项目的名称、报告上的写法、分组和单位。**不发数值、日期、图片** | 指标趋势详情"用模型生成说明"（目录外的项目，确认后发送） |
 | 医疗文件补检查大项 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 已提取的检验项目名称与已有大项（按报告顺序）。**不发数值、图片** | 医疗文件详情"用模型补大项"（有检验项目没有大项时出现） |
 | 主动咨询 | `userConsult` | `app/lib/services/consult_service.dart`、`consult_tools.dart` | 用户问题 + 今天日期 + 基本资料摘要 + 已核对状况档案 + 本会话历史；"允许模型查阅我的记录"打开时（默认开）模型可多轮调用只读工具按需查记录、健康数据、检验和报告结论（D-43），每轮一条调用记录。**发送范围记入调用记录 sent_summary，发送正文记入 request_text** | 主页"咨询"入口，用户手动提问 |
 | 测试连接 | 不记录 | `app/lib/services/model_client.dart` | 固定示例文本 + 内置探测小图。**无任何用户数据** | 模型配置页"测试连接" |
@@ -399,6 +400,36 @@ data 字段（只填有依据的，缺的字段不要编造）：
 
 指标目录（分组：标准名（别名、缩写））：
 （LabCatalog 全部条目）
+```
+
+## 3f. 生成指标说明（D-50）
+
+- **系统提示词：** `labExplainSystemPrompt`（medical_extraction_service.dart）
+- **用户侧输入：** JSON `{"item", "names", "group", "units"}`：一个项目的键、报告上的写法最多 4 种、所在分组、出现过的单位。**不发数值、日期、参考范围、图片**
+- **触发：** 指标趋势详情里，内置指标目录外、不是过敏原、本机还没生成过的项目，点"用模型生成说明"，确认后发送
+- **超时：** 180 秒（同提取）
+- **应用侧防线：** 没有 meaning 的视为失败，不保存；`qualitative` 为真时标题用"阳性"、丢掉 low；`skip` 记为"不需要说明"。结果存本机设置 `lab_explain_generated`，界面标"由模型生成"和日期
+
+```
+你在为一个健康记录应用写检验或体检指标的科普说明，帮助普通人看懂这一项是什么。
+输入是 JSON：
+{"item": "项目名", "names": ["报告上的写法"], "group": "所在分组", "units": ["单位"]}
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"meaning": "这一项测的是什么、反映什么", "high": "偏高可能意味着什么" 或 null,
+ "low": "偏低可能意味着什么" 或 null, "related": "常和哪些指标一起看、为什么" 或 null,
+ "qualitative": true/false}
+不需要说明的输出 {"skip": true}。
+
+规则：
+- 是通用的科普说明，不针对任何人的结果，不做诊断，不给治疗或用药建议；
+  用"可能见于""常见于""提示"这类说法；
+- 每一栏一到两句，用通俗的中文，专业名词第一次出现时加简短解释；
+- 定性项目（结果是阴性/阳性）把 qualitative 设为 true，high 写阳性意味着什么，
+  low 写 null；
+- 只写医学上公认的内容；没什么可说的栏目给 null；对这个项目拿不准是什么的，
+  输出 {"skip": true}，不要猜；
+- 普通人都懂的项目（身高、体重、腰围、视力等）和单项过敏原输出 {"skip": true}。
 ```
 
 ## 4. 主动咨询

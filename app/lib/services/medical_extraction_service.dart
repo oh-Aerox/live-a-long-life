@@ -6,6 +6,7 @@ import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
 import '../data/lab_catalog.dart';
+import '../data/lab_explain.dart';
 import '../data/lab_names.dart';
 import '../data/ocr_fixes.dart';
 import '../data/repositories/attachment_repository.dart';
@@ -217,6 +218,31 @@ String labNameTidySystemPrompt() => '''
 
 指标目录（分组：标准名（别名、缩写））：
 ${LabCatalog.promptText()}
+''';
+
+/// 检验指标说明提示词（D-50）：内置目录外的项目，用户在指标趋势详情里
+/// 点"用模型生成说明"时用。只发项目名、报告上的写法、分组和单位，不发
+/// 数值和日期。改动时同步更新 docs/prompts.md。
+const labExplainSystemPrompt = '''
+你在为一个健康记录应用写检验或体检指标的科普说明，帮助普通人看懂这一项是什么。
+输入是 JSON：
+{"item": "项目名", "names": ["报告上的写法"], "group": "所在分组", "units": ["单位"]}
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"meaning": "这一项测的是什么、反映什么", "high": "偏高可能意味着什么" 或 null,
+ "low": "偏低可能意味着什么" 或 null, "related": "常和哪些指标一起看、为什么" 或 null,
+ "qualitative": true/false}
+不需要说明的输出 {"skip": true}。
+
+规则：
+- 是通用的科普说明，不针对任何人的结果，不做诊断，不给治疗或用药建议；
+  用"可能见于""常见于""提示"这类说法；
+- 每一栏一到两句，用通俗的中文，专业名词第一次出现时加简短解释；
+- 定性项目（结果是阴性/阳性）把 qualitative 设为 true，high 写阳性意味着什么，
+  low 写 null；
+- 只写医学上公认的内容；没什么可说的栏目给 null；对这个项目拿不准是什么的，
+  输出 {"skip": true}，不要猜；
+- 普通人都懂的项目（身高、体重、腰围、视力等）和单项过敏原输出 {"skip": true}。
 ''';
 
 /// 文字内容整理提示词（D-35）：提取按栏目分条，超声等报告常把同一部位的
@@ -1016,6 +1042,39 @@ class MedicalExtractionService {
         if (!LabCatalog.byName.containsKey(r.itemKey)) r.itemKey
     ];
     return names.isEmpty ? '' : '\n\n已有项目名：${names.join('、')}';
+  }
+
+  /// 用模型生成一项检验指标的说明（D-50）：只发项目名、报告上的写法、分组
+  /// 和单位，不发数值和日期。模型认为不需要说明的返回 null。调用方存进
+  /// 本机设置（[LabExplain.saveGenerated]）。
+  Future<LabExplanation?> explainLabItem(String itemKey,
+      {required String group}) async {
+    final names = (await _records.labItemNames())[itemKey] ?? const {};
+    final units = (await _records.labUnitsByKey())[itemKey] ?? const {};
+    final payload = jsonEncode({
+      'item': itemKey,
+      'names': {for (final n in names) SameItem.itemName(n)}.take(4).toList(),
+      'group': group,
+      'units': [for (final u in units) if (u.isNotEmpty) u],
+    });
+    final (response, _) = await _callAndRecord(
+      system: labExplainSystemPrompt,
+      payload: payload,
+      summary: '检验项目"$itemKey"的名称、分组和单位（生成指标说明，不含数值）',
+    );
+    final parsed = _parse(response.text);
+    if (parsed == null) {
+      AppLog.I.w('extract', '指标说明解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析');
+    }
+    if (parsed['skip'] == true) return null;
+    final e = LabExplanation.fromJson({
+      ...parsed,
+      'high_label': parsed['qualitative'] == true ? '阳性' : '偏高',
+      if (parsed['qualitative'] == true) 'low': null,
+    });
+    if (e == null) throw StateError('模型没有给出说明');
+    return e;
   }
 
   /// 整理现有检验项目名称（D-49）：规则和目录都没认出的项目（没有用户定
