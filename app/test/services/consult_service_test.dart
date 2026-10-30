@@ -38,6 +38,7 @@ class FakeToolModel {
     required List<ToolSpec> tools,
     required bool allowTools,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) async {
     calls.add((messages: List.of(messages), allowTools: allowTools));
     if (_script.isEmpty) {
@@ -45,7 +46,10 @@ class FakeToolModel {
     }
     final next = _script.removeAt(0);
     if (next is Exception) throw next;
-    return next as ToolChatResponse;
+    final turn = next as ToolChatResponse;
+    // 模拟流式：最终回答按字逐个回调。
+    if (turn.toolCalls.isEmpty) turn.text.split('').forEach(onText ?? (_) {});
+    return turn;
   }
 }
 
@@ -256,6 +260,23 @@ void main() {
     // 第一轮的返回内容记的是模型要调的工具。
     final first = calls.firstWhere((c) => c.id != toolRound.id);
     expect(first.responseText, contains('get_records'));
+  });
+
+  test('流式进度：先回调一次空进度，查完数据清空草稿并列出查了什么，回答逐字到达',
+      () async {
+    await addConfig();
+    toolModel.reply(toolTurn('list_lab_items', {}));
+    toolModel.reply(textTurn('指标正常'));
+    final progress = <ConsultProgress>[];
+    await consult.ask('s1', '我的指标怎么样',
+        allowLookup: true, onProgress: progress.add);
+    expect(progress.first.draft, isEmpty);
+    expect(progress.first.lookups, isEmpty);
+    expect(progress[1].draft, isEmpty);
+    expect(progress[1].lookups, hasLength(1));
+    expect(progress.skip(2).map((p) => p.draft),
+        ['指', '指标', '指标正', '指标正常']);
+    expect(progress.last.lookups, hasLength(1));
   });
 
   test('允许查阅：到轮数上限时禁止再调工具，逼模型作答', () async {

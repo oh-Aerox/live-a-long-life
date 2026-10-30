@@ -15,7 +15,6 @@ import 'key_store.dart';
 import 'model_client.dart';
 import 'consult_suggestions.dart';
 import 'consult_tools.dart';
-import 'organize_service.dart' show OrganizeModelCall;
 import 'tool_chat.dart';
 
 /// 主动咨询提示词（D-26：不诊断不开药，需要就医时明确说）。
@@ -52,6 +51,16 @@ const consultLookupPrompt = """
 - 回答里用到具体数据时注明日期，让用户知道依据是什么。
 """;
 
+/// 一问一答的模型调用，测试时替换为假实现。[onText] 收流式文字增量。
+typedef ConsultTextCall = Future<ModelResponse> Function({
+  required ModelConfig config,
+  required String apiKey,
+  String? system,
+  required String userText,
+  required int maxTokens,
+  void Function(String delta)? onText,
+});
+
 /// 带工具的模型调用，测试时替换为假实现。
 typedef ToolChatCall = Future<ToolChatResponse> Function({
   required ModelConfig config,
@@ -61,7 +70,18 @@ typedef ToolChatCall = Future<ToolChatResponse> Function({
   required List<ToolSpec> tools,
   required bool allowTools,
   required int maxTokens,
+  void Function(String delta)? onText,
 });
+
+/// 回答生成中的进度：[draft] 是本轮已收到的回答文字（流式），
+/// [lookups] 是到目前为止查了什么。模型决定查数据时本轮文字作废，
+/// [draft] 回到空。
+class ConsultProgress {
+  const ConsultProgress({this.draft = '', this.lookups = const []});
+
+  final String draft;
+  final List<String> lookups;
+}
 
 /// 主动咨询（D-26）：问题 + 最小上下文发默认模型；咨询是问答
 /// 不是录入——不进消息流、不参与整理、不生成记录；历史本地保存可回看。
@@ -78,7 +98,7 @@ class ConsultService {
     required ModelConfigRepository modelConfigs,
     required KeyStore keyStore,
     required ConsultTools tools,
-    OrganizeModelCall? modelCall,
+    ConsultTextCall? modelCall,
     ToolChatCall? toolCall,
     this.ids = const IdGenerator(),
   })  : _db = db,
@@ -98,7 +118,7 @@ class ConsultService {
   final ModelConfigRepository _modelConfigs;
   final KeyStore _keyStore;
   final ConsultTools _tools;
-  final OrganizeModelCall _modelCall;
+  final ConsultTextCall _modelCall;
   final ToolChatCall _toolCall;
   final IdGenerator ids;
 
@@ -108,19 +128,24 @@ class ConsultService {
   /// "允许模型查阅我的记录"开关的设置键，默认开（D-43）。
   static const allowLookupKey = 'consult_allow_lookup';
 
+  /// 流式请求的空闲超时：思考型模型可能很久才出第一个字。
+  static const _idleTimeout = Duration(seconds: 180);
+
   static Future<ModelResponse> _defaultCall({
     required ModelConfig config,
     required String apiKey,
     String? system,
     required String userText,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) =>
-      ModelClient().complete(
+      ModelClient(timeout: _idleTimeout).complete(
           config: config,
           apiKey: apiKey,
           system: system,
           userText: userText,
-          maxTokens: maxTokens);
+          maxTokens: maxTokens,
+          onText: onText);
 
   static Future<ToolChatResponse> _defaultToolCall({
     required ModelConfig config,
@@ -130,15 +155,17 @@ class ConsultService {
     required List<ToolSpec> tools,
     required bool allowTools,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) =>
-      ModelClient().chatWithTools(
+      ModelClient(timeout: _idleTimeout).chatWithTools(
           config: config,
           apiKey: apiKey,
           system: system,
           messages: messages,
           tools: tools,
           allowTools: allowTools,
-          maxTokens: maxTokens);
+          maxTokens: maxTokens,
+          onText: onText);
 
   /// 输入框下的示例问题，按本机已有的数据生成（D-45）。
   Future<List<SuggestionGroup>> suggestions() => buildConsultSuggestions(
@@ -166,11 +193,13 @@ class ConsultService {
 
   /// 提问。把问题存入会话、组上下文调模型、存回答；返回回答消息。
   /// [allowLookup] 为真时模型可按需调用只读工具查数据（D-43）；为假时
-  /// 只发最小上下文（D-26）。
+  /// 只发最小上下文（D-26）。[onProgress] 在问题存好后先回调一次，之后
+  /// 随回答文字流式到达、每查完一轮数据各回调一次。
   Future<ConsultMessage> ask(
     String sessionId,
     String question, {
     bool allowLookup = false,
+    void Function(ConsultProgress progress)? onProgress,
   }) async {
     final config = await _modelConfigs.defaultConfig();
     if (config == null) {
@@ -230,6 +259,7 @@ class ConsultService {
 
     final asked = await _insert(sessionId, 'user', question,
         contextNote: contextNote);
+    onProgress?.call(const ConsultProgress());
 
     final apiKey = config.keychainRef.isEmpty
         ? ''
@@ -248,11 +278,24 @@ class ConsultService {
 
     (String, String) answer;
     var note = contextNote;
+    final lookups = <String>[];
+    final draft = StringBuffer();
+    void report() => onProgress?.call(
+        ConsultProgress(draft: '$draft', lookups: List.unmodifiable(lookups)));
+    void onText(String delta) {
+      draft.write(delta);
+      report();
+    }
+
+    void restart() {
+      draft.clear();
+      report();
+    }
+
     if (allowLookup) {
-      final lookups = <String>[];
       try {
         answer = await _askWithTools(
-            config, apiKey, userText, contextNote, lookups);
+            config, apiKey, userText, contextNote, lookups, onText, restart);
       } on ModelClientException catch (e) {
         // 第一轮就被拒（400/422）多半是模型或服务不支持工具：按原方式答。
         if (lookups.isNotEmpty || !(e.statusCode == 400 || e.statusCode == 422)) {
@@ -260,13 +303,14 @@ class ConsultService {
         }
         AppLog.I.w('consult', '带工具的请求被拒，按不查阅的方式回答：${e.message}');
         note = '$contextNote（模型不支持查阅，按原方式回答）';
-        answer = await _askOnce(config, apiKey, userText, note);
+        restart();
+        answer = await _askOnce(config, apiKey, userText, note, onText);
       } finally {
         if (lookups.isNotEmpty) note = '$contextNote + 查阅：${lookups.join('、')}';
         if (note != contextNote) await _updateNote(asked.id, note);
       }
     } else {
-      answer = await _askOnce(config, apiKey, userText, contextNote);
+      answer = await _askOnce(config, apiKey, userText, contextNote, onText);
     }
     final (reply, callId) = answer;
 
@@ -279,7 +323,8 @@ class ConsultService {
 
   /// 一问一答（不查阅）。返回回答和调用记录 ID。
   Future<(String, String)> _askOnce(ModelConfig config, String apiKey,
-      String userText, String contextNote) async {
+      String userText, String contextNote,
+      void Function(String delta) onText) async {
     final requestAt = ids.nowMs();
     ModelResponse response;
     try {
@@ -289,6 +334,7 @@ class ConsultService {
         system: consultSystemPrompt,
         userText: userText,
         maxTokens: 4096,
+        onText: onText,
       );
     } catch (e) {
       await _logCall(config, requestAt, contextNote, userText, null);
@@ -302,8 +348,16 @@ class ConsultService {
   /// agent 循环（D-43）：模型要查就执行工具、把结果发回，直到给出回答。
   /// 每轮一条调用记录，request_text 是这一轮新发出的内容（首轮是上下文，
   /// 之后是工具结果）。[lookups] 收集给用户看的"查了什么"。
-  Future<(String, String)> _askWithTools(ModelConfig config, String apiKey,
-      String userText, String contextNote, List<String> lookups) async {
+  /// 模型要查数据的那一轮，已流出的文字（"我先查一下"之类）作废，
+  /// 查完调 [restart] 让界面清空草稿、显示查了什么。
+  Future<(String, String)> _askWithTools(
+      ModelConfig config,
+      String apiKey,
+      String userText,
+      String contextNote,
+      List<String> lookups,
+      void Function(String delta) onText,
+      void Function() restart) async {
     final messages = <ToolChatMessage>[UserText(userText)];
     final tools = await _tools.availableSpecs();
     var sent = userText;
@@ -320,6 +374,7 @@ class ConsultService {
           tools: tools,
           allowTools: round < maxLookupRounds,
           maxTokens: 4096,
+          onText: onText,
         );
       } catch (e) {
         await _logCall(config, requestAt, summary, sent, null);
@@ -358,6 +413,7 @@ class ConsultService {
         notes.add(outcome.note);
       }
       lookups.addAll(notes);
+      restart();
       messages
         ..add(response.assistant)
         ..add(ToolResults(results));

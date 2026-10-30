@@ -451,4 +451,260 @@ void main() {
       expect(bodies.last['tool_choice'], {'type': 'none'});
     });
   });
+
+  group('ModelClient · 流式返回', () {
+    late HttpServer server;
+    late List<Map<String, Object?>> bodies;
+    // 字符串按 SSE 原样写出，其他按 JSON 写出。
+    late Object Function() respond;
+
+    setUp(() async {
+      bodies = [];
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((req) async {
+        bodies.add((jsonDecode(await utf8.decoder.bind(req).join()) as Map)
+            .cast<String, Object?>());
+        final r = respond();
+        if (r is String) {
+          req.response.headers.contentType =
+              ContentType('text', 'event-stream', charset: 'utf-8');
+          req.response.write(r);
+        } else {
+          req.response.write(jsonEncode(r));
+        }
+        await req.response.close();
+      });
+    });
+
+    tearDown(() => server.close(force: true));
+
+    String sse(List<Object> events) => [
+          for (final e in events) 'data: ${e is String ? e : jsonEncode(e)}\n\n',
+        ].join();
+
+    const tool = ToolSpec(
+      name: 'get_records',
+      description: '查记录',
+      parameters: {'type': 'object', 'properties': {}},
+    );
+
+    test('openai_compatible：文字增量逐段回调，工具调用分片拼回，带回思考内容与用量',
+        () async {
+      Map<String, Object?> delta(Map<String, Object?> d) => {
+            'choices': [
+              {'index': 0, 'delta': d},
+            ],
+          };
+      respond = () => sse([
+            delta({'role': 'assistant', 'reasoning_content': '先'}),
+            delta({'reasoning_content': '查一下'}),
+            delta({'content': '我查'}),
+            delta({'content': '一下。'}),
+            delta({
+              'tool_calls': [
+                {
+                  'index': 0,
+                  'id': 'call_1',
+                  'type': 'function',
+                  'function': {'name': 'get_records', 'arguments': '{"start'},
+                },
+              ],
+            }),
+            delta({
+              'tool_calls': [
+                {
+                  'index': 0,
+                  'function': {'arguments': '_date":"2026-10-20"}'},
+                },
+              ],
+            }),
+            {
+              'choices': [],
+              'usage': {'prompt_tokens': 50, 'completion_tokens': 9},
+            },
+            '[DONE]',
+          ]);
+      final got = <String>[];
+      final r = await ModelClient().chatWithTools(
+        config: _config(
+            protocol: ModelProtocol.openaiCompatible,
+            baseUrl: 'http://127.0.0.1:${server.port}/v1'),
+        apiKey: 'k',
+        messages: const [UserText('问题')],
+        tools: const [tool],
+        onText: got.add,
+      );
+      expect(got, ['我查', '一下。']);
+      expect(r.text, '我查一下。');
+      expect(r.toolCalls.single.id, 'call_1');
+      expect(r.toolCalls.single.arguments, {'start_date': '2026-10-20'});
+      expect(r.tokensIn, 50);
+      expect(r.tokensOut, 9);
+      expect((r.assistant.raw as Map)['reasoning_content'], '先查一下');
+      expect(bodies.single['stream'], isTrue);
+      expect(bodies.single['stream_options'], {'include_usage': true});
+    });
+
+    test('anthropic：思考、文字、工具参数按块拼回，用量取开头与结尾两处', () async {
+      respond = () => sse([
+            {
+              'type': 'message_start',
+              'message': {
+                'usage': {'input_tokens': 30, 'output_tokens': 1},
+              },
+            },
+            {
+              'type': 'content_block_start',
+              'index': 0,
+              'content_block': {
+                'type': 'thinking',
+                'thinking': '',
+                'signature': '',
+              },
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 0,
+              'delta': {'type': 'thinking_delta', 'thinking': '想想'},
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 0,
+              'delta': {'type': 'signature_delta', 'signature': 'sig'},
+            },
+            {'type': 'content_block_stop', 'index': 0},
+            {
+              'type': 'content_block_start',
+              'index': 1,
+              'content_block': {'type': 'text', 'text': ''},
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 1,
+              'delta': {'type': 'text_delta', 'text': '我查'},
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 1,
+              'delta': {'type': 'text_delta', 'text': '一下。'},
+            },
+            {
+              'type': 'content_block_start',
+              'index': 2,
+              'content_block': {
+                'type': 'tool_use',
+                'id': 'toolu_1',
+                'name': 'get_records',
+                'input': {},
+              },
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 2,
+              'delta': {'type': 'input_json_delta', 'partial_json': '{"start_'},
+            },
+            {
+              'type': 'content_block_delta',
+              'index': 2,
+              'delta': {
+                'type': 'input_json_delta',
+                'partial_json': 'date":"2026-10-20"}',
+              },
+            },
+            {
+              'type': 'message_delta',
+              'usage': {'output_tokens': 8},
+            },
+            {'type': 'message_stop'},
+          ]);
+      final got = <String>[];
+      final r = await ModelClient().chatWithTools(
+        config: _config(
+            protocol: ModelProtocol.anthropic,
+            baseUrl: 'http://127.0.0.1:${server.port}'),
+        apiKey: 'k',
+        messages: const [UserText('问题')],
+        tools: const [tool],
+        onText: got.add,
+      );
+      expect(got, ['我查', '一下。']);
+      expect(r.text, '我查一下。');
+      expect(r.toolCalls.single.arguments, {'start_date': '2026-10-20'});
+      expect(r.tokensIn, 30);
+      expect(r.tokensOut, 8);
+      // 内容块（含思考与签名）拼回原样，下一轮原样回传。
+      expect(r.assistant.raw, [
+        {'type': 'thinking', 'thinking': '想想', 'signature': 'sig'},
+        {'type': 'text', 'text': '我查一下。'},
+        {
+          'type': 'tool_use',
+          'id': 'toolu_1',
+          'name': 'get_records',
+          'input': {'start_date': '2026-10-20'},
+        },
+      ]);
+      expect(bodies.single['stream'], isTrue);
+    });
+
+    test('服务不支持流式、直接回整段 JSON：照常解析', () async {
+      respond = () => {
+            'choices': [
+              {'message': {'role': 'assistant', 'content': '整段回答'}},
+            ],
+          };
+      final r = await ModelClient().complete(
+        config: _config(
+            protocol: ModelProtocol.openaiCompatible,
+            baseUrl: 'http://127.0.0.1:${server.port}/v1'),
+        apiKey: 'k',
+        userText: 'hi',
+        onText: (_) {},
+      );
+      expect(r.text, '整段回答');
+    });
+
+    test('流中途出错（过载）：可重试的异常，带服务方信息', () async {
+      respond = () => sse([
+            {
+              'type': 'message_start',
+              'message': {
+                'usage': {'input_tokens': 3},
+              },
+            },
+            {
+              'type': 'error',
+              'error': {'type': 'overloaded_error', 'message': 'Overloaded'},
+            },
+          ]);
+      await expectLater(
+        ModelClient().complete(
+          config: _config(
+              protocol: ModelProtocol.anthropic,
+              baseUrl: 'http://127.0.0.1:${server.port}'),
+          apiKey: 'k',
+          userText: 'hi',
+          onText: (_) {},
+        ),
+        throwsA(isA<ModelClientException>()
+            .having((e) => e.retriable, 'retriable', isTrue)
+            .having((e) => e.message, 'message', contains('Overloaded'))),
+      );
+    });
+
+    test('不给 onText 时不请求流式', () async {
+      respond = () => {
+            'choices': [
+              {'message': {'role': 'assistant', 'content': 'OK'}},
+            ],
+          };
+      await ModelClient().complete(
+        config: _config(
+            protocol: ModelProtocol.openaiCompatible,
+            baseUrl: 'http://127.0.0.1:${server.port}/v1'),
+        apiKey: 'k',
+        userText: 'hi',
+      );
+      expect(bodies.single.containsKey('stream'), isFalse);
+    });
+  });
 }

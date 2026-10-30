@@ -31,6 +31,7 @@ class FakeModel {
     String? system,
     required String userText,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) async {
     calls.add(userText);
     if (_script.isEmpty) {

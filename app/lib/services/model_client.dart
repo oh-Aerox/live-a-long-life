@@ -63,6 +63,8 @@ class ModelClient {
   /// 发送一轮对话，返回模型回复。整理管线在此之上组装。
   /// [imagePngBase64] 只由医疗文件"用模型识图"显式传入（D-24：图片永不
   /// 隐式发给模型）；其余调用都是纯文字。
+  /// 给了 [onText] 就按流式请求，文字边到边回调增量；超时按两段数据之间
+  /// 的空闲时间算，回答再长也不会整段超时。
   Future<ModelResponse> complete({
     required ModelConfig config,
     required String apiKey,
@@ -70,6 +72,7 @@ class ModelClient {
     required String userText,
     int maxTokens = 1024,
     String? imagePngBase64,
+    void Function(String delta)? onText,
   }) {
     switch (config.protocol) {
       case ModelProtocol.openaiCompatible:
@@ -77,19 +80,21 @@ class ModelClient {
             system: system,
             userText: userText,
             maxTokens: maxTokens,
-            imagePngBase64: imagePngBase64);
+            imagePngBase64: imagePngBase64,
+            onText: onText);
       case ModelProtocol.anthropic:
         return _anthropicMessage(config, apiKey,
             system: system,
             userText: userText,
             maxTokens: maxTokens,
-            imagePngBase64: imagePngBase64);
+            imagePngBase64: imagePngBase64,
+            onText: onText);
     }
   }
 
   /// 带工具的一轮对话（D-43 咨询 agent）。[messages] 是到目前为止的全部
   /// 往来；[allowTools] 为假时仍带上工具定义（历史里有工具调用时部分服务
-  /// 要求），但禁止再调用，逼模型给出最终回答。
+  /// 要求），但禁止再调用，逼模型给出最终回答。[onText] 同 [complete]。
   Future<ToolChatResponse> chatWithTools({
     required ModelConfig config,
     required String apiKey,
@@ -98,6 +103,7 @@ class ModelClient {
     required List<ToolSpec> tools,
     bool allowTools = true,
     int maxTokens = 4096,
+    void Function(String delta)? onText,
   }) {
     switch (config.protocol) {
       case ModelProtocol.openaiCompatible:
@@ -106,14 +112,16 @@ class ModelClient {
             messages: messages,
             tools: tools,
             allowTools: allowTools,
-            maxTokens: maxTokens);
+            maxTokens: maxTokens,
+            onText: onText);
       case ModelProtocol.anthropic:
         return _anthropicToolChat(config, apiKey,
             system: system,
             messages: messages,
             tools: tools,
             allowTools: allowTools,
-            maxTokens: maxTokens);
+            maxTokens: maxTokens,
+            onText: onText);
     }
   }
 
@@ -125,6 +133,7 @@ class ModelClient {
     required List<ToolSpec> tools,
     required bool allowTools,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) async {
     final body = {
       ..._extraBody(config),
@@ -161,6 +170,7 @@ class ModelClient {
       _join(config.baseUrl, '/chat/completions'),
       headers: {'Authorization': 'Bearer $apiKey'},
       body: body,
+      stream: onText == null ? null : _OpenaiStream(onText),
     );
     final choices = json['choices'] as List?;
     final message = choices == null || choices.isEmpty
@@ -224,6 +234,7 @@ class ModelClient {
     required List<ToolSpec> tools,
     required bool allowTools,
     required int maxTokens,
+    void Function(String delta)? onText,
   }) async {
     final body = {
       'model': config.model,
@@ -264,6 +275,7 @@ class ModelClient {
         'anthropic-version': anthropicVersion,
       },
       body: body,
+      stream: onText == null ? null : _AnthropicStream(onText),
     );
     final content = (json['content'] as List?)?.cast<Map>() ?? const [];
     final text = content
@@ -402,6 +414,7 @@ class ModelClient {
     required String userText,
     required int maxTokens,
     String? imagePngBase64,
+    void Function(String delta)? onText,
   }) async {
     final body = {
       ..._extraBody(config),
@@ -427,6 +440,7 @@ class ModelClient {
       _join(config.baseUrl, '/chat/completions'),
       headers: {'Authorization': 'Bearer $apiKey'},
       body: body,
+      stream: onText == null ? null : _OpenaiStream(onText),
     );
     final choices = json['choices'] as List?;
     final content = choices == null || choices.isEmpty
@@ -450,6 +464,7 @@ class ModelClient {
     required String userText,
     required int maxTokens,
     String? imagePngBase64,
+    void Function(String delta)? onText,
   }) async {
     final body = {
       'model': config.model,
@@ -481,6 +496,7 @@ class ModelClient {
         'anthropic-version': anthropicVersion,
       },
       body: body,
+      stream: onText == null ? null : _AnthropicStream(onText),
     );
     final content = json['content'] as List?;
     final text = content
@@ -499,22 +515,32 @@ class ModelClient {
     );
   }
 
+  /// 发请求并返回响应 JSON。给了 [stream] 就按流式请求，把 SSE 增量拼回
+  /// 与非流式相同结构的 JSON，调用方的解析不用区分；服务不支持流式、
+  /// 直接回整段 JSON 时照常解析。
   Future<Map<String, Object?>> _post(
     Uri uri, {
     required Map<String, String> headers,
     required Map<String, Object?> body,
+    _SseStream? stream,
   }) async {
     final client = _newHttpClient();
     // 只记地址与请求的模型，绝不记 key / Authorization（脱敏）。
-    AppLog.I.d('model', 'POST $uri model=${body['model']}');
+    AppLog.I.d('model',
+        'POST $uri model=${body['model']}${stream == null ? '' : ' 流式'}');
     try {
       final request = await client.postUrl(uri).timeout(timeout);
       request.headers.contentType = ContentType.json;
       headers.forEach(request.headers.set);
-      request.write(jsonEncode(body));
+      request.write(jsonEncode({...body, ...?stream?.requestFields}));
       final response = await request.close().timeout(timeout);
-      final text = await response.transform(utf8.decoder).join();
+      // 流式时 timeout 是两行数据之间的空闲上限，不限总时长。
+      final lines = response
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .timeout(timeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        final text = (await lines.toList()).join('\n');
         AppLog.I.w('model',
             'HTTP ${response.statusCode} ${uri.path} 返回 ${_snippet(text)}');
         throw ModelClientException(
@@ -523,12 +549,44 @@ class ModelClient {
           retriable: response.statusCode >= 500 || response.statusCode == 429,
         );
       }
+      final plain = <String>[];
+      final data = <String>[];
+      bool? sse;
+      await for (final line in lines) {
+        if (stream == null || sse == false) {
+          plain.add(line);
+          continue;
+        }
+        if (sse == null) {
+          if (line.trim().isEmpty) continue;
+          // 首个非空行决定是不是 SSE：不是就当整段 JSON 读完。
+          sse = line.startsWith('data:') ||
+              line.startsWith('event:') ||
+              line.startsWith(':');
+          if (!sse) {
+            plain.add(line);
+            continue;
+          }
+        }
+        if (line.isEmpty) {
+          if (data.isNotEmpty) stream.add(data.join('\n'));
+          data.clear();
+        } else if (line.startsWith('data:')) {
+          data.add(line.substring(5).trimLeft());
+        }
+      }
+      if (sse == true) {
+        if (data.isNotEmpty) stream!.add(data.join('\n'));
+        AppLog.I.d('model', 'HTTP 200 ${uri.path} 流式完成');
+        return stream!.result();
+      }
+      final text = plain.join('\n');
       try {
         final json = (jsonDecode(text) as Map).cast<String, Object?>();
         AppLog.I.d('model', 'HTTP 200 ${uri.path} ${text.length} 字节');
         return json;
       } on FormatException {
-        // HTTP 2xx 但返回的不是 JSON（中转站网关页、SSE 流、包装层等）：
+        // HTTP 2xx 但返回的不是 JSON（中转站网关页、包装层等）：
         // 带上响应片段和实际请求地址，方便定位。
         AppLog.I.w('model',
             'HTTP 200 ${uri.path} 非 JSON 返回：${_snippet(text)}');
@@ -569,6 +627,200 @@ class ModelClient {
     final oneLine = text.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (oneLine.isEmpty) return '(空响应)';
     return oneLine.length > 300 ? '${oneLine.substring(0, 300)}…' : oneLine;
+  }
+}
+
+/// 流式响应的拼装器：逐个吃 SSE 事件的 data，文字增量回调出去，
+/// 结束时拼成与非流式响应相同结构的 JSON。
+abstract class _SseStream {
+  _SseStream(this.onText);
+
+  final void Function(String delta) onText;
+
+  /// 流式请求在请求体上追加的字段。
+  Map<String, Object?> get requestFields;
+
+  void add(String data) {
+    if (data == '[DONE]') return;
+    final Object? json;
+    try {
+      json = jsonDecode(data);
+    } on FormatException {
+      throw ModelClientException('流式返回无法解析：${ModelClient._snippet(data)}');
+    }
+    if (json is! Map) return;
+    // 流中途出错（过载等）：两家都是 {error:{message}}。
+    final error = json['error'];
+    if (error != null) {
+      throw ModelClientException(
+          '${error is Map ? error['message'] ?? error : error}',
+          retriable: true);
+    }
+    onEvent(json);
+  }
+
+  void onEvent(Map json);
+
+  Map<String, Object?> result();
+}
+
+/// OpenAI 兼容：choices[0].delta 里的 content / reasoning_content /
+/// tool_calls（按 index 分片，arguments 是逐段拼接的字符串）。
+class _OpenaiStream extends _SseStream {
+  _OpenaiStream(super.onText);
+
+  final _content = StringBuffer();
+  final _reasoning = StringBuffer();
+  var _hasReasoning = false;
+  final _calls = <int, ({String? id, StringBuffer name, StringBuffer args})>{};
+  Object? _usage;
+
+  @override
+  Map<String, Object?> get requestFields => const {
+        'stream': true,
+        // 不加这个流式响应里没有 token 用量。
+        'stream_options': {'include_usage': true},
+      };
+
+  @override
+  void onEvent(Map json) {
+    _usage = json['usage'] ?? _usage;
+    final choices = json['choices'] as List?;
+    if (choices == null || choices.isEmpty) return;
+    final delta = (choices.first as Map)['delta'] as Map?;
+    if (delta == null) return;
+    final text = delta['content'];
+    if (text is String && text.isNotEmpty) {
+      _content.write(text);
+      onText(text);
+    }
+    final reasoning = delta['reasoning_content'];
+    if (reasoning is String) {
+      _reasoning.write(reasoning);
+      _hasReasoning = true;
+    }
+    for (final c in (delta['tool_calls'] as List?) ?? const []) {
+      c as Map;
+      // 个别服务不给 index：带 id 的是新调用，否则续上一个。
+      final index = c['index'] as int? ??
+          (c['id'] != null || _calls.isEmpty
+              ? _calls.length
+              : _calls.keys.last);
+      final call = _calls.putIfAbsent(
+          index,
+          () => (
+                id: c['id'] as String?,
+                name: StringBuffer(),
+                args: StringBuffer(),
+              ));
+      final fn = c['function'] as Map? ?? const {};
+      if (fn['name'] is String) call.name.write(fn['name']);
+      if (fn['arguments'] is String) call.args.write(fn['arguments']);
+    }
+  }
+
+  @override
+  Map<String, Object?> result() {
+    final indexes = _calls.keys.toList()..sort();
+    return {
+      'choices': [
+        {
+          'message': {
+            'role': 'assistant',
+            'content':
+                _content.isEmpty && _calls.isNotEmpty ? null : '$_content',
+            if (_calls.isNotEmpty)
+              'tool_calls': [
+                for (final i in indexes)
+                  {
+                    'id': _calls[i]!.id ?? 'call_$i',
+                    'type': 'function',
+                    'function': {
+                      'name': '${_calls[i]!.name}',
+                      'arguments': '${_calls[i]!.args}',
+                    },
+                  },
+              ],
+            if (_hasReasoning) 'reasoning_content': '$_reasoning',
+          },
+        },
+      ],
+      'usage': _usage,
+    };
+  }
+}
+
+/// Anthropic：content_block_start 开块，content_block_delta 按块追加
+/// （文字、思考、工具参数 JSON 片段、签名），用量分在 message_start 与
+/// message_delta 两处。
+class _AnthropicStream extends _SseStream {
+  _AnthropicStream(super.onText);
+
+  final _blocks = <int, Map<String, Object?>>{};
+  final _buffers = <int, StringBuffer>{};
+  final _usage = <String, Object?>{};
+
+  @override
+  Map<String, Object?> get requestFields => const {'stream': true};
+
+  @override
+  void onEvent(Map json) {
+    switch (json['type']) {
+      case 'message_start':
+        final usage = (json['message'] as Map?)?['usage'] as Map?;
+        if (usage != null) _usage.addAll(usage.cast());
+      case 'message_delta':
+        final usage = json['usage'] as Map?;
+        if (usage != null) _usage.addAll(usage.cast());
+      case 'content_block_start':
+        _blocks[json['index'] as int] =
+            Map.of((json['content_block'] as Map).cast<String, Object?>());
+      case 'content_block_delta':
+        final index = json['index'] as int;
+        final block = _blocks[index];
+        final delta = json['delta'] as Map;
+        if (block == null) return;
+        final buffer = _buffers.putIfAbsent(index, StringBuffer.new);
+        switch (delta['type']) {
+          case 'text_delta':
+            final text = delta['text'] as String;
+            buffer.write(text);
+            onText(text);
+          case 'thinking_delta':
+            buffer.write(delta['thinking']);
+          case 'input_json_delta':
+            buffer.write(delta['partial_json']);
+          case 'signature_delta':
+            block['signature'] = delta['signature'];
+        }
+    }
+  }
+
+  @override
+  Map<String, Object?> result() {
+    final indexes = _blocks.keys.toList()..sort();
+    final content = <Map<String, Object?>>[];
+    for (final i in indexes) {
+      final block = _blocks[i]!;
+      final buffered = '${_buffers[i] ?? ''}';
+      switch (block['type']) {
+        case 'text':
+          block['text'] = '${block['text'] ?? ''}$buffered';
+        case 'thinking':
+          block['thinking'] = '${block['thinking'] ?? ''}$buffered';
+        case 'tool_use':
+          if (buffered.trim().isNotEmpty) {
+            try {
+              block['input'] = jsonDecode(buffered);
+            } on FormatException {
+              throw ModelClientException(
+                  '工具参数不完整：${ModelClient._snippet(buffered)}');
+            }
+          }
+      }
+      content.add(block);
+    }
+    return {'content': content, 'usage': _usage};
   }
 }
 
