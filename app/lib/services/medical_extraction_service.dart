@@ -1746,6 +1746,8 @@ class MedicalExtractionService {
   /// 这次又没提取出来的状况标记删除，旧识别认错或写偏的不再留在档案和人体
   /// 图上；用户确认或改过的是事实，保留（同 [deleteDocument]）。识图常只发
   /// 一页的局部，不清。
+  ///
+  /// 用户在档案里删掉的（`removed_by_user`）同样算这份报告已有的，不再建议回来。
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
     required Map<String, (DraftPage, OcrLine)> lineIndex,
@@ -1778,6 +1780,15 @@ class MedicalExtractionService {
           (examDate != null && rec.localDate == examDate);
       if (!sameReport) continue;
       if (name is String) existingNames.add(name);
+    }
+    for (final rec in await _records.deletedByType(RecordType.condition)) {
+      final data = jsonDecode((await _records.currentRevisionOf(rec.id)).data)
+          as Map;
+      if (data['removed_by_user'] != true || data['name'] is! String) continue;
+      if (data['medical_document_id'] == documentId ||
+          (examDate != null && rec.localDate == examDate)) {
+        existingNames.add(data['name'] as String);
+      }
     }
     if (raw.isEmpty) return const [];
 

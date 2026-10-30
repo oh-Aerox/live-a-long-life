@@ -589,6 +589,13 @@ class RecordRepository {
         ..orderBy([(t) => OrderingTerm.desc(t.localDate)]))
       .get();
 
+  /// 已删除的某类记录（重新提取时查用户删过的状况，不再建议回来）。
+  Future<List<RecordRow>> deletedByType(RecordType type) =>
+      (_db.select(_db.records)
+            ..where((t) =>
+                t.recordType.equalsValue(type) & t.deletedAt.isNotNull()))
+          .get();
+
   /// 某天的全部记录（按日视图）。不含已删除。
   Future<List<RecordRow>> byDate(String localDate) => (_db.select(_db.records)
         ..where((t) => t.localDate.equals(localDate) & t.deletedAt.isNull())

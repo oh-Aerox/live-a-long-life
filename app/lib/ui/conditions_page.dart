@@ -9,6 +9,7 @@ import '../data/field_meta.dart';
 import '../data/same_item.dart';
 import '../data/time_value.dart';
 import '../services/condition_category.dart';
+import 'adaptive.dart';
 import 'source_viewer_page.dart';
 
 /// 长期状况档案（D-25，R-36）：长期状况全部列出，临时疾病单独一节。
@@ -265,6 +266,47 @@ class _ConditionsPageState extends State<ConditionsPage> {
             reviewStatus: ReviewStatus.edited));
   }
 
+  /// 删除整行（不是疾病、提取错了的，比如"乙肝表面抗体阳性"）：组里每
+  /// 条先记 `removed_by_user`，重新提取这份报告时不再建议回来，再标记删除，
+  /// 走变更日志同步到 Mac。原件和检验数据不动。和"已痊愈"不同，删掉的不
+  /// 进既往病史。
+  Future<void> _delete(List<ConditionEntry> group) async {
+    final e = group.first;
+    final ok = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: Text('删除「${e.name}」？'),
+        content: Text([
+          '用于提取错了、本来就不是疾病或状况的条目。删除后不出现在档案、人体图、'
+              '周报和咨询里，重新提取报告也不会再建议它；同步后 Mac 上也会移除。',
+          if (group.length > 1) '这一行合并了 ${group.length} 份报告里的记录，会一起删除。',
+          '原件和检验数据不受影响。曾经有过、现在好了的，请用"标记已痊愈/解除"。',
+        ].join('\n\n')),
+        actions: [
+          DialogAction(
+              onPressed: () => Navigator.pop(context, true),
+              isDestructiveAction: true,
+              child: const Text('删除')),
+          DialogAction(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final s = widget.services;
+    await s.db.transaction(() async {
+      for (final c in group) {
+        await _writeRevision(
+            c, Map<String, Object?>.from(c.data)..['removed_by_user'] = true,
+            reload: false);
+        await s.records.markDeleted(c.record.id);
+        await s.suggestionService.obsoletePendingFor(c.record.id);
+      }
+    });
+    await _load();
+  }
+
   Future<void> _viewSource(ConditionEntry e) async {
     final locator = e.data['locator'];
     if (locator is! Map) {
@@ -335,6 +377,11 @@ class _ConditionsPageState extends State<ConditionsPage> {
                   title: const Text('取消合并'),
                   onTap: () => Navigator.pop(context, 'unmerge'),
                 ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('删除（提取错了、不是疾病）'),
+                onTap: () => Navigator.pop(context, 'delete'),
+              ),
             ],
             if (e.data['locator'] != null)
               ListTile(
@@ -366,6 +413,8 @@ class _ConditionsPageState extends State<ConditionsPage> {
         await _pickMergeTarget(group);
       case 'unmerge':
         await _unmerge(group);
+      case 'delete':
+        await _delete(group);
       case 'source':
         await _viewSource(e);
       case final String a when a.startsWith('earlier:'):

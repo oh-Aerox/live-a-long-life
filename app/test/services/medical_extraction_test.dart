@@ -377,6 +377,27 @@ void main() {
     ]..sort();
     // 胆囊结石沿用旧的那条（同一问题不重复建），已确认的肝囊肿保留。
     expect(names, ['肝囊肿', '胆囊结石', '脂肪肝']..sort());
+
+    // 用户在档案里删掉了确认过的"肝囊肿"（提取错了）：再提取不建议回来。
+    final cyst = (await records.byType(RecordType.condition)).firstWhere((r) =>
+        r.id == confirmed.id);
+    final cystRev = await records.currentRevisionOf(cyst.id);
+    await records.addRevision(
+      recordId: cyst.id,
+      baseVersion: cyst.version,
+      occurred: TimeValue.decode(cystRev.occurred),
+      dataJson: jsonEncode({
+        ...(jsonDecode(cystRev.data) as Map),
+        'removed_by_user': true,
+      }),
+      fieldMeta: FieldMetaMap.decode(cystRev.fieldMeta),
+      producedBy: ProducedBy.userEdit(),
+    );
+    await records.markDeleted(cyst.id);
+    model.reply(reply(['胆囊结石', '肝囊肿', '脂肪肝']));
+    final third = await service.extractDocument(doc.id);
+    expect(third.conditionRecords, isEmpty);
+    expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
   test('体检报告汇总与明细重复（D-32）：同一份文件里同一问题、同项目同数值只留一条',
