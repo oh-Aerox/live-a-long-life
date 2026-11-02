@@ -37,6 +37,15 @@ class FakeFolder extends LocalFolderIO implements CloudFolderAccess {
   Future<void> close(String path) async {}
 
   @override
+  Future<List<String>> notUploaded(List<String> paths) async => [
+    for (final path in paths)
+      if (pending.contains(path)) path,
+  ];
+
+  /// 模拟还没上传完的文件。
+  final pending = <String>{};
+
+  @override
   Future<void> beginBackground() async {}
 
   @override
@@ -355,6 +364,19 @@ void main() {
       ).delete(recursive: true);
       await vault().create(vaultId: 'other', nowMs: 1);
       await expectLater(service.backupNow(), throwsStateError);
+    });
+
+    test('医疗文件空间用：列出已上传到 iCloud 的附件，没传完的不算', () async {
+      expect(await service.uploadedShas(), isNull); // 没开启
+      await enable();
+      final a = await addPhoto(3);
+      final b = await addPhoto(5);
+      await service.backupNow();
+      final folder = service.folder as FakeFolder;
+      folder.pending.add(
+        p.join(cloudRoot.path, CloudVault.dirName, 'objects', b),
+      );
+      expect(await service.uploadedShas(), {a});
     });
 
     test('备份设置属于这台手机，不随导出走', () async {

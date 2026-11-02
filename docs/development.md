@@ -113,7 +113,7 @@
 | `life.long/bonjour` | 电脑广播同步服务、手机按设备 ID 找回地址 | iOS / macOS `BonjourChannel`（NetService）；安卓 `BonjourChannel.kt`；Windows `bonjour_channel.cpp`（只广播） |
 | `life.long/menu_bar` | Mac 菜单栏 / Windows 托盘的同步状态 | `MainFlutterWindow.swift`；`windows/runner/tray_channel.cpp` |
 | `life.long/android_settings` | 安卓后台与提醒设置入口 | `AndroidSettingsChannel.kt` |
-| `life.long/cloud_folder` | iCloud 备份：选文件夹并保存书签、凭书签访问、经 NSFileCoordinator 下载 / 写入 / 改名 / 删除、切后台时申请后台时间（D-51） | iOS `AppDelegate.swift` 的 CloudFolderChannel |
+| `life.long/cloud_folder` | iCloud 备份：选文件夹并保存书签、凭书签访问、经 NSFileCoordinator 下载 / 写入 / 改名 / 删除、查询是否已上传、切后台时申请后台时间（D-51） | iOS `AppDelegate.swift` 的 CloudFolderChannel |
 
 Dart 侧调用原生 channel 时，要处理 `MissingPluginException`（测试环境和不支持的平台没有原生侧）。
 

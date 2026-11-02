@@ -283,13 +283,14 @@ class BonjourChannel: NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
 /// - pick：选文件夹，返回书签（之后凭书签访问，不用再选）；
 /// - open / close：解析书签并开始 / 结束安全访问，期间 Dart 可以直接列目录、读文件；
 /// - download / put / move / delete：经 NSFileCoordinator 读写，未下载的文件
-///   先下载，写入的文件交给 iCloud 上传；
+///   先下载，写入的文件交给 iCloud 上传；notUploaded：哪些还没传到 iCloud；
 /// - beginBackground / endBackground：切到后台时多要一点时间写完备份。
 class CloudFolderChannel: NSObject, UIDocumentPickerDelegate {
   static let shared = CloudFolderChannel()
 
   private var pending: FlutterResult?
-  private var opened: [String: URL] = [:]
+  // 同一路径可能同时被打开多次（备份进行中又打开了医疗文件空间），按次配对释放。
+  private var opened: [String: [URL]] = [:]
   private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
   private let queue = DispatchQueue(label: "cloud-folder", qos: .utility)
 
@@ -316,7 +317,7 @@ class CloudFolderChannel: NSObject, UIDocumentPickerDelegate {
           result(FlutterError(code: "denied", message: "没有访问权限", details: nil))
           return
         }
-        opened[url.path] = url
+        opened[url.path, default: []].append(url)
         var reply: [String: Any] = ["path": url.path]
         if stale, let d = try? url.bookmarkData() { reply["bookmark"] = d.base64EncodedString() }
         result(reply)
@@ -324,10 +325,21 @@ class CloudFolderChannel: NSObject, UIDocumentPickerDelegate {
         result(FlutterError(code: "resolve_failed", message: "\(error.localizedDescription)", details: nil))
       }
     case "close":
-      if let path = args["path"] as? String, let url = opened.removeValue(forKey: path) {
+      if let path = args["path"] as? String, let url = opened[path]?.popLast() {
         url.stopAccessingSecurityScopedResource()
+        if opened[path]?.isEmpty == true { opened.removeValue(forKey: path) }
       }
       result(nil)
+    case "notUploaded":
+      let paths = args["paths"] as? [String] ?? []
+      queue.async {
+        let pending = paths.filter { path in
+          let values = try? URL(fileURLWithPath: path).resourceValues(
+            forKeys: [.ubiquitousItemIsUploadedKey])
+          return values?.ubiquitousItemIsUploaded != true
+        }
+        DispatchQueue.main.async { result(pending) }
+      }
     case "download":
       let paths = args["paths"] as? [String] ?? []
       queue.async {

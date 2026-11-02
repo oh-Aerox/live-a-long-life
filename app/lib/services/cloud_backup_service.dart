@@ -168,6 +168,31 @@ class CloudBackupService {
     );
   }
 
+  /// 已经上传到 iCloud 的附件（sha256），医疗文件空间据此标"iCloud 已备份"。
+  /// 没开启、文件夹不在 iCloud 云盘里、或读不到备份文件夹时返回 null（不知道）。
+  Future<Set<String>?> uploadedShas() async {
+    final bookmark = await this.bookmark();
+    final vaultId = await _settings.get(kVaultId) as String?;
+    final inICloud = await _settings.get(kInICloud) as bool? ?? false;
+    if (bookmark == null || vaultId == null || !inICloud) return null;
+    try {
+      return await withVault(bookmark, (vault) async {
+        if ((await vault.readMeta())?.vaultId != vaultId) return null;
+        final files = await vault.objectFiles();
+        final pending = (await folder.notUploaded(
+          files.values.toList(),
+        )).toSet();
+        return {
+          for (final e in files.entries)
+            if (!pending.contains(e.value)) e.key,
+        };
+      });
+    } catch (e, st) {
+      AppLog.I.e('cloud', '读取 iCloud 备份里的附件失败', e, st);
+      return null;
+    }
+  }
+
   /// 本机钥匙串里这个备份库的密钥，没有或对不上返回 null。
   Future<List<int>?> savedKey(VaultMeta meta) async {
     final raw = await _keyStore.read(_keyRef(meta.vaultId));

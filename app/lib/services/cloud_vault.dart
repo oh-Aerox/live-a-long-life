@@ -309,6 +309,16 @@ class CloudVault {
         n.endsWith('.enc') ? n.substring(0, n.length - 4) : n,
   };
 
+  /// 云端已有的附件：sha256 → 文件路径（按正式文件名，未下载的也一样）。
+  Future<Map<String, String>> objectFiles() async => {
+    for (final n in await _names(_objects))
+      if (!n.endsWith('.part'))
+        (n.endsWith('.enc') ? n.substring(0, n.length - 4) : n): p.join(
+          _objects,
+          n,
+        ),
+  };
+
   String _objectPath(String sha, bool encrypted) =>
       p.join(_objects, encrypted ? '$sha.enc' : sha);
 

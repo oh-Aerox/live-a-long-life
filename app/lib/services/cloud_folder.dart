@@ -34,6 +34,9 @@ abstract class CloudFolderAccess implements FolderIO {
   Future<OpenedFolder> open(String bookmark);
   Future<void> close(String path);
 
+  /// 这些文件里还没上传到 iCloud 的。
+  Future<List<String>> notUploaded(List<String> paths);
+
   /// 切到后台时向系统多要一点时间把备份写完。
   Future<void> beginBackground();
   Future<void> endBackground();
@@ -94,6 +97,10 @@ class ChannelCloudFolder implements CloudFolderAccess {
   @override
   Future<void> delete(String path) =>
       _channel.invokeMethod('delete', {'path': path});
+
+  @override
+  Future<List<String>> notUploaded(List<String> paths) async => (await _channel
+      .invokeListMethod<String>('notUploaded', {'paths': paths}))!;
 
   @override
   Future<void> beginBackground() => _channel.invokeMethod('beginBackground');

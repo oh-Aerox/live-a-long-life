@@ -43,6 +43,9 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   late final PeerRepository _peerRepo = PeerRepository(widget.services.db);
   List<Peer> _peers = [];
   SyncState? _pull;
+
+  /// 各手机的接收进度（按设备 ID），列表里显示最近同步时间，区分同名手机。
+  Map<String, SyncState> _pulls = {};
   PairingInfo? _pairing;
   String _version = '';
   Directory? _backupDir;
@@ -65,24 +68,32 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   void _onPaired() {
     if (!mounted) return;
     setState(() => _pairing = null);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('配对成功')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('配对成功')));
     _load();
   }
 
   Future<void> _load() async {
     final db = widget.services.db;
     final peers = await _peerRepo.all();
-    final pull = await (db.select(db.syncStates)
-          ..where((t) => t.direction.equalsValue(SyncDirection.pull))
-          ..limit(1))
-        .getSingleOrNull();
+    // 配对过多台手机时取最近收到同步的那台（同 Mac 首页）。
+    final pulls = await (db.select(
+      db.syncStates,
+    )..where((t) => t.direction.equalsValue(SyncDirection.pull))).get();
+    pulls.sort(
+      (a, b) => (b.lastSuccessAt ?? 0).compareTo(a.lastSuccessAt ?? 0),
+    );
+    final pull = pulls
+        .where((s) => peers.any((p) => p.peerDeviceId == s.peerDeviceId))
+        .firstOrNull;
     final info = await PackageInfo.fromPlatform();
     final backupDir = await BackupService.backupRoot();
     if (mounted) {
       setState(() {
         _peers = peers;
         _pull = pull;
+        _pulls = {for (final s in pulls) s.peerDeviceId: s};
         _version = '${info.version} (${info.buildNumber})';
         _backupDir = backupDir;
       });
@@ -99,6 +110,38 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   void _cancelPairing() {
     widget.server?.cancelPairing();
     setState(() => _pairing = null);
+  }
+
+  /// 移除一台手机（D-13）：解除配对、删掉同步密钥，它再连上来会被拒绝。
+  /// 已收到的数据、原件都留在电脑上；要恢复同步就重新配对。
+  Future<void> _removePeer(Peer peer) async {
+    final last = _pulls[peer.peerDeviceId]?.lastSuccessAt;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('移除「${peer.displayName}」'),
+        content: Text(
+          '移除后这台手机不能再同步到这台电脑'
+          '（最近同步：${_time(last)}）。已经收到的数据和原件都保留在电脑上；'
+          '以后要同步，重新配对即可。\n\n'
+          '手机卸载重装或换了手机后，电脑上会留下一条旧的配对，可以移除它。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('移除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _peerRepo.revoke(peer.peerDeviceId);
+    await widget.services.keyStore.delete('sync_peer_${peer.peerDeviceId}');
+    await _load();
   }
 
   String _time(int? ms) {
@@ -118,26 +161,32 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('新密码只用于之后的备份；已有的备份仍要用当时的密码解开。',
-                style: TextStyle(fontSize: 12)),
+            const Text(
+              '新密码只用于之后的备份；已有的备份仍要用当时的密码解开。',
+              style: TextStyle(fontSize: 12),
+            ),
             TextField(
-                controller: a,
-                obscureText: true,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: '新密码')),
+              controller: a,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: '新密码'),
+            ),
             TextField(
-                controller: b,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '再输一次')),
+              controller: b,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: '再输一次'),
+            ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('保存')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('保存'),
+          ),
         ],
       ),
     );
@@ -153,13 +202,16 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
   }
 
   Widget _section(String title) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-        child: Text(title,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary)),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+    child: Text(
+      title,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    ),
+  );
 
   void _push(Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => page));
@@ -192,20 +244,30 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
             ListTile(
               leading: const Icon(Icons.phone_iphone),
               title: Text(peer.displayName),
-              subtitle: Text('指纹 ${peer.certFingerprint.substring(0, 16)}… · '
-                  '最近地址 ${peer.lastSeenAddr ?? "—"}'),
+              subtitle: Text(
+                '配对于 ${_time(peer.pairedAt)} · '
+                '最近同步 ${_time(_pulls[peer.peerDeviceId]?.lastSuccessAt)}\n'
+                '指纹 ${peer.certFingerprint.substring(0, 16)}… · '
+                '最近地址 ${peer.lastSeenAddr ?? "—"}',
+              ),
+              trailing: TextButton(
+                onPressed: () => _removePeer(peer),
+                child: const Text('移除'),
+              ),
             ),
           ListTile(
             leading: const Icon(Icons.sync),
             title: const Text('同步接收'),
-            subtitle: Text([
-              (server?.running ?? false)
-                  ? '服务运行中，端口 ${server!.port}'
-                  : '服务未运行',
-              _pull == null
-                  ? '还没有收到过同步'
-                  : '已确认到第 ${_pull!.ackedContiguousSeq} 条 · 最近 ${_time(_pull!.lastSuccessAt)}',
-            ].join('\n')),
+            subtitle: Text(
+              [
+                (server?.running ?? false)
+                    ? '服务运行中，端口 ${server!.port}'
+                    : '服务未运行',
+                _pull == null
+                    ? '还没有收到过同步'
+                    : '已确认到第 ${_pull!.ackedContiguousSeq} 条 · 最近 ${_time(_pull!.lastSuccessAt)}',
+              ].join('\n'),
+            ),
           ),
           if (_pairing != null)
             Padding(
@@ -224,10 +286,13 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                      '地址 ${_pairing!.hosts.join(" / ")} 端口 ${_pairing!.port}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    '地址 ${_pairing!.hosts.join(" / ")} 端口 ${_pairing!.port}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   TextButton(
-                      onPressed: _cancelPairing, child: const Text('取消配对')),
+                    onPressed: _cancelPairing,
+                    child: const Text('取消配对'),
+                  ),
                 ],
               ),
             )
@@ -252,7 +317,9 @@ class _MacSettingsPageState extends State<MacSettingsPage> {
                     await dir.create(recursive: true);
                     // Windows 用资源管理器打开，Mac 用访达。
                     await Process.run(
-                        Platform.isWindows ? 'explorer' : 'open', [dir.path]);
+                      Platform.isWindows ? 'explorer' : 'open',
+                      [dir.path],
+                    );
                   },
           ),
           ListTile(
