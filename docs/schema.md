@@ -421,6 +421,12 @@
 | `idle_preorganize_sec` | `180` | 无输入多少秒后在后台预整理。只触发预整理，不代表结束或确认（R-08） |
 | `healthkit_enabled_types` | `["sleep","steps","workout","active_energy"]` | 读取哪些健康数据（R-17） |
 | `consult_allow_lookup` | `true` | 咨询时是否允许模型用只读工具查阅记录（D-43） |
+| `cloud_backup_bookmark` / `cloud_backup_folder_name` / `cloud_backup_in_icloud` | 无 | iCloud 备份文件夹的系统书签、显示名、是否在 iCloud 云盘里（D-51） |
+| `cloud_backup_vault_id` / `cloud_backup_encrypted` | 无 | 备份文件夹的 ID 与是否加密；密钥存钥匙串 `cloud_backup_key_<ID>` |
+| `cloud_backup_auto` | `false` | 是否自动备份，开启 iCloud 备份时设为 `true` |
+| `cloud_backup_last` / `cloud_backup_error` | 无 | 上次成功（时间、备份名、内容指纹、消息数、文件数、缺件数）与上次失败（时间、原因） |
+
+`device_id`、`data_generation`、`change_log_backfilled` 和 `cloud_backup_` 开头的键属于这台设备，不随导出、不进 iCloud 备份。
 
 ### 4.3 `model_configs` 模型配置
 

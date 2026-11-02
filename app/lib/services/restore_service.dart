@@ -119,11 +119,14 @@ class RestoreService {
       };
 
   /// `hasExistingData`：当前资料库是否已有内容；有则必须 `replaceExisting`。
+  /// [deviceSettings]：写进新资料库的本机设置（导出不带的那些，比如从
+  /// iCloud 恢复后接着备份到同一个文件夹，D-51），值按设置表的 JSON 存。
   Future<RestoreResult> restore(
     Directory source, {
     required bool hasExistingData,
     bool replaceExisting = false,
     String? newDeviceId,
+    Map<String, Object?> deviceSettings = const {},
   }) async {
     if (hasExistingData && !replaceExisting) {
       throw NeedsReplaceConfirmation();
@@ -316,6 +319,14 @@ class RestoreService {
             await db.into(db.settings).insert(SettingsCompanion.insert(
                   key: 'device_id',
                   value: jsonEncode(newDeviceId),
+                  updatedAt: ids.nowMs(),
+                ));
+          }
+          for (final e in deviceSettings.entries) {
+            await db.into(db.settings).insertOnConflictUpdate(
+                SettingsCompanion.insert(
+                  key: e.key,
+                  value: jsonEncode(e.value),
                   updatedAt: ids.nowMs(),
                 ));
           }

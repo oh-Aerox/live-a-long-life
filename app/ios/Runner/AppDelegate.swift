@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import PDFKit
+import UniformTypeIdentifiers
 import Vision
 
 // UIScene 生命周期（iOS 27 上不采用会在正常启动时被系统终止）。
@@ -15,6 +16,9 @@ import Vision
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BonjourChannel") {
       BonjourChannel.register(with: registrar.messenger())
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CloudFolderChannel") {
+      CloudFolderChannel.register(with: registrar.messenger())
     }
   }
 }
@@ -271,5 +275,213 @@ class BonjourChannel: NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
       pending = nil
       p(result)
     }
+  }
+}
+
+/// iCloud 备份文件夹（D-51）。免费签名没有 iCloud 能力，用不了 iCloud 容器，
+/// 只能让用户在系统文件选择器里选一个 iCloud 云盘里的文件夹：
+/// - pick：选文件夹，返回书签（之后凭书签访问，不用再选）；
+/// - open / close：解析书签并开始 / 结束安全访问，期间 Dart 可以直接列目录、读文件；
+/// - download / put / move / delete：经 NSFileCoordinator 读写，未下载的文件
+///   先下载，写入的文件交给 iCloud 上传；
+/// - beginBackground / endBackground：切到后台时多要一点时间写完备份。
+class CloudFolderChannel: NSObject, UIDocumentPickerDelegate {
+  static let shared = CloudFolderChannel()
+
+  private var pending: FlutterResult?
+  private var opened: [String: URL] = [:]
+  private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+  private let queue = DispatchQueue(label: "cloud-folder", qos: .utility)
+
+  static func register(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "life.long/cloud_folder", binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in shared.handle(call, result) }
+  }
+
+  private func handle(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    switch call.method {
+    case "pick":
+      pick(result)
+    case "open":
+      guard let b64 = args["bookmark"] as? String, let data = Data(base64Encoded: b64) else {
+        result(FlutterError(code: "bad_args", message: "需要 bookmark", details: nil))
+        return
+      }
+      var stale = false
+      do {
+        let url = try URL(resolvingBookmarkData: data, bookmarkDataIsStale: &stale)
+        guard url.startAccessingSecurityScopedResource() else {
+          result(FlutterError(code: "denied", message: "没有访问权限", details: nil))
+          return
+        }
+        opened[url.path] = url
+        var reply: [String: Any] = ["path": url.path]
+        if stale, let d = try? url.bookmarkData() { reply["bookmark"] = d.base64EncodedString() }
+        result(reply)
+      } catch {
+        result(FlutterError(code: "resolve_failed", message: "\(error.localizedDescription)", details: nil))
+      }
+    case "close":
+      if let path = args["path"] as? String, let url = opened.removeValue(forKey: path) {
+        url.stopAccessingSecurityScopedResource()
+      }
+      result(nil)
+    case "download":
+      let paths = args["paths"] as? [String] ?? []
+      queue.async {
+        var failed: [String] = []
+        for path in paths {
+          var err: NSError?
+          var ok = false
+          // 协调读取会等系统把未下载的文件下载下来。
+          NSFileCoordinator().coordinate(
+            readingItemAt: URL(fileURLWithPath: path), options: [], error: &err
+          ) { url in ok = FileManager.default.fileExists(atPath: url.path) }
+          if err != nil || !ok { failed.append(path) }
+        }
+        DispatchQueue.main.async { result(failed) }
+      }
+    case "put":
+      guard let from = args["from"] as? String, let to = args["to"] as? String else {
+        result(FlutterError(code: "bad_args", message: "需要 from 和 to", details: nil))
+        return
+      }
+      coordinatedWrite(to, options: .forReplacing, result) { url in
+        let fm = FileManager.default
+        try fm.createDirectory(
+          at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: url.path) { try fm.removeItem(at: url) }
+        try fm.copyItem(at: URL(fileURLWithPath: from), to: url)
+      }
+    case "move":
+      guard let from = args["from"] as? String, let to = args["to"] as? String else {
+        result(FlutterError(code: "bad_args", message: "需要 from 和 to", details: nil))
+        return
+      }
+      queue.async {
+        var err: NSError?
+        var failure: Error?
+        NSFileCoordinator().coordinate(
+          writingItemAt: URL(fileURLWithPath: from), options: .forMoving,
+          writingItemAt: URL(fileURLWithPath: to), options: .forReplacing, error: &err
+        ) { src, dst in
+          do {
+            let fm = FileManager.default
+            if fm.fileExists(atPath: dst.path) { try fm.removeItem(at: dst) }
+            try fm.moveItem(at: src, to: dst)
+          } catch { failure = error }
+        }
+        DispatchQueue.main.async {
+          if let e = failure ?? err {
+            result(FlutterError(code: "io_failed", message: e.localizedDescription, details: nil))
+          } else {
+            result(nil)
+          }
+        }
+      }
+    case "delete":
+      guard let path = args["path"] as? String else {
+        result(FlutterError(code: "bad_args", message: "需要 path", details: nil))
+        return
+      }
+      coordinatedWrite(path, options: .forDeleting, result) { url in
+        if FileManager.default.fileExists(atPath: url.path) {
+          try FileManager.default.removeItem(at: url)
+        }
+      }
+    case "beginBackground":
+      if backgroundTask == .invalid {
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "cloud-backup") {
+          [weak self] in self?.endBackground()
+        }
+      }
+      result(nil)
+    case "endBackground":
+      endBackground()
+      result(nil)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func endBackground() {
+    guard backgroundTask != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(backgroundTask)
+    backgroundTask = .invalid
+  }
+
+  private func coordinatedWrite(
+    _ path: String, options: NSFileCoordinator.WritingOptions,
+    _ result: @escaping FlutterResult, _ body: @escaping (URL) throws -> Void
+  ) {
+    queue.async {
+      var err: NSError?
+      var failure: Error?
+      NSFileCoordinator().coordinate(
+        writingItemAt: URL(fileURLWithPath: path), options: options, error: &err
+      ) { url in
+        do { try body(url) } catch { failure = error }
+      }
+      DispatchQueue.main.async {
+        if let e = failure ?? err {
+          result(FlutterError(code: "io_failed", message: e.localizedDescription, details: nil))
+        } else {
+          result(nil)
+        }
+      }
+    }
+  }
+
+  private func pick(_ result: @escaping FlutterResult) {
+    guard pending == nil else {
+      result(FlutterError(code: "busy", message: "已经在选择文件夹", details: nil))
+      return
+    }
+    let scene = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .first { $0.activationState == .foregroundActive }
+    var top = scene?.windows.first { $0.isKeyWindow }?.rootViewController
+    while let presented = top?.presentedViewController { top = presented }
+    guard let host = top else {
+      result(FlutterError(code: "no_window", message: "找不到窗口", details: nil))
+      return
+    }
+    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+    picker.delegate = self
+    picker.allowsMultipleSelection = false
+    pending = result
+    host.present(picker, animated: true)
+  }
+
+  func documentPicker(
+    _ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]
+  ) {
+    guard let result = pending else { return }
+    pending = nil
+    guard let url = urls.first else {
+      result(nil)
+      return
+    }
+    let started = url.startAccessingSecurityScopedResource()
+    defer { if started { url.stopAccessingSecurityScopedResource() } }
+    do {
+      let bookmark = try url.bookmarkData()
+      let icloud =
+        (try? url.resourceValues(forKeys: [.isUbiquitousItemKey]))?.isUbiquitousItem ?? false
+      result([
+        "bookmark": bookmark.base64EncodedString(),
+        "name": url.lastPathComponent,
+        "icloud": icloud,
+      ])
+    } catch {
+      result(FlutterError(code: "bookmark_failed", message: error.localizedDescription, details: nil))
+    }
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    pending?(nil)
+    pending = nil
   }
 }

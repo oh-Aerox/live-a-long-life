@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../data/data_profile.dart';
 import '../data/db/app_database.dart';
 import '../data/ids.dart';
+import 'backup_crypto.dart';
 
 /// 备份格式版本。
 const backupFormatVersion = 1;
@@ -61,9 +62,7 @@ class RestoreDrillResult {
 
 /// 加密备份与恢复演练（D-15、schema §7.5）。
 ///
-/// - 密钥由备份密码经 PBKDF2-HMAC-SHA256（20 万次迭代）派生；
-/// - 数据快照（全表 JSON）与每个附件文件分别 AES-256-GCM 加密，
-///   文件格式：nonce(12) | ciphertext | tag(16)；
+/// - 数据快照（全表 JSON）与每个附件文件分别加密（[BackupCrypto]）；
 /// - 生成用临时目录名，逐文件解密校验通过后才改正式名并登记 published；
 /// - Mac 缺失的原件列入清单 missing，不当作业务记录删除。
 class BackupService {
@@ -91,34 +90,6 @@ class BackupService {
   final AppDatabase _db;
   final Directory _filesDir;
   final IdGenerator ids;
-
-  static final _aes = AesGcm.with256bits();
-
-  static Future<List<int>> _deriveKey(String passphrase, List<int> salt) {
-    final pbkdf2 = Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: 200000,
-      bits: 256,
-    );
-    return pbkdf2
-        .deriveKey(secretKey: SecretKey(utf8.encode(passphrase)), nonce: salt)
-        .then((k) => k.extractBytes());
-  }
-
-  Future<List<int>> _encrypt(List<int> clear, List<int> key) async {
-    final box = await _aes.encrypt(clear, secretKey: SecretKey(key));
-    return [...box.nonce, ...box.cipherText, ...box.mac.bytes];
-  }
-
-  Future<List<int>> _decrypt(List<int> data, List<int> key) async {
-    if (data.length < 28) throw const FormatException('加密文件太短');
-    final box = SecretBox(
-      data.sublist(12, data.length - 16),
-      nonce: data.sublist(0, 12),
-      mac: Mac(data.sublist(data.length - 16)),
-    );
-    return _aes.decrypt(box, secretKey: SecretKey(key));
-  }
 
   /// 生成加密备份到 [targetRoot] 下。校验通过才改正式名并登记 published。
   Future<BackupRun> backup({
@@ -156,10 +127,8 @@ class BackupService {
         );
 
     try {
-      // 盐取密码学随机字节（借用一次随机密钥的前 16 字节）。
-      final actualSalt =
-          (await (await _aes.newSecretKey()).extractBytes()).sublist(0, 16);
-      final key = await _deriveKey(passphrase, actualSalt);
+      final actualSalt = BackupCrypto.randomBytes(16);
+      final key = await BackupCrypto.deriveKey(passphrase, actualSalt);
 
       // 1. 数据快照：全表 JSON。
       final data = <String, Object?>{
@@ -178,7 +147,7 @@ class BackupService {
       final dataJson = utf8.encode(jsonEncode(data));
       final dbSha = crypto.sha256.convert(dataJson).toString();
       await File(p.join(tmpDir.path, 'data.enc'))
-          .writeAsBytes(await _encrypt(dataJson, key));
+          .writeAsBytes(await BackupCrypto.encrypt(dataJson, key));
 
       // 2. 附件：逐个加密；缺失的列入清单（不当作删除）。
       final attachments = await _db.select(_db.attachments).get();
@@ -193,7 +162,7 @@ class BackupService {
         final bytes = await src.readAsBytes();
         fileEntries[a.sha256] = {'bytes': bytes.length};
         await File(p.join(tmpDir.path, 'files', '${a.sha256}.enc'))
-            .writeAsBytes(await _encrypt(bytes, key));
+            .writeAsBytes(await BackupCrypto.encrypt(bytes, key));
       }
 
       final manifest = {
@@ -212,13 +181,13 @@ class BackupService {
 
       // 3. 校验：解密回来逐项核对哈希。
       await _updateStatus(backupId, BackupStatus.verifying);
-      final decrypted = await _decrypt(
+      final decrypted = await BackupCrypto.decrypt(
           await File(p.join(tmpDir.path, 'data.enc')).readAsBytes(), key);
       if (crypto.sha256.convert(decrypted).toString() != dbSha) {
         throw StateError('数据快照校验失败');
       }
       for (final sha in fileEntries.keys) {
-        final clear = await _decrypt(
+        final clear = await BackupCrypto.decrypt(
             await File(p.join(tmpDir.path, 'files', '$sha.enc')).readAsBytes(),
             key);
         if (crypto.sha256.convert(clear).toString() != sha) {
@@ -264,9 +233,9 @@ class BackupService {
                   .readAsString()) as Map)
           .cast<String, Object?>();
       final salt = base64Decode(manifest['salt'] as String);
-      final key = await _deriveKey(passphrase, salt);
+      final key = await BackupCrypto.deriveKey(passphrase, salt);
 
-      final dataClear = await _decrypt(
+      final dataClear = await BackupCrypto.decrypt(
           await File(p.join(backupDir.path, 'data.enc')).readAsBytes(), key);
       if (crypto.sha256.convert(dataClear).toString() !=
           manifest['db_sha256']) {
@@ -285,7 +254,7 @@ class BackupService {
           .writeAsBytes(dataClear);
       var filesRestored = 0;
       for (final sha in (manifest['files'] as Map).keys) {
-        final clear = await _decrypt(
+        final clear = await BackupCrypto.decrypt(
             await File(p.join(backupDir.path, 'files', '$sha.enc'))
                 .readAsBytes(),
             key);

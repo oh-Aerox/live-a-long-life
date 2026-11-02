@@ -54,6 +54,28 @@ const exportExcludedTables = {
   'model_calls': '本机调试记录',
 };
 
+/// 导出快照里的一个附件。[local] 为 null 表示本机没有这个文件
+/// （清理过手机原件或未同步到这台设备）。
+class ExportFile {
+  ExportFile({required this.sha256, required this.ext, required this.local});
+
+  final String sha256;
+
+  /// 导出文件名的后缀（含点），可能为空。
+  final String ext;
+  final File? local;
+}
+
+class ExportSnapshot {
+  ExportSnapshot(
+      {required this.data, required this.messageCount, required this.files});
+
+  /// data.json 的内容。
+  final Map<String, Object?> data;
+  final int messageCount;
+  final List<ExportFile> files;
+}
+
 class ExportResult {
   ExportResult({
     required this.directory,
@@ -117,29 +139,24 @@ class ExportService {
     return found;
   }
 
-  Future<ExportResult> export(Directory target) async {
-    await target.create(recursive: true);
-    final filesOut = Directory(p.join(target.path, 'files'));
-    await filesOut.create(recursive: true);
+  /// 设备标识、数据代次与回填标记属于这台设备，不随内容导出：恢复后
+  /// 首次写入会生成全新代次（schema §7.2，同一份备份恢复两次得到两个
+  /// 代次），并在新代次里回填全部数据。`cloud_backup_` 开头的是这台手机的
+  /// iCloud 备份设置（文件夹授权只在本机有效，D-51）。
+  static bool isDeviceOnlySetting(String key) =>
+      const {'device_id', 'data_generation', 'change_log_backfilled'}
+          .contains(key) ||
+      key.startsWith('cloud_backup_');
 
+  /// 导出内容的快照：data.json 的内容和每个附件在本机的文件。
+  /// 导出文件夹和 iCloud 备份（D-51）都从这里取数。
+  Future<ExportSnapshot> snapshot() async {
     final messages = await _db.select(_db.messages).get();
     final revisions = await _db.select(_db.messageRevisions).get();
     final attachments = await _db.select(_db.attachments).get();
     final links = await _db.select(_db.messageAttachments).get();
     final profile = await _db.select(_db.profileFields).get();
     final settings = await _db.select(_db.settings).get();
-
-    // 设备标识、数据代次与回填标记属于这台设备，不随内容导出：恢复后
-    // 首次写入会生成全新代次（schema §7.2，同一份备份恢复两次得到两个
-    // 代次），并在新代次里回填全部数据。
-    const deviceOnlyKeys = {
-      'device_id',
-      'data_generation',
-      'change_log_backfilled',
-    };
-    final exportedSettings = settings
-        .where((s) => !deviceOnlyKeys.contains(s.key))
-        .toList();
 
     final data = {
       'format_version': exportFormatVersion,
@@ -150,8 +167,9 @@ class ExportService {
       'message_attachments': [for (final r in links) _linkJson(r)],
       'profile_fields': [for (final r in profile) _profileJson(r)],
       'settings': [
-        for (final r in exportedSettings)
-          {'key': r.key, 'value': r.value, 'updated_at': r.updatedAt},
+        for (final r in settings)
+          if (!isDeviceOnlySetting(r.key))
+            {'key': r.key, 'value': r.value, 'updated_at': r.updatedAt},
       ],
       // v0.2 新表按数据库原值整表转储（列名 = SQLite 列名）。
       'v2_tables': {
@@ -163,29 +181,47 @@ class ExportService {
           ],
       },
     };
-    final dataFile = File(p.join(target.path, 'data.json'));
-    await dataFile.writeAsString(jsonEncode(data));
 
     // 附件原件：只有本机 present 的副本能带出。
     final copies = await (_db.select(_db.attachmentCopies)
           ..where((t) => t.state.equals('present')))
         .get();
     final copyByAttachment = {for (final c in copies) c.attachmentId: c};
+    final files = <ExportFile>[];
+    for (final a in attachments) {
+      final stored = copyByAttachment[a.id]?.localPath;
+      final local =
+          stored == null ? null : File(p.join(filesDir.path, p.basename(stored)));
+      files.add(ExportFile(
+        sha256: a.sha256,
+        ext: _extOf(a),
+        local: local != null && await local.exists() ? local : null,
+      ));
+    }
+    return ExportSnapshot(
+        data: data, messageCount: messages.length, files: files);
+  }
+
+  Future<ExportResult> export(Directory target) async {
+    await target.create(recursive: true);
+    final filesOut = Directory(p.join(target.path, 'files'));
+    await filesOut.create(recursive: true);
+
+    final snap = await snapshot();
+    final data = snap.data;
+    final dataFile = File(p.join(target.path, 'data.json'));
+    await dataFile.writeAsString(jsonEncode(data));
+
     final missing = <String>[];
     var fileCount = 0;
-    for (final a in attachments) {
-      final copy = copyByAttachment[a.id];
-      final stored = copy?.localPath;
-      final path = stored == null
-          ? null
-          : p.join(filesDir.path, p.basename(stored));
-      if (path == null || !await File(path).exists()) {
-        missing.add(a.sha256);
+    for (final f in snap.files) {
+      final local = f.local;
+      if (local == null) {
+        missing.add(f.sha256);
         continue;
       }
       // 带后缀导出，"文件"应用里能直接打开；恢复时按去掉后缀的哈希匹配。
-      await File(path)
-          .copy(p.join(filesOut.path, '${a.sha256}${_extOf(a)}'));
+      await local.copy(p.join(filesOut.path, '${f.sha256}${f.ext}'));
       fileCount++;
     }
 
@@ -207,7 +243,7 @@ class ExportService {
     final manifest = {
       'format_version': exportFormatVersion,
       'exported_at': data['exported_at'],
-      'message_count': messages.length,
+      'message_count': snap.messageCount,
       'file_count': fileCount,
       'missing_files': missing,
       'files': manifestFiles,
@@ -227,7 +263,7 @@ class ExportService {
 
     return ExportResult(
       directory: target,
-      messageCount: messages.length,
+      messageCount: snap.messageCount,
       fileCount: fileCount,
       missingFiles: missing,
     );

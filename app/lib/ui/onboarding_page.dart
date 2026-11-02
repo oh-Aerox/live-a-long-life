@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
+import '../services/cloud_folder.dart';
 import '../services/notification_service.dart';
+import 'cloud_backup_page.dart';
 import 'profile_page.dart';
 
 /// 首次使用引导（product-spec §4、D-18）：
@@ -109,6 +111,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
               actions: [
                 FilledButton(
                     onPressed: _confirmTz, child: const Text('就是这个')),
+                // 换手机、重装后先恢复（D-51）；恢复完重开应用就跳过引导。
+                if (ChannelCloudFolder.supported) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              CloudBackupPage(services: widget.services)),
+                    ),
+                    child: const Text('从 iCloud 备份恢复'),
+                  ),
+                ],
               ],
             ),
             _step(
