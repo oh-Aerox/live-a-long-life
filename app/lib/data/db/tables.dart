@@ -555,6 +555,10 @@ class LabResults extends Table {
   TextColumn get itemNameRaw => text()();
   TextColumn get itemKey => text()();
 
+  /// 记录里这一项的标准名（v19，D-49）：模型对号入座、用户合并或拆出时
+  /// 写入；没有时键按规则与内置目录算。
+  TextColumn get itemStd => text().nullable()();
+
   /// 报告上的检查大项（尿常规、血常规、肝功能…），可空（D-36）。
   TextColumn get panelRaw => text().nullable()();
   TextColumn get valueRaw => text()();

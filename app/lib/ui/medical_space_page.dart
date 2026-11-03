@@ -26,6 +26,10 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
   final _selected = <String>{};
   bool _busy = false;
 
+  /// 已上传到 iCloud 备份的附件（sha256）；没开 iCloud 备份或读不到时为 null，
+  /// 不显示 iCloud 状态（D-51）。
+  Set<String>? _inCloud;
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +48,12 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
             if (f.defaultSelected) f.attachment.id,
         ]);
     });
+    // 列 iCloud 文件夹可能慢一点，列表先出来，再补上 iCloud 状态。
+    final inCloud = await widget.services.cloudBackup.uploadedShas();
+    if (mounted) setState(() => _inCloud = inCloud);
   }
+
+  bool? _cloudHas(MedicalFile f) => _inCloud?.contains(f.attachment.sha256);
 
   String _size(int bytes) {
     if (bytes >= 1 << 20) {
@@ -67,7 +76,17 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
         .where((f) => _selected.contains(f.attachment.id))
         .toList();
     if (chosen.isEmpty) return;
-    final noRemote = chosen.where((f) => !f.archivedOnMac).length;
+    final noRemote = chosen
+        .where((f) => !f.archivedOnMac && _cloudHas(f) != true)
+        .length;
+    // 只在 iCloud 有：清理后看不到原件，目前不能从 iCloud 单独取回。
+    final cloudOnly = chosen
+        .where((f) => !f.archivedOnMac && _cloudHas(f) == true)
+        .length;
+    // 只在电脑有：换手机从 iCloud 恢复时缺这些原件，只能再从电脑取回。
+    final macOnly = chosen
+        .where((f) => f.archivedOnMac && _cloudHas(f) == false)
+        .length;
     // 导出的副本清理不动（它们是给用户带走的），但要说清楚，免得以为空间全释放了。
     var exported = 0;
     var exportWhere = '';
@@ -85,8 +104,10 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
         title: const Text('清理手机原件'),
         content: Text(
           '将清理手机上的 ${chosen.length} 份医疗文件，释放约 ${_size(_selectedBytes)}。'
-          '历史医疗记录保留，Mac 上的已归档原件不受影响。'
+          '历史医疗记录保留，电脑上的已归档原件不受影响。'
           '${noRemote > 0 ? '\n\n注意：其中 $noRemote 份没有确认过的其他副本，清理后可能无法再查看原件（数据保留，未核对的仍是未核对）。' : ''}'
+          '${cloudOnly > 0 ? '\n\n其中 $cloudOnly 份电脑还没确认收到，只在 iCloud 备份里有；清理后手机上看不到原件，目前不能从 iCloud 单独取回。' : ''}'
+          '${macOnly > 0 ? '\n\n其中 $macOnly 份还没备份到 iCloud，只在电脑上有。换手机从 iCloud 恢复时会缺这些原件，要再从电脑取回；建议先在"iCloud 备份"里立即备份。' : ''}'
           '${exported > 0 ? '\n\n其中 $exported 份在你导出的数据里还有副本（$exportWhere），清理不会删除它们，需要时可自行删除。' : ''}',
         ),
         actions: [
@@ -122,8 +143,8 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok
-            ? '已从 Mac 取回，原件可以查看了'
-            : 'Mac 不可达或没有这份文件；提取过的数据不受影响，也可以重新上传同一文件补回'),
+            ? '已从电脑取回，原件可以查看了'
+            : '电脑不可达或没有这份文件；提取过的数据不受影响，也可以重新上传同一文件补回'),
       ));
       await _load();
     } finally {
@@ -145,7 +166,13 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
       docType,
       '引用 ${f.referenceCount} 处',
       if (f.extracted) f.reviewed ? '已核对' : '有未核对项' else '未提取',
-      f.archivedOnMac ? 'Mac 已归档' : '无确认的其他副本',
+      f.archivedOnMac ? '电脑已归档' : '电脑未确认收到',
+      switch (_cloudHas(f)) {
+        true => 'iCloud 已备份',
+        false => 'iCloud 未备份',
+        null => '',
+      },
+      if (!f.archivedOnMac && _cloudHas(f) != true) '无确认的其他副本',
     ].where((s) => s.isNotEmpty).join(' · ');
 
     if (cleanable) {
@@ -166,7 +193,8 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
     return ListTile(
       dense: true,
       title: Text(att.originalFilename ?? att.sha256.substring(0, 12)),
-      subtitle: Text('已清理 · ${f.archivedOnMac ? '可从 Mac 取回' : 'Mac 副本未确认，可重新上传同一文件补回'}'),
+      subtitle: Text('已清理 · ${f.archivedOnMac ? '可从电脑取回' : '电脑副本未确认，可重新上传同一文件补回'}'
+          '${_cloudHas(f) == true ? ' · iCloud 备份里有' : ''}'),
       trailing: TextButton(
         onPressed: _busy ? null : () => _retrieve(f),
         child: const Text('取回'),
@@ -202,7 +230,8 @@ class _MedicalSpacePageState extends State<MedicalSpacePage> {
                   padding: EdgeInsets.all(16),
                   child: Text(
                     '清理只释放手机上的文件和缓存；诊断、指标、日期、来源索引和核对状态'
-                    '都不变，Mac 与备份中的原件继续保留。正在提取或发送中的文件请稍后再清。',
+                    '都不变，电脑与备份中的原件继续保留。正在提取或发送中的文件请稍后再清。'
+                    '开了 iCloud 备份时，建议清理前先备份一次，换手机恢复时原件才齐全。',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),

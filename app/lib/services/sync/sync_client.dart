@@ -74,7 +74,7 @@ class SyncClient {
         lastError = e;
       }
     }
-    throw StateError('无法连接 Mac（试过 ${info.hosts.join('、')}）：$lastError');
+    throw StateError('无法连接电脑（试过 ${info.hosts.join('、')}）：$lastError');
   }
 
   /// 连通性检查（配对后验证通道）。

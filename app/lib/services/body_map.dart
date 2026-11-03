@@ -407,8 +407,7 @@ class BodyMapService {
           final value = r['value_raw'];
           if (rawName is! String || value is! String) continue;
           final name = SameItem.itemName(rawName);
-          final panel = r['panel_raw'] is String ? r['panel_raw'] as String : null;
-          final key = RecordRepository.labItemKey(name, panel: panel);
+          final key = SameItem.resultKey(r);
           final prev = latestLab[key];
           // 同一天（同一份报告汇总与明细）后面的覆盖前面的：明细信息更全。
           if (prev != null && (prev.$1 ?? '').compareTo(date ?? '') > 0) {

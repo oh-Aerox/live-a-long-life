@@ -110,7 +110,7 @@ class LabReview {
     final results = _results(dataJson);
     String? keyOf(Object? r) {
       if (r is! Map || r['item_name_raw'] is! String) return null;
-      return '${SameItem.labKey(r['item_name_raw'] as String, panel: r['panel_raw'] as String?)}'
+      return '${SameItem.resultKey(r)}'
           '|${SameItem.labValue(r)}';
     }
 
@@ -142,6 +142,8 @@ class LabReview {
       throw RangeError('结果项不存在：$index');
     }
     final r = Map<String, Object?>.from(results[index]);
+    final before = SameItem.labKey('${r['item_name_raw']}',
+        panel: r['panel_raw'] as String?);
     if (panelRaw != null) r['panel_raw'] = panelRaw.isEmpty ? null : panelRaw;
     if (itemNameRaw != null) r['item_name_raw'] = itemNameRaw;
     if (valueRaw != null) {
@@ -154,6 +156,15 @@ class LabReview {
       final range = _parseRange(refRangeRaw);
       r['ref_low'] = range?.$1;
       r['ref_high'] = range?.$2;
+    }
+    // 改了项目名或大项、归类跟着变了：原来定的标准名可能不再对，按新写法
+    // 重新归类（D-49）。
+    if (SameItem.labKey('${r['item_name_raw']}',
+            panel: r['panel_raw'] as String?) !=
+        before) {
+      r
+        ..remove('item_std')
+        ..remove('item_std_suggested');
     }
     results[index] = r;
     data['results'] = results;

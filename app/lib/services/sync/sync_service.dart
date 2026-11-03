@@ -170,7 +170,7 @@ class SyncService {
         }
         if (status == 'generation_changed') {
           return await _fail(peer, generation,
-              '数据代次已变化（从导出恢复过），请在 Mac 首页确认重建副本后再同步');
+              '数据代次已变化（从导出恢复过），请在电脑端首页确认重建副本后再同步');
         }
         if (status != 'applied') {
           return await _fail(

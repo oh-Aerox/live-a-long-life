@@ -14,8 +14,10 @@ import 'package:live_a_long_life/data/repositories/peer_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
 import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/analysis_service.dart';
+import 'package:live_a_long_life/services/health_service.dart';
 import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/model_client.dart';
+import 'package:live_a_long_life/services/sleep_merge.dart';
 import 'package:live_a_long_life/services/suggestion_service.dart';
 import 'package:live_a_long_life/services/sync/secure_channel.dart';
 import 'package:live_a_long_life/services/sync/sync_client.dart';
@@ -112,6 +114,53 @@ void main() {
       expect(await analysis.latest(AnalysisKind.weeklyReview), isNotNull);
       expect(
           (await analysis.latest(AnalysisKind.weeklyReview))!.id, artifact.id);
+    });
+
+    test('周报输入含设备睡眠（按夜合并，与日视图同口径）：没有用户睡眠记录也能写睡眠',
+        () async {
+      final wake = DateTime.now().copyWith(hour: 7, minute: 10);
+      final withDevice = AnalysisService(
+        db: env.db,
+        modelConfigs: ModelConfigRepository(env.db, env.ctx),
+        organize: OrganizeRepository(env.db, env.ctx),
+        keyStore: KeyStore(),
+        deviceId: 'mac-1',
+        deviceData: (date) async => DeviceDayData(
+          sleep: date == today()
+              ? SleepSegment(
+                  sleepOnsetMs: wake
+                      .subtract(const Duration(hours: 7, minutes: 40))
+                      .millisecondsSinceEpoch,
+                  wakeMs: wake.millisecondsSinceEpoch,
+                  sleepDurationMin: 412,
+                  inBedDurationMin: 460,
+                  sourceName: 'Apple Watch')
+              : null,
+          workouts: const [],
+          steps: null,
+          activeEnergyKcal: null,
+        ),
+        modelCall: ({
+          required config,
+          required apiKey,
+          system,
+          required userText,
+          required maxTokens,
+        }) async {
+          lastPrompt = userText;
+          return ModelResponse(
+              text: jsonEncode({'content_md': '# 周报', 'citations': []}));
+        },
+      );
+      await withDevice.generateWeeklyReview();
+      final device =
+          (jsonDecode(lastPrompt!) as Map)['health_device'] as List;
+      expect(device, hasLength(1)); // 没数据的日子不列，不当成 0（D-11）
+      final night = device.single as Map;
+      expect(night['date'], today());
+      expect(night['sleep'],
+          {'sleep_minutes': 412, 'in_bed_minutes': 460, 'onset': '23:30',
+           'wake': '07:10'});
     });
 
     test('周报输入含状况档案（D-25/R-35）：已确认的长期状况进入，未核对的不进',

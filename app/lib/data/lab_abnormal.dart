@@ -1,3 +1,5 @@
+import 'same_item.dart';
+
 /// 检验结果是否异常：报告上有异常标记，或数值超出参考范围，或定性结果
 /// 阳性而参考为阴性。核对页标红、人体图、趋势页、周报与咨询的"异常指标"
 /// 都用这一个口径。
@@ -11,7 +13,9 @@ bool isAbnormalLab({
 }) {
   final flag = flagRaw?.trim() ?? '';
   if (flag.isNotEmpty && !_normalFlag.hasMatch(flag)) return true;
-  if (valueNum != null) {
+  // 定性结果折成的数值（[SameItem.qualitativeValue]）只画趋势，不和参考
+  // 范围比：阴性记 0 不算低于参考下限，阳性看下面的原文。
+  if (valueNum != null && SameItem.qualitativeValue(valueRaw ?? '') == null) {
     if (refLow != null && valueNum < refLow) return true;
     if (refHigh != null && valueNum > refHigh) return true;
   }

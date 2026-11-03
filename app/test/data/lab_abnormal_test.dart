@@ -45,4 +45,10 @@ void main() {
     expect(summary, contains('鸡蛋'));
     expect(summary, isNot(contains('屋尘')));
   });
+
+  test('尿便定性结果折成的数值不和参考范围比，阳性仍按原文认', () {
+    expect(isAbnormalLab(valueRaw: '阴性', valueNum: 0, refLow: 3.2, refHigh: 16), isFalse);
+    expect(isAbnormalLab(valueRaw: '++', valueNum: 2, refRangeRaw: '阴性'), isTrue);
+    expect(isAbnormalLab(valueRaw: '0.5', valueNum: 0.5, refLow: 1), isTrue);
+  });
 }

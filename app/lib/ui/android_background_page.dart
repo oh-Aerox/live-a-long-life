@@ -83,7 +83,7 @@ class _AndroidBackgroundPageState extends State<AndroidBackgroundPage>
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text('部分安卓手机（如小米）会清理后台应用，回顾提醒可能不响、'
-                '和 Mac 的同步可能不发生。按下面几项设置后提醒最可靠。'),
+                '和电脑的同步可能不发生。按下面几项设置后提醒最可靠。'),
           ),
           ListTile(
             title: const Text('通知'),

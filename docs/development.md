@@ -6,7 +6,7 @@
 
 - Flutter 工程在 `app/` 子目录（项目根目录名含空格，不适合直接做工程目录），工程名 `live_a_long_life`。iPhone、安卓、Mac、Windows 共用一套 Dart 代码。
 - `app/lib/data/`：drift 表定义（`db/tables.dart`）、数据库与迁移（`db/app_database.dart`）、各实体仓库（`repositories/`）、TimeValue / field_meta / 变更日志等数据层模型。
-- `app/lib/services/`：整理、回顾、健康数据、模型客户端、医疗提取（文字识别、页筛选、脱敏、结构化）、导出恢复、备份、分析、咨询；同步相关在 `services/sync/`。
+- `app/lib/services/`：整理、回顾、健康数据、模型客户端、医疗提取（文字识别、页筛选、脱敏、结构化）、导出恢复、备份（电脑端 `backup_service.dart`，手机 iCloud `cloud_vault.dart` / `cloud_backup_service.dart`）、分析、咨询；同步相关在 `services/sync/`。
 - `app/lib/ui/`：页面。手机与电脑共用的页面用 `readOnly` 开关区分（见 §2 写入者分工）。
 - `app/lib/main.dart` 按平台分流：Mac / Windows 走电脑端入口（只读副本 + 同步接收），不初始化手机专属插件（health、image_picker、本地通知、扫码等）；新增手机专属插件时同样不要在电脑端入口里初始化。
 - `app/lib/app_services.dart`：应用级服务的组装处（数据库、仓库、各服务）。
@@ -113,6 +113,7 @@
 | `life.long/bonjour` | 电脑广播同步服务、手机按设备 ID 找回地址 | iOS / macOS `BonjourChannel`（NetService）；安卓 `BonjourChannel.kt`；Windows `bonjour_channel.cpp`（只广播） |
 | `life.long/menu_bar` | Mac 菜单栏 / Windows 托盘的同步状态 | `MainFlutterWindow.swift`；`windows/runner/tray_channel.cpp` |
 | `life.long/android_settings` | 安卓后台与提醒设置入口 | `AndroidSettingsChannel.kt` |
+| `life.long/cloud_folder` | iCloud 备份：选文件夹并保存书签、凭书签访问、经 NSFileCoordinator 下载 / 写入 / 改名 / 删除、查询是否已上传、切后台时申请后台时间（D-51） | iOS `AppDelegate.swift` 的 CloudFolderChannel |
 
 Dart 侧调用原生 channel 时，要处理 `MissingPluginException`（测试环境和不支持的平台没有原生侧）。
 
@@ -128,6 +129,8 @@ Dart 侧调用原生 channel 时，要处理 `MissingPluginException`（测试�
 
 - 备份密码经 PBKDF2-HMAC-SHA256（20 万次）派生密钥，存系统安全存储；数据快照与附件逐个 AES-256-GCM 加密。
 - 生成时先写临时目录，逐项解密校验通过才转正式名并标为可用；缺原件列入缺件清单，不当作业务删除。详见 D-15、schema §7.5。
+- 加密函数在 `backup_crypto.dart`，电脑端备份和手机 iCloud 备份共用。
+- **手机 iCloud 备份不用 iCloud 能力**：免费签名开不了 iCloud 容器，改用系统文件选择器选 iCloud 云盘文件夹 + 书签（D-51），Info.plist 和 entitlements 都不用改。iCloud 里没下载的文件可能显示成 `.<文件名>.icloud` 占位文件，列目录时按已有处理，读之前先经原生通道协调下载。格式和流程的单测用本地目录代替（`test/services/cloud_backup_test.dart`）；真实的 iCloud 上传、下载只能在真机上验证。
 
 ### 4.6 安卓与 Windows
 

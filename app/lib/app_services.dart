@@ -21,6 +21,7 @@ import 'services/sync/lan_discovery.dart';
 import 'services/medical_duplicate.dart';
 import 'services/analysis_service.dart';
 import 'services/backup_service.dart';
+import 'services/cloud_backup_service.dart';
 import 'services/consult_service.dart';
 import 'services/consult_tools.dart';
 import 'services/health_live.dart';
@@ -78,6 +79,8 @@ class AppServices {
       organize: organize,
       keyStore: keyStore,
       deviceId: ctx.deviceId,
+      // healthService 在 main 里按平台创建，查询时才取。
+      deviceData: (date) => healthService.dayData(date),
     );
     suggestionService = SuggestionService(
       db: db,
@@ -85,6 +88,8 @@ class AppServices {
       deviceId: ctx.deviceId,
     );
     backupService = BackupService(db: db, filesDir: filesDir);
+    cloudBackup = CloudBackupService(
+        db: db, filesDir: filesDir, settings: settings, keyStore: keyStore);
     textExtraction = TextExtractionService(
       extractor: PlatformTextExtractor(),
       cacheDir: Directory(p.join(filesDir.parent.path, 'extract_cache')),
@@ -150,6 +155,7 @@ class AppServices {
   late final AnalysisService analysisService;
   late final SuggestionService suggestionService;
   late final BackupService backupService;
+  late final CloudBackupService cloudBackup;
   late final TextExtractionService textExtraction;
   late final MedicalExtractionService medicalExtraction;
   late final MedicalDuplicateService medicalDuplicates;

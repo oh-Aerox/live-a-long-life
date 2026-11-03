@@ -244,7 +244,7 @@ class HealthService {
   final String _tz;
   late final HealthPort _port;
 
-  static const _lastSyncKey = 'health_last_sync_ms';
+  static const lastSyncKey = 'health_last_sync_ms';
 
   Future<bool> requestAuthorization() => _port.requestAuthorization();
 
@@ -273,7 +273,7 @@ class HealthService {
 
   Future<int> _sync() async {
     final now = DateTime.now();
-    final lastMs = await _settings.get(_lastSyncKey) as int?;
+    final lastMs = await _settings.get(lastSyncKey) as int?;
     // 首次读近 30 天；之后从上次同步往前多读 2 天，UUID 去重。
     final start = lastMs == null
         ? now.subtract(const Duration(days: 30))
@@ -329,7 +329,7 @@ class HealthService {
       }
     }
 
-    await _settings.set(_lastSyncKey, now.millisecondsSinceEpoch);
+    await _settings.set(lastSyncKey, now.millisecondsSinceEpoch);
     return inserted;
   }
 

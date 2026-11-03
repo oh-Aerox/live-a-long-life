@@ -5,16 +5,23 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/lab_abnormal.dart';
+import '../data/lab_explain.dart';
 import '../data/same_item.dart';
 import 'adaptive.dart';
+import 'lab_names_page.dart';
 
 /// 指标趋势（v0.4，数据源是 lab_results 索引，D-27）。
 /// 列表页：出现过的检验项目 + 最近数值，按检查大项分组（D-36）；点进去看
-/// 历史折线。
+/// 历史折线。项目按标准名显示（D-49），详情里可以合并到其他项目、拆出
+/// 某种写法；待确认的名称建议在"整理项目名称"里。
 class LabTrendsPage extends StatefulWidget {
-  const LabTrendsPage({super.key, required this.services});
+  const LabTrendsPage(
+      {super.key, required this.services, this.readOnly = false});
 
   final AppServices services;
+
+  /// Mac 只读（D-12）：不能合并、拆出、整理名称。
+  final bool readOnly;
 
   @override
   State<LabTrendsPage> createState() => _LabTrendsPageState();
@@ -24,13 +31,14 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
   List<LabResult> _items = [];
   Map<String, Set<String>> _names = {};
   Map<String, String> _itemGroups = {};
+  int _pending = 0;
   String _query = '';
 
   /// 分组顺序：体检报告的常见顺序在前，其余按名字，"其他"最后。
   static const _groupOrder = [
     '一般检查', '血常规', '尿常规', '便常规', '生化', '肝功能', '肾功能', //
-    '血脂', '血糖', '甲状腺功能', '肿瘤标志物', '凝血功能', '传染病筛查',
-    '血型', '过敏原检测',
+    '血脂', '血糖', '电解质', '心肌酶', '甲状腺功能', '肿瘤标志物',
+    '凝血功能', '炎症与风湿', '传染病筛查', '血型', '过敏原检测',
   ];
 
   static int _compareGroups(String a, String b) {
@@ -44,10 +52,8 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
     return r != 0 ? r : a.compareTo(b);
   }
 
-  /// 趋势页的项目名：尿、便检查的项目后面带上大项，脱离大项也认得出。
-  static String _titleOf(LabResult r) => SameItem.specimenOf(r.panelRaw) == null
-      ? SameItem.itemName(r.itemNameRaw)
-      : '${SameItem.itemName(r.itemNameRaw)}（${SameItem.panelGroup(r.panelRaw)}）';
+  /// 趋势页的项目名：标准名（D-49）。尿、便项目的键本来就带"尿""便"。
+  static String _titleOf(LabResult r) => r.itemKey;
 
   @override
   void initState() {
@@ -60,13 +66,25 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
     final items = await records.labResultLatestPerItem();
     final names = await records.labItemNames();
     final groups = await records.labItemGroups();
+    final pending =
+        widget.readOnly ? 0 : (await records.labStdSuggestions()).length;
     if (mounted) {
       setState(() {
         _items = items;
         _names = names;
         _itemGroups = groups;
+        _pending = pending;
       });
     }
+  }
+
+  Future<void> _openNames() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => LabNamesPage(services: widget.services)),
+    );
+    await _load();
   }
 
   /// 搜索：项目名、各报告里出现过的写法（含括号里的英文缩写）、检查大项，
@@ -99,7 +117,14 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
   Widget build(BuildContext context) {
     final groups = _groups();
     return Scaffold(
-      appBar: AppBar(title: const Text('指标趋势')),
+      appBar: AppBar(title: const Text('指标趋势'), actions: [
+        if (!widget.readOnly)
+          IconButton(
+            icon: const Icon(Icons.drive_file_rename_outline),
+            tooltip: '整理项目名称',
+            onPressed: _openNames,
+          ),
+      ]),
       body: _items.isEmpty
           ? const Center(
               child: Text(
@@ -128,6 +153,14 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
                           onChanged: (v) => setState(() => _query = v),
                         ),
                 ),
+                if (_pending > 0)
+                  ListTile(
+                    leading: const Icon(Icons.help_outline),
+                    title: Text('有 $_pending 个项目名称待确认'),
+                    subtitle: const Text('可能是同一指标的不同写法'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _openNames,
+                  ),
                 if (groups.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(32),
@@ -149,21 +182,31 @@ class _LabTrendsPageState extends State<LabTrendsPage> {
                   ),
                   for (final r in group.value) ...[
                     ListTile(
-                      title: Text(SameItem.itemName(r.itemNameRaw)),
+                      title: Text(_titleOf(r)),
                       subtitle: Text(
                         '最近 ${r.valueRaw}${r.unitRaw ?? ''} · ${r.examDate ?? '日期未知'}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => _TrendDetailPage(
-                            services: widget.services,
-                            itemKey: r.itemKey,
-                            itemName: _titleOf(r),
+                      onTap: () async {
+                        final changed = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => _TrendDetailPage(
+                              services: widget.services,
+                              itemKey: r.itemKey,
+                              itemName: _titleOf(r),
+                              group: _groupOf(r),
+                              readOnly: widget.readOnly,
+                              others: [
+                                for (final o in _items)
+                                  if (o.itemKey != r.itemKey)
+                                    (o.itemKey, _groupOf(o)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                        if (changed == true) await _load();
+                      },
                     ),
                     const Divider(height: 1),
                   ],
@@ -179,11 +222,19 @@ class _TrendDetailPage extends StatefulWidget {
     required this.services,
     required this.itemKey,
     required this.itemName,
+    required this.group,
+    required this.readOnly,
+    required this.others,
   });
 
   final AppServices services;
   final String itemKey;
   final String itemName;
+  final String group;
+  final bool readOnly;
+
+  /// 可以合并过去的其他项目（键, 分组）。
+  final List<(String, String)> others;
 
   @override
   State<_TrendDetailPage> createState() => _TrendDetailPageState();
@@ -192,19 +243,219 @@ class _TrendDetailPage extends StatefulWidget {
 class _TrendDetailPageState extends State<_TrendDetailPage> {
   List<LabResult> _history = [];
 
+  /// 这一项里各种写法（按规则清洗、未查目录的键）→ 对应的行。
+  Map<String, List<LabResult>> _spellings = {};
+
+  /// 模型生成过的说明（目录外的项目，D-50）；没生成过为 null。
+  GeneratedLabExplanation? _generated;
+  bool _explaining = false;
+
   @override
   void initState() {
     super.initState();
-    widget.services.records.labResultHistory(widget.itemKey).then((rows) {
-      if (mounted) setState(() => _history = rows);
+    _load();
+  }
+
+  Future<void> _load() async {
+    final rows = await widget.services.records.labResultHistory(widget.itemKey);
+    final generated =
+        await LabExplain.generated(widget.services.settings, widget.itemKey);
+    final spellings = <String, List<LabResult>>{};
+    for (final r in rows) {
+      (spellings[SameItem.ruleKey(r.itemNameRaw, panel: r.panelRaw)] ??= [])
+          .add(r);
+    }
+    if (mounted) {
+      setState(() {
+        _history = rows;
+        _spellings = spellings;
+        _generated = generated;
+      });
+    }
+  }
+
+  /// 目录外的项目用模型生成说明（D-50）：只发项目名、写法、分组、单位，
+  /// 确认后发送；结果存本机设置，模型认为不需要说明的也记下，不再提示。
+  Future<void> _explain() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog.adaptive(
+        title: const Text('用模型生成说明？'),
+        content: Text(
+          '把项目名"${widget.itemName}"、报告上的写法、分组和单位发给默认模型，'
+          '生成这一项是什么、偏高偏低意味着什么的通用说明。\n\n'
+          '不发数值和日期。说明保存在本机，以后打开直接显示。',
+        ),
+        actions: [
+          DialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          DialogAction(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('生成'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _explaining = true);
+    try {
+      final e = await widget.services.medicalExtraction
+          .explainLabItem(widget.itemKey, group: widget.group);
+      final t = DateTime.now();
+      await LabExplain.saveGenerated(
+          widget.services.settings,
+          widget.itemKey,
+          e,
+          '${t.year}-${t.month.toString().padLeft(2, '0')}-'
+          '${t.day.toString().padLeft(2, '0')}');
+      if (e == null) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('模型认为这一项不需要额外说明')));
+      }
+      await _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('没有生成：$e')));
+    } finally {
+      if (mounted) setState(() => _explaining = false);
+    }
+  }
+
+  /// "这一项是什么"：内置说明优先，其次模型生成的；目录外、没生成过的
+  /// 给一个生成按钮；常识项目和过敏原什么都不显示。
+  Widget _explanation(BuildContext context) {
+    final builtIn = LabExplain.builtIn(widget.itemKey);
+    final generated = builtIn == null ? _generated : null;
+    final e = builtIn ?? generated?.explanation;
+    if (e == null) {
+      if (generated != null ||
+          !LabExplain.canGenerate(widget.itemKey, group: widget.group)) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: OutlinedButton.icon(
+          icon: _explaining
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2))
+              : const Icon(Icons.help_outline),
+          label: Text(_explaining ? '生成中…' : '这一项是什么？用模型生成说明'),
+          onPressed: _explaining ? null : _explain,
+        ),
+      );
+    }
+    final theme = Theme.of(context);
+    final muted = TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant);
+    Widget row(String label, String text) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text.rich(TextSpan(children: [
+            TextSpan(
+                text: '$label　',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            TextSpan(text: text),
+          ])),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          shape: const Border(),
+          title: const Text('这一项是什么'),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(e.meaning),
+            if (e.high != null) row(e.highLabel, e.high!),
+            if (e.low != null) row('偏低', e.low!),
+            if (e.related != null) row('一起看', e.related!),
+            const SizedBox(height: 8),
+            Text(
+              generated == null
+                  ? '通用说明，不针对你的结果；以医生的判断为准。'
+                  : '由模型生成（${generated.date}），仅供参考；以医生的判断为准。',
+              style: muted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 改写这一项相关结果的标准名（D-49），写成记录新版本；完成后回列表页。
+  Future<void> _update(bool Function(Map<String, Object?> r) apply) async {
+    try {
+      await widget.services.records
+          .updateLabResults(apply, producedBy: ProducedBy.userEdit());
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('没有完成：$e')));
+      }
+    }
+  }
+
+  Future<void> _mergeInto() async {
+    final target = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _PickItemPage(
+            items: widget.others, title: '把"${widget.itemName}"合并到'),
+      ),
+    );
+    if (target == null) return;
+    await _update((r) {
+      if (SameItem.resultKey(r) != widget.itemKey) return false;
+      r
+        ..remove('item_std_suggested')
+        ..['item_std'] = target;
+      return true;
     });
   }
+
+  /// 把一种写法拆成单独一项：标准名写成它自己（不再按目录归类）。
+  Future<void> _split(String spelling) => _update((r) {
+        if (SameItem.resultKey(r) != widget.itemKey ||
+            SameItem.ruleKey('${r['item_name_raw']}',
+                    panel: r['panel_raw'] as String?) !=
+                spelling) {
+          return false;
+        }
+        r['item_std'] = spelling;
+        return true;
+      });
+
+  /// 去掉这种写法上定过的标准名，回到按规则和目录自动归类。
+  Future<void> _restore(String spelling) => _update((r) {
+        if (r['item_std'] is! String ||
+            SameItem.resultKey(r) != widget.itemKey ||
+            SameItem.ruleKey('${r['item_name_raw']}',
+                    panel: r['panel_raw'] as String?) !=
+                spelling) {
+          return false;
+        }
+        r.remove('item_std');
+        return true;
+      });
 
   @override
   Widget build(BuildContext context) {
     final numeric = _history.where((r) => r.valueNum != null).toList();
     return Scaffold(
-      appBar: AppBar(title: Text(widget.itemName)),
+      appBar: AppBar(title: Text(widget.itemName), actions: [
+        if (!widget.readOnly)
+          IconButton(
+            icon: const Icon(Icons.merge),
+            tooltip: '合并到其他项目',
+            onPressed: widget.others.isEmpty ? null : _mergeInto,
+          ),
+      ]),
       body: ListView(
         children: [
           if (numeric.length >= 2)
@@ -234,6 +485,7 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
                 style: TextStyle(color: Colors.grey),
               ),
             ),
+          _explanation(context),
           const Divider(),
           for (final r in _history.reversed)
             ListTile(
@@ -273,8 +525,90 @@ class _TrendDetailPageState extends State<_TrendDetailPage> {
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text('报告上的写法',
+                style: Theme.of(context).textTheme.titleSmall),
+          ),
+          for (final MapEntry(key: spelling, value: rows) in _spellings.entries)
+            ListTile(
+              dense: true,
+              title: Text({
+                for (final r in rows) SameItem.itemName(r.itemNameRaw)
+              }.join('、')),
+              subtitle: Text([
+                '${rows.length} 次',
+                if (rows.any((r) => r.itemStd != null))
+                  '已定为"${widget.itemKey}"',
+              ].join(' · ')),
+              trailing: widget.readOnly
+                  ? null
+                  : rows.any((r) => r.itemStd != null)
+                      ? TextButton(
+                          onPressed: () => _restore(spelling),
+                          child: const Text('恢复自动归类'))
+                      : _spellings.length > 1
+                          ? TextButton(
+                              onPressed: () => _split(spelling),
+                              child: const Text('拆出'))
+                          : null,
+            ),
+          const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+/// 选一个要合并过去的项目：按分组列出，可搜索。
+class _PickItemPage extends StatefulWidget {
+  const _PickItemPage({required this.items, required this.title});
+
+  final List<(String, String)> items;
+  final String title;
+
+  @override
+  State<_PickItemPage> createState() => _PickItemPageState();
+}
+
+class _PickItemPageState extends State<_PickItemPage> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.replaceAll(RegExp(r'\s'), '').toLowerCase();
+    final items = [
+      for (final i in widget.items)
+        if (q.isEmpty || '${i.$1}${i.$2}'.toLowerCase().contains(q)) i
+    ]..sort((a, b) => '${a.$2}${a.$1}'.compareTo('${b.$2}${b.$1}'));
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: '搜索项目或分组',
+              prefixIcon: Icon(Icons.search),
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) => setState(() => _query = v),
+          ),
+        ),
+        Expanded(
+          child: ListView(children: [
+            for (final (key, group) in items)
+              ListTile(
+                title: Text(key),
+                subtitle: Text(group),
+                onTap: () => Navigator.pop(context, key),
+              ),
+          ]),
+        ),
+      ]),
     );
   }
 }

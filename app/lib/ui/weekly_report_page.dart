@@ -57,7 +57,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       messenger.showSnackBar(const SnackBar(content: Text('已获取最新周报')));
     } else {
       messenger.showSnackBar(
-          const SnackBar(content: Text('没取到：确认 Mac 上的长命百岁开着，且已生成周报')));
+          const SnackBar(content: Text('没取到：确认电脑上的长命百岁开着，且已生成周报')));
     }
     if (mounted) setState(() => _busy = false);
     await _load();
@@ -71,7 +71,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         if (!widget.readOnly)
           TextButton(
             onPressed: _busy ? null : _fetch,
-            child: Text(_busy ? '获取中…' : '从 Mac 获取'),
+            child: Text(_busy ? '获取中…' : '从电脑获取'),
           ),
       ]),
       body: report == null
@@ -81,7 +81,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                 // 电脑端（只读）没有"获取"按钮，周报在首页生成。
                 child: Text(widget.readOnly
                     ? '还没有周报，在首页的周报卡片里生成。'
-                    : '还没有周报。在 Mac 上生成后，点右上角"从 Mac 获取"。'),
+                    : '还没有周报。在电脑上生成后，点右上角"从电脑获取"。'),
               ),
             )
           : ListView(
@@ -96,7 +96,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(desktopText('生成之后数据有更新，这份周报可能过期：'
-                        '同步后在 Mac 上重新生成（D-14）')),
+                        '同步后在电脑上重新生成（D-14）')),
                   ),
                 Text('${report.periodStart} 至 ${report.periodEnd}',
                     style: Theme.of(context).textTheme.titleMedium),

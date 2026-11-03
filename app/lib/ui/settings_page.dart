@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 
 import '../app_services.dart';
 import '../data/db/app_database.dart';
+import '../services/cloud_backup_service.dart';
+import '../services/cloud_folder.dart';
 import '../services/export_location.dart';
 import '../services/export_service.dart';
 import '../services/notification_service.dart';
@@ -15,6 +17,7 @@ import '../services/restore_service.dart';
 import '../services/signing_info.dart';
 import 'adaptive.dart';
 import 'android_background_page.dart';
+import 'cloud_backup_page.dart';
 import 'log_page.dart';
 import 'medical_space_page.dart';
 import 'model_config_page.dart';
@@ -42,6 +45,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _healthEnabled = false;
   String? _pairedMacName;
   String _syncSummary = '';
+  CloudBackupState? _cloud;
 
   @override
   void initState() {
@@ -64,6 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ..where((t) => t.direction.equalsValue(SyncDirection.push))
           ..limit(1))
         .getSingleOrNull();
+    final cloud = await widget.services.cloudBackup.state();
     final syncSummary = push == null
         ? '还没同步过'
         : (push.pendingCount > 0
@@ -78,6 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _pairedMacName =
             peers.isEmpty ? null : peers.map((p) => p.displayName).join('、');
         _syncSummary = syncSummary;
+        _cloud = cloud;
       });
     }
   }
@@ -103,6 +109,19 @@ class _SettingsPageState extends State<SettingsPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String get _cloudSummary {
+    final c = _cloud;
+    if (c == null || !c.enabled) return '换手机或重装应用后可以恢复';
+    if (c.errorAt != null && (c.lastAt == null || c.errorAt!.isAfter(c.lastAt!))) {
+      return '上次备份失败，点开查看';
+    }
+    final mode = c.auto ? '自动备份' : '手动备份';
+    final t = c.lastAt;
+    if (t == null) return '$mode · 还没有备份';
+    return '$mode · 上次 ${t.month}月${t.day}日 '
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
   }
 
   String get _signingText {
@@ -178,9 +197,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ]),
           AdaptiveSection(header: '数据与同步', children: [
             AdaptiveTile(
-              title: Text(_pairedMacName == null ? '连接 Mac' : '已连接 Mac'),
+              title: Text(_pairedMacName == null ? '连接电脑' : '已连接电脑'),
               subtitle: Text(_pairedMacName == null
-                  ? '扫 Mac 上的二维码配对，数据同步到 Mac 保存副本'
+                  ? '扫电脑上的二维码配对，数据同步到电脑保存副本'
                   : '$_pairedMacName · $_syncSummary'),
               trailing: chevron,
               onTap: () async {
@@ -188,6 +207,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 await _load();
               },
             ),
+            if (ChannelCloudFolder.supported)
+              AdaptiveTile(
+                title: const Text('iCloud 备份'),
+                subtitle: Text(_cloudSummary),
+                trailing: chevron,
+                onTap: () async {
+                  await open(CloudBackupPage(services: widget.services));
+                  await _load();
+                },
+              ),
             AdaptiveTile(
               title: const Text('医疗文件空间'),
               subtitle: const Text('清理手机原件，保留记录；已清理的可取回'),
@@ -207,16 +236,18 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             AdaptiveTile(
               title: const Text('数据存储位置'),
-              subtitle: const Text('保存在本机；配对后 Mac 上有一份副本'),
+              subtitle: const Text('保存在本机；配对后电脑上有一份副本'),
               onTap: () => showAdaptiveDialog<void>(
                 context: context,
                 builder: (context) => AlertDialog.adaptive(
                   title: const Text('数据存储位置'),
-                  content: const Text('消息、照片、PDF 和资料保存在本机应用'
-                      '沙盒里。配对 Mac 后，数据通过局域网同步到 Mac 保存副本，'
+                  content: Text('消息、照片、PDF 和资料保存在本机应用'
+                      '沙盒里。配对电脑后，数据通过局域网同步到电脑保存副本，'
                       '不经过云端。整理消息、识别病历时，相关内容会发给你配置的'
                       '模型服务，发了什么可以在"模型 → 调用记录"里查看。'
-                      '删除应用会一并删除本机数据，重要内容请先用"导出数据"备份。'),
+                      '${ChannelCloudFolder.supported ? '开启 iCloud 备份后，备份写到你选的 iCloud 云盘文件夹。' : ''}'
+                      '删除应用会一并删除本机数据，重要内容请先'
+                      '${ChannelCloudFolder.supported ? '开启 iCloud 备份或' : ''}用"导出数据"备份。'),
                   actions: [
                     DialogAction(
                         onPressed: () => Navigator.pop(context),

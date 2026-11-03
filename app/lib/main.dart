@@ -73,7 +73,15 @@ Future<void> main() async {
     final times =
         (await services.settings.get('review_times') as List).cast<String>();
     final enabled = await services.settings.get('review_enabled') as bool;
-    await notifications.scheduleReviewTimes(times, enabled: enabled);
+    // 从导出或 iCloud 恢复到新装的应用时跳过了引导，通知权限还没申请过：
+    // 这里补申请（已决定过的不会再弹）。排期失败不能挡住启动——iOS 未授权时
+    // zonedSchedule 直接抛错，曾导致恢复后打开一片空白（2026-11-02）。
+    try {
+      if (enabled) await notifications.requestPermission();
+      await notifications.scheduleReviewTimes(times, enabled: enabled);
+    } catch (e, st) {
+      AppLog.I.e('app', '回顾提醒排期失败', e, st);
+    }
   }
 
   // 启动补整理：上次失败或没配模型时留下的"待整理"消息（A-10）。
@@ -97,7 +105,15 @@ Future<void> main() async {
     final removed = await services.records.dedupeExactDuplicates();
     if (removed > 0) AppLog.I.i('records', '清理重复记录 $removed 条');
     await services.syncService.syncNow();
+    // iCloud 备份（D-51）：开了自动备份时，启动、回到前台、切到后台各试
+    // 一次，内容没变不写。切到后台时向系统要时间写完。
+    await services.cloudBackup.autoBackup();
   }());
+  AppLifecycleListener(
+    onResume: () => unawaited(services.cloudBackup.autoBackup()),
+    onHide: () =>
+        unawaited(services.cloudBackup.autoBackup(background: true)),
+  );
 
   // 健康数据：用户在设置里开启后，启动和回到前台时增量同步。
   services.healthService = HealthService(

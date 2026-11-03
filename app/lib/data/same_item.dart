@@ -1,3 +1,5 @@
+import 'lab_catalog.dart';
+
 /// 判断两条记录说的是不是同一件事（D-32）。体检报告前面的汇总把问题
 /// 列一遍、后面的明细再写一遍，写法还不完全一样（"天门冬氨酸氨基转移酶"
 /// 与"天门冬氨酸氨基转移酶（AST）"，"颈椎轻度骨质增生"与"颈（3）-（6）
@@ -19,13 +21,31 @@ class SameItem {
     return name.isEmpty ? itemNameRaw : name;
   }
 
-  /// 检验项目的归一化键：去括号里的缩写与方法、去空白，再把同一指标的
-  /// 不同写法归到一个名字（D-32 补充，2026-09-30）：
+  /// 检验项目的归一化键（趋势、人体图、咨询共用）：先按本地规则清洗
+  /// （[ruleKey]），再查内置指标目录换成标准名（[LabCatalog]，D-49）。
+  ///
+  /// [std] 是记录里这一项的标准名（`item_std`）：提取时模型对号入座、用户
+  /// 合并、确认或拆出的结果，写入时已清洗，原样作键、不再查目录（用户
+  /// 拆出"BMI"时不能又被目录并回体重指数，D-49）。
+  static String labKey(String itemNameRaw, {String? panel, String? std}) {
+    if (std != null && std.trim().isNotEmpty) return std.trim();
+    return LabCatalog.canonical(ruleKey(itemNameRaw, panel: panel));
+  }
+
+  /// 一条检验结果（记录 data.results 的一项）的键：带上大项和 `item_std`。
+  static String resultKey(Map<Object?, Object?> r) => labKey(
+        '${r['item_name_raw']}',
+        panel: r['panel_raw'] is String ? r['panel_raw'] as String : null,
+        std: r['item_std'] is String ? r['item_std'] as String : null,
+      );
+
+  /// 检验项目名按本地规则清洗：去括号里的缩写与方法、去空白，再把同一
+  /// 指标的不同写法归到一个名字（D-32 补充，2026-09-30）：
   /// - 末尾的"（联）"（联合检测）、不带括号的检测方法（"……电发光"）、
   ///   "测定 / 检测 / 定量 / 定性"——同一指标，不同医院、不同写法；
   /// - 白细胞分类的"比值 / 百分比 / 百分数"归百分数，"计数 / 绝对值"
   ///   归绝对值（比值是小数，建索引时换算，见 [labPercentFactor]）；
-  /// - 常见别名（[_aliases]）；
+  /// - 左右侧写法统一（"ABI（R）""ABI：右侧"→"ABI（右）"，D-49）；
   /// - 项目名前后的互认标记（"*白细胞计数"，[itemName]）；
   /// - 复测（"复测血压""收缩压（复测第1次）"）：和首次测量画在同一条趋势
   ///   上（D-39，用户选择），同一天数值不同就是两个点。
@@ -33,9 +53,11 @@ class SameItem {
   /// [panel] 是报告上的检查大项（D-36）。尿常规、便常规里的项目名脱离大项
   /// 就分不清（尿"白细胞""葡萄糖""胆红素"与血里的同名），键前加标本
   /// （"尿白细胞""尿糖""便隐血"）；本来就带"尿/便"的名字不重复加。
-  static String labKey(String itemNameRaw, {String? panel}) {
+  static String ruleKey(String itemNameRaw, {String? panel}) {
     final specimen = specimenOf(panel);
-    final named = itemName(itemNameRaw).replaceAll(_retest, '');
+    final named = itemName(itemNameRaw)
+        .replaceAll(_retest, '')
+        .replaceAllMapped(_side, (m) => '（${_sideOf(m[1] ?? m[2]!)}）');
     // 镜检要在去括号之前认：括号里的"HPF"是英文，去掉后"白细胞(HPF)"
     // 就和血白细胞同名了。
     final micro = _microscopy.firstMatch(named.replaceAll(RegExp(r'\s'), ''));
@@ -72,8 +94,17 @@ class SameItem {
       final base = k.startsWith(specimen) ? k.substring(1) : k;
       return '$specimen${_specimenAliases[base.toLowerCase()] ?? base}';
     }
-    return _aliases[k] ?? k;
+    return k;
   }
+
+  /// 左右侧：括号里的 R/L/右/左，或末尾的"：右侧"。括号里的 R、L 是英文，
+  /// 不先认出来会被当成缩写去掉，左右两侧就成了一项（2026-10-29 用户数据）。
+  static final _side = RegExp(r'[（(]\s*([RL右左])\s*[）)]|[：:]\s*([右左])侧?$',
+      caseSensitive: false);
+  static String _sideOf(String s) => switch (s.toUpperCase()) {
+        'R' || '右' => '右',
+        _ => '左',
+      };
 
   /// 检查大项对应的标本：尿常规/尿液分析/尿沉渣 → 尿，便常规/粪便常规 → 便；
   /// 血液类和认不出的返回 null（键不加前缀，与没有大项的旧数据一致）。
@@ -123,6 +154,8 @@ class SameItem {
   /// 这些不管报告怎么标大项、标没标，都归同一组），再按大项，没有大项的
   /// 尿、便项目按键前的标本归组，都认不出的归"其他"。
   static String trendGroup(String? panel, String itemKey) {
+    final catalog = LabCatalog.groupOf(itemKey);
+    if (catalog != null) return catalog;
     for (final (pattern, group) in _itemGroups) {
       if (pattern.hasMatch(itemKey)) return group;
     }
@@ -150,7 +183,9 @@ class SameItem {
     (RegExp('视力|色觉|眼科'), '眼科'),
     (RegExp('血型'), '血型'),
     (RegExp('传染|感染|乙肝|肝炎|术前'), '传染病筛查'),
-    (RegExp('一般|体格|生命体征'), '一般检查'),
+    (RegExp('一般|体格|生命体征|^内科'), '一般检查'),
+    (RegExp('动脉硬化|动脉阻塞|动脉僵硬|四肢动脉|踝臂|PWV|ABI', caseSensitive: false),
+        '动脉硬化检测'),
   ];
 
   /// 按项目认的分组（键是 [labKey] 的结果）。只收不会认错的：过敏原按
@@ -199,40 +234,6 @@ class SameItem {
       caseSensitive: false);
   static final _wbcAbsolute = RegExp(r'计数|绝对值|数目');
 
-  /// 常见别名 → 本应用用的名字。只收同一指标、同一标本的叫法，
-  /// 不收"尿素氮 / 尿素"这类单位或口径不同的。
-  static const _aliases = {
-    '谷丙转氨酶': '丙氨酸氨基转移酶',
-    '谷草转氨酶': '天门冬氨酸氨基转移酶',
-    '天冬氨酸氨基转移酶': '天门冬氨酸氨基转移酶',
-    'γ-谷氨酰转肽酶': 'γ-谷氨酰转移酶',
-    '谷氨酰转肽酶': 'γ-谷氨酰转移酶',
-    'γ-谷氨酰基转移酶': 'γ-谷氨酰转移酶',
-    '血小板计数': '血小板',
-    '红细胞比容': '红细胞压积',
-    '红细胞比积': '红细胞压积',
-    '血细胞比容': '红细胞压积',
-    '血小板比积': '血小板压积',
-    '血小板比容': '血小板压积',
-    '血小板平均体积': '平均血小板体积',
-    // 红细胞参数（2026-10-20 用户数据：同一指标三家医院三种叫法）。
-    // 含量（MCH，pg）和浓度（MCHC，g/L）是两个指标，不合。
-    '平均血红蛋白含量': '平均红细胞血红蛋白含量',
-    '平均血红蛋白量': '平均红细胞血红蛋白含量',
-    '平均红细胞血红蛋白量': '平均红细胞血红蛋白含量',
-    '平均血红蛋白浓度': '平均红细胞血红蛋白浓度',
-    '红细胞平均体积': '平均红细胞体积',
-    '血小板体积分布宽度': '血小板分布宽度',
-    '血小板容积分布宽度': '血小板分布宽度',
-    '促甲状腺激素': '促甲状腺素',
-    '甘油三脂': '甘油三酯',
-    '血肌酐': '肌酐',
-    '血尿酸': '尿酸',
-    // 尿胆素原只在尿里查，大项没识别出来时也归尿胆原。
-    '尿胆素原': '尿胆原',
-    '尿白细胞酯酶': '尿白细胞',
-  };
-
   /// 白细胞分类写成小数比值（0.481，参考 0.5-0.7）时换算成百分数的倍数：
   /// 名字是比值类、没有单位或单位是"-"、参考上限（没有时看数值）不超过 1，
   /// 才乘 100；已经是百分数的返回 1。
@@ -244,17 +245,23 @@ class SameItem {
   /// （"0.0022"，参考 0.0011-0.0028），两种都不带 %；按量级判断，参考上限
   /// （没有时看数值）小于 0.05 的乘 100。单位只看是不是 %：有报告把它的
   /// 单位印成了 fL。
+  ///
+  /// 大血小板比率按百分数是 13–48，写成小数是 0.13–0.48，同样不带 %
+  /// 或误印成 fL（2026-10-30 用户数据）；参考上限（没有时看数值）不超过 1
+  /// 的乘 100。
   static double labPercentFactor(Map<Object?, Object?> r) {
     final name = r['item_name_raw'];
     if (name is! String) return 1;
     final unit = '${r['unit_raw'] ?? ''}'.trim();
     final key = labKey(name, panel: r['panel_raw'] as String?);
-    if (key == '血小板压积') {
+    if (key == '血小板比容') {
       if (unit == '%') return 1;
       final scale = (r['ref_high'] as num?) ?? (r['value_num'] as num?);
       return scale != null && scale < 0.05 ? 100 : 1;
     }
-    if (key == '红细胞压积') {
+    if (key == '大血小板比率') {
+      if (unit == '%') return 1;
+    } else if (key == '血细胞比容') {
       if (unit.isNotEmpty && unit != '-' && unit.toLowerCase() != 'l/l') {
         return 1;
       }
@@ -316,6 +323,30 @@ class SameItem {
           r'^[\s\-—–－/]*$|^未[测查做检]$')
       .hasMatch(valueRaw);
 
+  /// 尿、便定性结果画趋势用的数值：阴性、neg、未见记 0，±（弱阳性）记
+  /// 0.5，+ 到 ++++（1+ 到 4+）记 1 到 4；只记阴性不记阳性会让趋势平在 0，
+  /// 把异常藏起来。认不出的返回 null。裸的"-"仍按没测的占位值
+  /// （[isPlaceholderValue]），"阴性（-）"这样写明的才算阴性。
+  static double? qualitativeValue(String valueRaw) {
+    final v = valueRaw
+        .replaceAll(RegExp(r'\s'), '')
+        .replaceAll('＋', '+')
+        .replaceAll(RegExp('[－—–]'), '-')
+        .toLowerCase();
+    if (RegExp(r'^(?:阴性|neg(?:ative)?|未见|未检出|无)(?:[（(][-]?[）)])?$')
+        .hasMatch(v)) {
+      return 0;
+    }
+    final grade = RegExp(r'^(?:阳性|弱阳性)?[（(]?(\+-|±|\+{1,4}|[1-4]\+)[）)]?$')
+        .firstMatch(v);
+    if (grade == null) return v == '弱阳性' ? 0.5 : null;
+    final g = grade[1]!;
+    if (g == '±' || g == '+-') return 0.5;
+    return g.endsWith('+') && g.length == 2 && g[0] != '+'
+        ? double.parse(g[0])
+        : g.length.toDouble();
+  }
+
   /// 检验结果的值（比较用）：有解析出的数值用数值，否则用原文去掉单位与空白。
   static String labValue(Map<Object?, Object?> r) {
     final n = r['value_num'];
@@ -337,7 +368,7 @@ class SameItem {
     for (final r in results) {
       final name = r['item_name_raw'];
       final key = name is String
-          ? '${labKey(name, panel: r['panel_raw'] as String?)}|${labValue(r)}'
+          ? '${resultKey(r)}|${labValue(r)}'
           : null;
       final prev = key == null ? null : keep[key];
       if (prev == null) {

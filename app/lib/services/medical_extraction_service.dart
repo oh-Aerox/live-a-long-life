@@ -5,6 +5,9 @@ import 'dart:typed_data';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/ids.dart';
+import '../data/lab_catalog.dart';
+import '../data/lab_explain.dart';
+import '../data/lab_names.dart';
 import '../data/ocr_fixes.dart';
 import '../data/repositories/attachment_repository.dart';
 import '../data/repositories/medical_document_repository.dart';
@@ -41,6 +44,7 @@ const labExtractSystemPrompt = '''
     {
       "panel_raw": "所属检查大项的标题（如 血常规、尿常规、肝功能、血脂）" 或 null,
       "item_name_raw": "项目名称",
+      "item_std": "标准项目名（见文末）" 或 null,
       "value_raw": "数值，按原文",
       "value_num": 解析出的数值 或 null,
       "unit_raw": "单位" 或 null,
@@ -146,7 +150,7 @@ const labExtractImageSystemPrompt = '''
 {
   "doc": {"doc_type": "lab_report" | "imaging_report" | "visit_record" | "prescription" | "discharge_summary" | "other",
           "institution_text": 医疗机构名称 或 null, "visit_title": 这次就诊或检查的标题 或 null, "exam_date": "YYYY-MM-DD" 或 null, "report_date": "YYYY-MM-DD" 或 null},
-  "results": [{"panel_raw", "item_name_raw", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
+  "results": [{"panel_raw", "item_name_raw", "item_std", "value_raw", "value_num", "unit_raw", "ref_range_raw", "ref_low", "ref_high", "flag_raw"}],
   "findings": [{"section_raw", "text_raw"}],
   "medications": [{"name", "spec", "dose", "route", "frequency", "duration", "quantity"}],
   "conditions": [{"name", "persistence": "long_term" | "temporary", "evidence_text"}]
@@ -168,6 +172,79 @@ const labExtractImageSystemPrompt = '''
 - 没有的部分给空数组。
 ''';
 
+/// 标准项目名的规则与指标目录（D-49），接在两个提取提示词后面。目录是
+/// 代码常量（[LabCatalog]），趋势里已有、目录里没有的项目名随用户侧输入
+/// 发送（[MedicalExtractionService._knownNamesText]）。
+/// 改动时同步更新 docs/prompts.md。
+String labStdPromptRules() => '''
+
+关于标准项目名 item_std：
+- 每个检验结果都给 item_std：这个项目在下方"指标目录"或输入末尾"已有项目名"
+  里对应的名字。优先用目录里的标准名，其次用已有项目名，名字照抄，不要改写；
+- 只有确定是同一个指标（同一标本、同一测法、同一单位口径）才对应：尿素与尿素氮、
+  游离与总前列腺特异性抗原、肌酸激酶与肌酸激酶同工酶、尿常规的葡萄糖与血糖、
+  脉搏与心率都不是同一个；拿不准时给 null；
+- 目录和已有项目名里都没有的，给这个项目规范的中文全称（报告只写缩写"BMI"
+  的给"体重指数"，有错别字的给正确写法），不带英文缩写和检测方法；看不出给 null；
+- 尿常规、便常规里的项目，标准名带"尿""便"（尿葡萄糖、尿白细胞、便隐血）；
+- item_name_raw 仍按报告原文写，不要用标准名替换。
+
+指标目录（分组：标准名（别名、缩写））：
+${LabCatalog.promptText()}
+''';
+
+/// 整理现有检验项目名称的提示词（D-49）：趋势里规则和目录都认不出的
+/// 项目名，让模型对到目录或已有项目上，或给出规范的中文名。只发名称、
+/// 分组和单位，不发数值。改动时同步更新 docs/prompts.md。
+String labNameTidySystemPrompt() => '''
+你在整理一个人历年检验报告里的检验项目名称。不同医院、不同年份对同一个指标
+写法不同（缩写、旧称、错别字、带部位前缀），要把它们对到同一个标准名上。
+输入是 JSON：
+{"items": [{"item": "现在的项目名", "names": ["报告上的写法"], "group": "所在分组", "units": ["单位"]}],
+ "existing": ["趋势里已有的全部项目名"]}
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"items": [{"item": "现在的项目名", "std": "标准名"}]}
+只列需要改名或合并的项目；不需要改的不要列。
+
+规则：
+- std 优先用下方"指标目录"里的标准名，其次用 existing 里已有的项目名，照抄；
+- 只有确定是同一个指标（同一标本、同一测法、同一单位口径）才对应：尿素与尿素氮、
+  游离与总前列腺特异性抗原、肌酸激酶与同工酶、尿里的项目与血里的项目、脉搏与
+  心率、左侧与右侧都不是同一个；拿不准的不要列；
+- 目录和 existing 里都没有、但名字是缩写、旧称或有错别字的，给规范的中文全称，
+  不带英文缩写和检测方法；名字本身已经规范的不要列；
+- 尿、便里的项目，标准名带"尿""便"。
+
+指标目录（分组：标准名（别名、缩写））：
+${LabCatalog.promptText()}
+''';
+
+/// 检验指标说明提示词（D-50）：内置目录外的项目，用户在指标趋势详情里
+/// 点"用模型生成说明"时用。只发项目名、报告上的写法、分组和单位，不发
+/// 数值和日期。改动时同步更新 docs/prompts.md。
+const labExplainSystemPrompt = '''
+你在为一个健康记录应用写检验或体检指标的科普说明，帮助普通人看懂这一项是什么。
+输入是 JSON：
+{"item": "项目名", "names": ["报告上的写法"], "group": "所在分组", "units": ["单位"]}
+
+只输出一个 JSON 对象，不要输出其他文字：
+{"meaning": "这一项测的是什么、反映什么", "high": "偏高可能意味着什么" 或 null,
+ "low": "偏低可能意味着什么" 或 null, "related": "常和哪些指标一起看、为什么" 或 null,
+ "qualitative": true/false}
+不需要说明的输出 {"skip": true}。
+
+规则：
+- 是通用的科普说明，不针对任何人的结果，不做诊断，不给治疗或用药建议；
+  用"可能见于""常见于""提示"这类说法；
+- 每一栏一到两句，用通俗的中文，专业名词第一次出现时加简短解释；
+- 定性项目（结果是阴性/阳性）把 qualitative 设为 true，high 写阳性意味着什么，
+  low 写 null；
+- 只写医学上公认的内容；没什么可说的栏目给 null；对这个项目拿不准是什么的，
+  输出 {"skip": true}，不要猜；
+- 普通人都懂的项目（身高、体重、腰围、视力等）和单项过敏原输出 {"skip": true}。
+''';
+
 /// 文字内容整理提示词（D-35）：提取按栏目分条，超声等报告常把同一部位的
 /// 所见和结论拆成两条、体检报告汇总与明细各写一遍。用户在医疗文件详情点
 /// "用模型整理"时，把已提取的文字内容（来自脱敏后的文本）发给模型合并去重。
@@ -180,7 +257,8 @@ const findingsTidySystemPrompt = '''
 "检查所见"：甲状腺未见异常）；体检报告汇总页和明细页把同一个问题写了两遍。
 
 只输出一个 JSON 对象，不要输出其他文字：
-{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}]}
+{"findings": [{"section_raw": "栏目名称", "text_raw": "内容", "from": [合并进来的输入 id]}],
+ "drop": [删掉的输入 id]}
 
 规则：
 - 同一部位或同一项检查的所见、描述、结论、提示合并成一条：section_raw 写部位或
@@ -193,7 +271,15 @@ const findingsTidySystemPrompt = '''
 - 不同部位、不同检查不要合并；拿不准是不是同一部位时不合并；
 - 文字照原文，不要摘要、改写、补充或删减内容，合并时只做拼接和去掉重复的句子；
   不要修改数字、单位、大小、日期；
-- 每个输入 id 必须出现在且只出现在一条输出的 from 里，不能遗漏；
+- 对这份报告没有任何信息的条目放进 drop，不输出：
+  · 报告模板上的说明和免责套话（如"对结果值的说明""检测结果及疾病诊断，请咨询
+    医生""本报告仅对所检标本负责""结果仅供临床参考"）；
+  · 栏目名不指向任何部位或检查（如"其他""小结""备注""结果提示""总检"），内容
+    只有"未见异常""正常""无""未见明显异常"一类的；如果它明显是相邻某项检查的
+    结论，就合并进那一条，不要删；
+  只删这两类。写着具体部位或检查的"未见异常"（如"肺野：未见异常"）、病历栏目里的
+  "无""否认"、任何带数字或异常描述的内容都要保留；拿不准的保留；
+- 每个输入 id 必须出现在且只出现在一处：某条输出的 from 里，或 drop 里，不能遗漏；
 - 输出顺序按报告原来的顺序（以每条最早的 id 为准）。
 ''';
 
@@ -302,6 +388,7 @@ class FindingsTidyOutcome {
   const FindingsTidyOutcome({
     required this.before,
     required this.after,
+    this.dropped = 0,
     required this.record,
     this.previousData,
     this.previousFieldMeta,
@@ -309,6 +396,9 @@ class FindingsTidyOutcome {
 
   final int before;
   final int after;
+
+  /// 删掉的没有内容的条目（模板说明、"其他：未见异常"）。
+  final int dropped;
   final RecordRow record;
   final String? previousData;
   final String? previousFieldMeta;
@@ -663,7 +753,7 @@ class MedicalExtractionService {
     final sentSummary = '模型识图：第 ${send.pageNo} 页'
         '${box == null ? '整页（未裁剪）' : '裁剪后的局部（约占整页 $area%）'}，'
         '图片 ${send.width}×${send.height}，只用于这次发送，不保存';
-    const userText = '请整理这张医疗文件图片。';
+    final userText = '请整理这张医疗文件图片。${await _knownNamesText()}';
     final requestAt = ids.nowMs();
     final apiKey = config.keychainRef.isEmpty
         ? ''
@@ -677,7 +767,7 @@ class MedicalExtractionService {
       response = await _imageCall(
         config: config,
         apiKey: apiKey,
-        system: labExtractImageSystemPrompt,
+        system: '$labExtractImageSystemPrompt${labStdPromptRules()}',
         userText: userText,
         maxTokens: 8192,
         imagePngBase64: base64Encode(send.png),
@@ -745,8 +835,9 @@ class MedicalExtractionService {
   /// 用模型整理文字内容（D-35）：把当前版本的 findings 发给模型，同一部位的
   /// 所见与结论合并、重复的去掉，写成记录的新版本（旧版本保留，可撤销）。
   /// 只发已提取的文字（来自脱敏后的文本），不发图片和原始识别文本。
-  /// 每段输入都要落进某一条输出，漏了就整个不改；没合并任何一条时不写新版本。
-  /// 原样保留的条目保持核对状态，合并出来的条目回到未核对。
+  /// 每段输入都要落进某一条输出或删除清单，漏了就整个不改；没合并也没删
+  /// 任何一条时不写新版本。原样保留的条目保持核对状态，合并出来的条目回到
+  /// 未核对。模型要删的条目本地再看一遍（[_droppable]），不像套话的照原样留下。
   Future<FindingsTidyOutcome> tidyFindings(String documentId) async {
     final record = await _records.labPanelOfDocument(documentId);
     if (record == null) throw StateError('这份文件还没有提取');
@@ -781,9 +872,8 @@ class MedicalExtractionService {
       throw StateError('模型返回无法解析，没有改动');
     }
     final meta = FieldMetaMap.decode(rev.fieldMeta);
-    final tidied = <Map<String, Object?>>[];
-    final fields = Map<String, FieldMeta>.from(meta.fields)
-      ..removeWhere((k, _) => k.startsWith('findings.'));
+    // 先收齐（第一个来源下标、条目、核对状态），删除被驳回的插回原位后再排序编号。
+    final kept = <(int, Map<String, Object?>, FieldMeta?)>[];
     final covered = <int>{};
     for (final raw in out) {
       if (raw is! Map) continue;
@@ -816,12 +906,33 @@ class MedicalExtractionService {
       final unchanged = from.length == 1 &&
           entry['section_raw'] == source['section_raw'] &&
           entry['text_raw'] == source['text_raw'];
-      final kept = unchanged ? meta['findings.${from.first}'] : null;
-      fields['findings.${tidied.length}'] = kept ??
+      kept.add((
+        from.first,
+        entry,
+        unchanged ? meta['findings.${from.first}'] : null,
+      ));
+    }
+    var dropped = 0;
+    for (final id in parsed!['drop'] as List? ?? const []) {
+      if (id is! num || id < 1 || id > findings.length) continue;
+      final i = id.toInt() - 1;
+      if (!covered.add(i)) continue; // 已经合进某一条的以合并为准
+      if (_droppable(findings[i])) {
+        dropped++;
+      } else {
+        AppLog.I.w('extract', '文字整理要删第 ${i + 1} 段，不像套话，保留');
+        kept.add((i, findings[i], meta['findings.$i']));
+      }
+    }
+    kept.sort((a, b) => a.$1.compareTo(b.$1));
+    final tidied = [for (final (_, e, _) in kept) e];
+    final fields = Map<String, FieldMeta>.from(meta.fields)
+      ..removeWhere((k, _) => k.startsWith('findings.'));
+    for (final (n, (_, _, m)) in kept.indexed) {
+      fields['findings.$n'] = m ??
           const FieldMeta(
               origin: FieldOrigin.modelInferred,
               reviewStatus: ReviewStatus.unreviewed);
-      tidied.add(entry);
     }
     final missing = [
       for (var i = 0; i < findings.length; i++)
@@ -847,13 +958,23 @@ class MedicalExtractionService {
       fieldMeta: FieldMetaMap(fields),
       producedBy: ProducedBy.medicalExtract(callId),
     );
-    AppLog.I.i('extract', '文字整理：${findings.length} 段合并为 ${tidied.length} 段');
+    AppLog.I.i('extract',
+        '文字整理：${findings.length} 段整理为 ${tidied.length} 段，删掉 $dropped 段');
     return FindingsTidyOutcome(
         before: findings.length,
         after: tidied.length,
+        dropped: dropped,
         record: updated,
         previousData: rev.data,
         previousFieldMeta: rev.fieldMeta);
+  }
+
+  /// 模型要删的一段是否真像没有内容的套话：短（不超过 40 字）、不带数字。
+  /// 量值、大小、日期和长段描述一律不删，防模型删掉真内容。
+  static bool _droppable(Map<String, Object?> f) {
+    final text = '${f['section_raw'] ?? ''}${f['text_raw'] ?? ''}'
+        .replaceAll(RegExp(r'\s'), '');
+    return text.length <= 40 && !RegExp(r'\d').hasMatch(text);
   }
 
   /// 事后整理类调用（文字整理、补大项）：用默认模型发一段已提取的数据，
@@ -911,6 +1032,112 @@ class MedicalExtractionService {
       requestText: payload,
     );
     return (response, call.id);
+  }
+
+  /// 用户侧输入末尾的"已有项目名"（D-49）：趋势里已有、目录里没有的
+  /// 项目名，让模型对号入座。没有时为空串。
+  Future<String> _knownNamesText() async {
+    final names = [
+      for (final r in await _records.labResultLatestPerItem())
+        if (!LabCatalog.byName.containsKey(r.itemKey)) r.itemKey
+    ];
+    return names.isEmpty ? '' : '\n\n已有项目名：${names.join('、')}';
+  }
+
+  /// 用模型生成一项检验指标的说明（D-50）：只发项目名、报告上的写法、分组
+  /// 和单位，不发数值和日期。模型认为不需要说明的返回 null。调用方存进
+  /// 本机设置（[LabExplain.saveGenerated]）。
+  Future<LabExplanation?> explainLabItem(String itemKey,
+      {required String group}) async {
+    final names = (await _records.labItemNames())[itemKey] ?? const {};
+    final units = (await _records.labUnitsByKey())[itemKey] ?? const {};
+    final payload = jsonEncode({
+      'item': itemKey,
+      'names': {for (final n in names) SameItem.itemName(n)}.take(4).toList(),
+      'group': group,
+      'units': [for (final u in units) if (u.isNotEmpty) u],
+    });
+    final (response, _) = await _callAndRecord(
+      system: labExplainSystemPrompt,
+      payload: payload,
+      summary: '检验项目"$itemKey"的名称、分组和单位（生成指标说明，不含数值）',
+    );
+    final parsed = _parse(response.text);
+    if (parsed == null) {
+      AppLog.I.w('extract', '指标说明解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析');
+    }
+    if (parsed['skip'] == true) return null;
+    final e = LabExplanation.fromJson({
+      ...parsed,
+      'high_label': parsed['qualitative'] == true ? '阳性' : '偏高',
+      if (parsed['qualitative'] == true) 'low': null,
+    });
+    if (e == null) throw StateError('模型没有给出说明');
+    return e;
+  }
+
+  /// 整理现有检验项目名称（D-49）：规则和目录都没认出的项目（没有用户定
+  /// 过的标准名），连同报告上的写法、分组、单位发给模型，建议对到目录或
+  /// 已有项目上、或换成规范的中文名。建议经本地检查后写成待确认
+  /// （item_std_suggested），由用户逐条确认；[dismissed] 是用户点过
+  /// "不合并"的（现在的键|建议名）。不发数值。返回新增的建议数。
+  Future<int> proposeLabNames({Set<String> dismissed = const {}}) async {
+    final latest = await _records.labResultLatestPerItem();
+    final names = await _records.labItemNames();
+    final groups = await _records.labItemGroups();
+    final units = await _records.labUnitsByKey();
+    final std = await _records.labStdNames();
+    final userKeys = std.values.toSet();
+    final items = [
+      for (final r in latest)
+        if (!LabCatalog.byName.containsKey(r.itemKey) &&
+            !userKeys.contains(r.itemKey))
+          {
+            'item': r.itemKey,
+            'names': {
+              for (final n in names[r.itemKey] ?? const <String>{})
+                SameItem.itemName(n)
+            }.take(4).toList(),
+            'group': groups[r.itemKey] ?? '其他',
+            'units': (units[r.itemKey] ?? const <String>{}).toList(),
+          }
+    ];
+    if (items.isEmpty) return 0;
+    final payload = jsonEncode({
+      'items': items,
+      'existing': [for (final r in latest) r.itemKey],
+    });
+    final (response, callId) = await _callAndRecord(
+      system: labNameTidySystemPrompt(),
+      payload: payload,
+      summary: '检验项目名称 ${items.length} 个及其分组、单位（整理名称，不含数值）',
+    );
+    final out = _parse(response.text)?['items'];
+    if (out is! List) {
+      AppLog.I.w('extract', '整理项目名称解析失败：${_snippet(response.text)}');
+      throw StateError('模型返回无法解析，没有改动');
+    }
+    final proposals = <String, String>{};
+    for (final raw in out) {
+      if (raw is! Map || raw['item'] is! String) continue;
+      final from = raw['item'] as String;
+      if (!items.any((i) => i['item'] == from)) continue;
+      final to = LabNames.checkProposal(from, raw['std'],
+          fromUnits: units[from] ?? const {}, units: units);
+      if (to == null || dismissed.contains('$from|$to')) continue;
+      proposals[from] = to;
+    }
+    if (proposals.isEmpty) return 0;
+    await _records.updateLabResults((r) {
+      if (r['item_std'] is String) return false;
+      final to = proposals[SameItem.resultKey(r)];
+      if (to == null || r['item_std_suggested'] == to) return false;
+      r['item_std_suggested'] = to;
+      return true;
+    }, producedBy: ProducedBy.medicalExtract(callId));
+    AppLog.I.i('extract', '整理项目名称：${items.length} 项中建议 ${proposals.length} 项');
+    return proposals.length;
   }
 
   /// 给没有检查大项的检验项目补上（D-36）：按顺序发项目名称和已有的大项
@@ -1122,8 +1349,12 @@ class MedicalExtractionService {
         lineIndex['P${p.pageNo}L${i + 1}'] = (p, _withText(p.lines[i], text));
       }
     }
+    // 有批次失败时新结果不全，旧的状况建议先不清（重新提取补上后再清）。
     final saved = await _saveParsed(doc, parsed,
-        lineIndex: lineIndex, callId: callId, attachmentIds: attachmentIds);
+        lineIndex: lineIndex,
+        callId: callId,
+        attachmentIds: attachmentIds,
+        pruneConditions: failedPages.isEmpty);
     AppLog.I.i('extract',
         '结构化提取完成：${saved.results} 项，文字 ${saved.findings} 段，'
         '药品 ${saved.medications} 种，'
@@ -1156,7 +1387,7 @@ class MedicalExtractionService {
     required String apiKey,
     required Set<String> attachmentIds,
   }) async {
-    final payload = draft.payloadOf(pages);
+    final payload = '${draft.payloadOf(pages)}${await _knownNamesText()}';
     final lines = pages.fold(0, (n, p) => n + draft.sentLinesOf(p));
     final summary = total == 1
         ? draft.summary
@@ -1169,7 +1400,7 @@ class MedicalExtractionService {
       response = await _modelCall(
         config: config,
         apiKey: apiKey,
-        system: labExtractSystemPrompt,
+        system: '$labExtractSystemPrompt${labStdPromptRules()}',
         userText: payload,
         maxTokens: 8192,
       );
@@ -1240,6 +1471,7 @@ class MedicalExtractionService {
   /// 建成 lab_panel（全部 unreviewed，D-04；重新提取追加版本），回填文件级
   /// 信息，查近似重复，建状况建议。source_lines 对不上 [lineIndex] 时用
   /// [fallback] 定位（识图路径没有行号：页码 + 裁剪区域）。
+  /// [pruneConditions] 见 [_createConditionSuggestions]。
   Future<_Saved> _saveParsed(
     MedicalDocument doc,
     Map<String, Object?> parsed, {
@@ -1247,6 +1479,7 @@ class MedicalExtractionService {
     Map<String, Object?>? fallback,
     required String callId,
     required Set<String> attachmentIds,
+    bool pruneConditions = false,
   }) async {
     final docInfo = (parsed['doc'] as Map?)?.cast<String, Object?>() ?? {};
     final rawResults = (parsed['results'] as List?) ?? const [];
@@ -1263,6 +1496,7 @@ class MedicalExtractionService {
             ? panel.trim()
             : null,
         'item_name_raw': r['item_name_raw'],
+        '_model_std': r['item_std'],
         'value_raw': r['value_raw'],
         'value_num': r['value_num'],
         'unit_raw': r['unit_raw'],
@@ -1280,6 +1514,21 @@ class MedicalExtractionService {
     // 体检报告前面汇总、后面明细会把同一项写两遍，分批时还落在不同批里：
     // 同项目同数值只留一条（D-32）。
     results = SameItem.dedupeResults(results);
+
+    // 标准项目名（D-49）：模型对号入座，本地检查后写 item_std（直接生效）
+    // 或 item_std_suggested（待用户在"整理项目名称"里确认）。
+    final known = await _records.labStdNames();
+    final existingKeys = {
+      for (final r in await _records.labResultLatestPerItem()) r.itemKey
+    };
+    final units = await _records.labUnitsByKey();
+    for (final r in results) {
+      LabNames.assign(r,
+          modelStd: r.remove('_model_std'),
+          known: known,
+          existingKeys: existingKeys,
+          units: units);
+    }
 
     // 文字内容（D-28）：病历的主诉/诊断/处理意见、超声等报告的所见/结论。
     // 只有文字、没有数值的报告靠它保留，不因 results 为空而丢掉。
@@ -1416,6 +1665,7 @@ class MedicalExtractionService {
       documentId: doc.id,
       callId: callId,
       attachmentIds: attachmentIds,
+      prune: pruneConditions,
     );
     return _Saved(
       record: record,
@@ -1550,6 +1800,13 @@ class MedicalExtractionService {
   /// 不同，D-32），留名称更具体的那条；这份文件或同一检查日期的文件（同一
   /// 份报告重复上传）已经建过的不再建。其他日期报告里的同一问题照样建：
   /// 每份报告各有一条、各自关联原文件，看当前状况时按日期取最新（D-32）。
+  ///
+  /// [prune]（整份重新提取且没有批次失败时）：这份文件以前建议、还没核对、
+  /// 这次又没提取出来的状况标记删除，旧识别认错或写偏的不再留在档案和人体
+  /// 图上；用户确认或改过的是事实，保留（同 [deleteDocument]）。识图常只发
+  /// 一页的局部，不清。
+  ///
+  /// 用户在档案里删掉的（`removed_by_user`）同样算这份报告已有的，不再建议回来。
   Future<List<RecordRow>> _createConditionSuggestions(
     List<Object?> raw, {
     required Map<String, (DraftPage, OcrLine)> lineIndex,
@@ -1558,17 +1815,41 @@ class MedicalExtractionService {
     required String documentId,
     required String callId,
     required Set<String> attachmentIds,
+    bool prune = false,
   }) async {
-    if (raw.isEmpty) return const [];
+    final newNames = [
+      for (final c in raw)
+        if (c is Map && c['name'] is String) c['name'] as String
+    ];
     final existingNames = <String>[];
     for (final rec in await _records.byType(RecordType.condition)) {
       final rev = await _records.currentRevisionOf(rec.id);
       final data = jsonDecode(rev.data) as Map;
+      final name = data['name'];
+      if (prune &&
+          data['medical_document_id'] == documentId &&
+          (FieldMetaMap.decode(rev.fieldMeta)['condition']?.reviewStatus ??
+                  ReviewStatus.unreviewed) ==
+              ReviewStatus.unreviewed &&
+          !(name is String && newNames.any((n) => SameItem.sameProblem(n, name)))) {
+        await _records.markDeleted(rec.id);
+        continue;
+      }
       final sameReport = data['medical_document_id'] == documentId ||
           (examDate != null && rec.localDate == examDate);
       if (!sameReport) continue;
-      if (data['name'] is String) existingNames.add(data['name'] as String);
+      if (name is String) existingNames.add(name);
     }
+    for (final rec in await _records.deletedByType(RecordType.condition)) {
+      final data = jsonDecode((await _records.currentRevisionOf(rec.id)).data)
+          as Map;
+      if (data['removed_by_user'] != true || data['name'] is! String) continue;
+      if (data['medical_document_id'] == documentId ||
+          (examDate != null && rec.localDate == examDate)) {
+        existingNames.add(data['name'] as String);
+      }
+    }
+    if (raw.isEmpty) return const [];
 
     final picked = <Map<Object?, Object?>>[];
     for (final c in raw) {

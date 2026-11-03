@@ -31,6 +31,9 @@ class _ConsultPageState extends State<ConsultPage> {
   bool _allowLookup = true;
   bool _sending = false;
 
+  /// 生成中的回答（流式）；没在生成时为 null。
+  ConsultProgress? _progress;
+
   /// 示例问题（D-45）：新对话时展开，发出第一问后收起，可用灯泡按钮再打开。
   List<SuggestionGroup> _groups = [];
   String? _openGroup;
@@ -98,12 +101,31 @@ class _ConsultPageState extends State<ConsultPage> {
     final msgs = await widget.services.consult.messagesOf(_sessionId);
     if (mounted) {
       setState(() => _messages = msgs);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        }
-      });
+      _scrollToEnd();
     }
+  }
+
+  /// 滚到底。[onlyIfNear] 为真时只在本来就停在底部附近才跟随，
+  /// 用户往上翻着看时不打扰。
+  void _scrollToEnd({bool onlyIfNear = false}) {
+    if (onlyIfNear &&
+        _scroll.hasClients &&
+        _scroll.position.maxScrollExtent - _scroll.offset > 80) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void _onProgress(ConsultProgress p) {
+    if (!mounted) return;
+    // 第一次回调时问题已存好：刷新出自己的提问。
+    if (_progress == null) _reload();
+    setState(() => _progress = p);
+    _scrollToEnd(onlyIfNear: true);
   }
 
   Future<void> _send() async {
@@ -116,13 +138,12 @@ class _ConsultPageState extends State<ConsultPage> {
       _openGroup = null;
     });
     try {
-      final future = widget.services.consult.ask(
+      await widget.services.consult.ask(
         _sessionId,
         text,
         allowLookup: _allowLookup,
+        onProgress: _onProgress,
       );
-      await _reload(); // 先显示自己的提问
-      await future;
       await _reload();
     } catch (e) {
       await _reload();
@@ -131,7 +152,12 @@ class _ConsultPageState extends State<ConsultPage> {
             .showSnackBar(SnackBar(content: Text('咨询失败：$e')));
       }
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) {
+        setState(() {
+          _sending = false;
+          _progress = null;
+        });
+      }
     }
   }
 
@@ -195,6 +221,53 @@ class _ConsultPageState extends State<ConsultPage> {
     );
   }
 
+  /// 生成中的回答：文字边到边显示；还没出字时显示在想或查了什么。
+  Widget _draftBubble(ConsultProgress p, ColorScheme scheme) {
+    final status = p.draft.isNotEmpty
+        ? '回答中…'
+        : p.lookups.isEmpty
+            ? '思考中…'
+            : '已查阅：${p.lookups.join('、')}';
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (p.draft.isNotEmpty) MarkdownText(p.draft),
+            Padding(
+              padding: EdgeInsets.only(top: p.draft.isEmpty ? 0 : 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator.adaptive(
+                          strokeWidth: 1.5)),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(status,
+                        style: TextStyle(
+                            fontSize: 11, color: scheme.onSurfaceVariant)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -212,7 +285,7 @@ class _ConsultPageState extends State<ConsultPage> {
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty
+            child: _messages.isEmpty && _progress == null
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -230,8 +303,11 @@ class _ConsultPageState extends State<ConsultPage> {
                 : ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.all(12),
-                    itemCount: _messages.length,
+                    itemCount: _messages.length + (_progress == null ? 0 : 1),
                     itemBuilder: (context, i) {
+                      if (i == _messages.length) {
+                        return _draftBubble(_progress!, scheme);
+                      }
                       final m = _messages[i];
                       final isUser = m.role == 'user';
                       return Align(
@@ -275,14 +351,6 @@ class _ConsultPageState extends State<ConsultPage> {
                     },
                   ),
           ),
-          if (_sending)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
-            ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),

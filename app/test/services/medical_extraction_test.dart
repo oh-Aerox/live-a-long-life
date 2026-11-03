@@ -326,6 +326,80 @@ void main() {
     expect(await records.byType(RecordType.condition), hasLength(2));
   });
 
+  test('重新提取：这份文件没核对、这次没提取出的旧状况建议删掉，确认过的和其他文件的保留', () async {
+    await configs.add(
+      preset: ModelPreset.anthropic,
+      protocol: ModelProtocol.anthropic,
+      baseUrl: 'https://api.example.com',
+      model: 'm',
+      dataBoundary: DataBoundary.cloud,
+      keychainRef: '',
+    );
+    final extractor = FakeExtractor(ocrResults: const [
+      OcrLine(text: '结论：胆囊结石（多发） 肝囊肿 脂肪肝', x: 0.1, y: 0.3, w: 0.6, h: 0.03),
+    ]);
+    final service = buildService(extractor);
+    String reply(List<String> names) => jsonEncode({
+          'doc': {'doc_type': 'imaging_report', 'exam_date': '2026-09-20'},
+          'results': [],
+          'conditions': [
+            for (final n in names)
+              {'name': n, 'persistence': 'long_term', 'source_lines': ['P1L1']},
+          ],
+        });
+
+    final doc = await importDoc();
+    model.reply(reply(['胆囊结石', '肝囊肿', '肝脏钙化灶']));
+    final first = await service.extractDocument(doc.id);
+    // 用户确认了"肝囊肿"。
+    final confirmed = first.conditionRecords[1];
+    final rev = await records.currentRevisionOf(confirmed.id);
+    await records.addRevision(
+      recordId: confirmed.id,
+      baseVersion: confirmed.version,
+      occurred: TimeValue.decode(rev.occurred),
+      dataJson: rev.data,
+      fieldMeta: const FieldMetaMap({
+        'condition': FieldMeta(
+            origin: FieldOrigin.modelInferred,
+            reviewStatus: ReviewStatus.confirmed),
+      }),
+      producedBy: ProducedBy.userEdit(),
+    );
+
+    // 重新识别：钙化灶是旧识别认错的，这次没有；多了脂肪肝。
+    model.reply(reply(['胆囊结石（多发）', '脂肪肝']));
+    final second = await service.extractDocument(doc.id);
+    expect([for (final r in second.conditionRecords) r.id], hasLength(1));
+    final names = [
+      for (final r in await records.byType(RecordType.condition))
+        (jsonDecode((await records.currentRevisionOf(r.id)).data) as Map)['name']
+    ]..sort();
+    // 胆囊结石沿用旧的那条（同一问题不重复建），已确认的肝囊肿保留。
+    expect(names, ['肝囊肿', '胆囊结石', '脂肪肝']..sort());
+
+    // 用户在档案里删掉了确认过的"肝囊肿"（提取错了）：再提取不建议回来。
+    final cyst = (await records.byType(RecordType.condition)).firstWhere((r) =>
+        r.id == confirmed.id);
+    final cystRev = await records.currentRevisionOf(cyst.id);
+    await records.addRevision(
+      recordId: cyst.id,
+      baseVersion: cyst.version,
+      occurred: TimeValue.decode(cystRev.occurred),
+      dataJson: jsonEncode({
+        ...(jsonDecode(cystRev.data) as Map),
+        'removed_by_user': true,
+      }),
+      fieldMeta: FieldMetaMap.decode(cystRev.fieldMeta),
+      producedBy: ProducedBy.userEdit(),
+    );
+    await records.markDeleted(cyst.id);
+    model.reply(reply(['胆囊结石', '肝囊肿', '脂肪肝']));
+    final third = await service.extractDocument(doc.id);
+    expect(third.conditionRecords, isEmpty);
+    expect(await records.byType(RecordType.condition), hasLength(2));
+  });
+
   test('体检报告汇总与明细重复（D-32）：同一份文件里同一问题、同项目同数值只留一条',
       () async {
     await configs.add(
@@ -546,6 +620,53 @@ void main() {
       expect(meta['findings.1']!.reviewStatus, ReviewStatus.confirmed);
       expect(meta['findings.2'], isNull);
       expect(outcome.previousData, contains('检查所见'));
+    });
+
+    test('没有内容的条目删掉；带数字或太长的不像套话，驳回后按原位保留', () async {
+      final (service, docId) = await extracted();
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '甲状腺', 'text_raw': '甲状腺形态大小正常，回声均匀', 'from': [1]},
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'from': [2]},
+        ],
+        'drop': [3], // 本地只按长度与数字把关，借第 3 段测删除的流程
+      }));
+      final outcome = await service.tidyFindings(docId);
+      expect((outcome.before, outcome.after, outcome.dropped), (3, 2, 1));
+      var rev = await records.currentRevisionOf(outcome.record.id);
+      var findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+      expect([for (final f in findings) f['section_raw']], ['甲状腺', '检查所见']);
+      expect(FieldMetaMap.decode(rev.fieldMeta)['findings.2'], isNull);
+
+      // 模型想删带数字的一段：本地驳回，放回原来的位置，核对状态不丢。
+      final (service2, docId2) = await extracted();
+      final record = (await records.labPanelOfDocument(docId2))!;
+      rev = await records.currentRevisionOf(record.id);
+      final data = (jsonDecode(rev.data) as Map).cast<String, Object?>();
+      (data['findings'] as List)[0] = {
+        ...(data['findings'] as List)[0] as Map,
+        'text_raw': '甲状腺右叶结节 0.5cm',
+      };
+      await records.addRevision(
+        recordId: record.id,
+        baseVersion: record.version,
+        occurred: TimeValue.decode(rev.occurred),
+        dataJson: jsonEncode(data),
+        fieldMeta: FieldMetaMap.decode(rev.fieldMeta),
+        producedBy: ProducedBy.userEdit(),
+      );
+      model.reply(jsonEncode({
+        'findings': [
+          {'section_raw': '检查所见', 'text_raw': '甲状腺未见异常', 'from': [2]},
+        ],
+        'drop': [1, 3],
+      }));
+      final o2 = await service2.tidyFindings(docId2);
+      expect((o2.after, o2.dropped), (2, 1));
+      rev = await records.currentRevisionOf(o2.record.id);
+      findings = (jsonDecode(rev.data) as Map)['findings'] as List;
+      expect([for (final f in findings) f['text_raw']],
+          ['甲状腺右叶结节 0.5cm', '甲状腺未见异常']);
     });
 
     test('模型漏了某一段：整个不改；没有可合并的不写新版本', () async {
@@ -1139,5 +1260,41 @@ void main() {
         buildService(extractor).extractDocument(doc.id), throwsStateError);
     final day = await records.byDate(DateTime.now().toString().substring(0, 10));
     expect(day, isEmpty);
+  });
+
+  test('指标说明（D-50）：只发项目名、写法、分组、单位，不发数值；定性项目标阳性；不需要的返回 null', () async {
+    await addConfig();
+    await records.create(
+      recordType: RecordType.labPanel,
+      occurred: TimeValue(
+          localDate: '2023-07-26',
+          precision: TimePrecision.dateOnly,
+          source: TimeValueSource.userStated),
+      dataJson: jsonEncode({
+        'results': [
+          {'item_name_raw': 'MTHFR', 'value_raw': 'CT', 'panel_raw': '基因检测'},
+        ],
+      }),
+      fieldMeta: const FieldMetaMap({}),
+      producedBy: ProducedBy.medicalExtract('call-1'),
+    );
+    final service = buildService(FakeExtractor(ocrResults: const []));
+    model.reply(jsonEncode({
+      'meaning': '叶酸代谢相关的基因',
+      'high': '突变型可能使同型半胱氨酸偏高',
+      'low': '不该有',
+      'related': '同型半胱氨酸、叶酸',
+      'qualitative': true,
+    }));
+    final e = (await service.explainLabItem('MTHFR', group: '基因检测'))!;
+    expect(e.meaning, '叶酸代谢相关的基因');
+    expect(e.highLabel, '阳性');
+    expect(e.low, isNull);
+    expect(model.calls.last, contains('MTHFR'));
+    expect(model.calls.last, isNot(contains('CT')));
+    expect(model.calls.last, isNot(contains('2023')));
+
+    model.reply(jsonEncode({'skip': true}));
+    expect(await service.explainLabItem('MTHFR', group: '基因检测'), isNull);
   });
 }

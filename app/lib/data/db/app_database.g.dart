@@ -18694,8 +18694,8 @@ class MedicalDocument extends DataClass implements Insertable<MedicalDocument> {
   final MedicalDocType docType;
   final String? institutionText;
 
-  /// 就诊标题（v17）：模型按单据概括这次就诊/检查的原因，如"甲状腺结节
-  /// 复查"，列表上直接看出是为什么去的；用户可改，重新提取不覆盖已有的。
+  /// 就诊标题（v17）：模型按单据概括这次就诊/检查的原因，如"膝关节扭伤
+  /// 复诊"，列表上直接看出是为什么去的；用户可改，重新提取不覆盖已有的。
   final String? visitTitle;
   final String? examDate;
   final String? reportDate;
@@ -19331,6 +19331,17 @@ class $LabResultsTable extends LabResults
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _itemStdMeta = const VerificationMeta(
+    'itemStd',
+  );
+  @override
+  late final GeneratedColumn<String> itemStd = GeneratedColumn<String>(
+    'item_std',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _panelRawMeta = const VerificationMeta(
     'panelRaw',
   );
@@ -19458,6 +19469,7 @@ class $LabResultsTable extends LabResults
     medicalDocumentId,
     itemNameRaw,
     itemKey,
+    itemStd,
     panelRaw,
     valueRaw,
     valueNum,
@@ -19542,6 +19554,12 @@ class $LabResultsTable extends LabResults
       );
     } else if (isInserting) {
       context.missing(_itemKeyMeta);
+    }
+    if (data.containsKey('item_std')) {
+      context.handle(
+        _itemStdMeta,
+        itemStd.isAcceptableOrUnknown(data['item_std']!, _itemStdMeta),
+      );
     }
     if (data.containsKey('panel_raw')) {
       context.handle(
@@ -19647,6 +19665,10 @@ class $LabResultsTable extends LabResults
         DriftSqlType.string,
         data['${effectivePrefix}item_key'],
       )!,
+      itemStd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_std'],
+      ),
       panelRaw: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}panel_raw'],
@@ -19717,6 +19739,10 @@ class LabResult extends DataClass implements Insertable<LabResult> {
   final String itemNameRaw;
   final String itemKey;
 
+  /// 记录里这一项的标准名（v19，D-49）：模型对号入座、用户合并或拆出时
+  /// 写入；没有时键按规则与内置目录算。
+  final String? itemStd;
+
   /// 报告上的检查大项（尿常规、血常规、肝功能…），可空（D-36）。
   final String? panelRaw;
   final String valueRaw;
@@ -19737,6 +19763,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     this.medicalDocumentId,
     required this.itemNameRaw,
     required this.itemKey,
+    this.itemStd,
     this.panelRaw,
     required this.valueRaw,
     this.valueNum,
@@ -19761,6 +19788,9 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     }
     map['item_name_raw'] = Variable<String>(itemNameRaw);
     map['item_key'] = Variable<String>(itemKey);
+    if (!nullToAbsent || itemStd != null) {
+      map['item_std'] = Variable<String>(itemStd);
+    }
     if (!nullToAbsent || panelRaw != null) {
       map['panel_raw'] = Variable<String>(panelRaw);
     }
@@ -19806,6 +19836,9 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           : Value(medicalDocumentId),
       itemNameRaw: Value(itemNameRaw),
       itemKey: Value(itemKey),
+      itemStd: itemStd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(itemStd),
       panelRaw: panelRaw == null && nullToAbsent
           ? const Value.absent()
           : Value(panelRaw),
@@ -19851,6 +19884,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       ),
       itemNameRaw: serializer.fromJson<String>(json['itemNameRaw']),
       itemKey: serializer.fromJson<String>(json['itemKey']),
+      itemStd: serializer.fromJson<String?>(json['itemStd']),
       panelRaw: serializer.fromJson<String?>(json['panelRaw']),
       valueRaw: serializer.fromJson<String>(json['valueRaw']),
       valueNum: serializer.fromJson<double?>(json['valueNum']),
@@ -19875,6 +19909,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
       'medicalDocumentId': serializer.toJson<String?>(medicalDocumentId),
       'itemNameRaw': serializer.toJson<String>(itemNameRaw),
       'itemKey': serializer.toJson<String>(itemKey),
+      'itemStd': serializer.toJson<String?>(itemStd),
       'panelRaw': serializer.toJson<String?>(panelRaw),
       'valueRaw': serializer.toJson<String>(valueRaw),
       'valueNum': serializer.toJson<double?>(valueNum),
@@ -19897,6 +19932,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     Value<String?> medicalDocumentId = const Value.absent(),
     String? itemNameRaw,
     String? itemKey,
+    Value<String?> itemStd = const Value.absent(),
     Value<String?> panelRaw = const Value.absent(),
     String? valueRaw,
     Value<double?> valueNum = const Value.absent(),
@@ -19918,6 +19954,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
         : this.medicalDocumentId,
     itemNameRaw: itemNameRaw ?? this.itemNameRaw,
     itemKey: itemKey ?? this.itemKey,
+    itemStd: itemStd.present ? itemStd.value : this.itemStd,
     panelRaw: panelRaw.present ? panelRaw.value : this.panelRaw,
     valueRaw: valueRaw ?? this.valueRaw,
     valueNum: valueNum.present ? valueNum.value : this.valueNum,
@@ -19947,6 +19984,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           ? data.itemNameRaw.value
           : this.itemNameRaw,
       itemKey: data.itemKey.present ? data.itemKey.value : this.itemKey,
+      itemStd: data.itemStd.present ? data.itemStd.value : this.itemStd,
       panelRaw: data.panelRaw.present ? data.panelRaw.value : this.panelRaw,
       valueRaw: data.valueRaw.present ? data.valueRaw.value : this.valueRaw,
       valueNum: data.valueNum.present ? data.valueNum.value : this.valueNum,
@@ -19975,6 +20013,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
           ..write('itemKey: $itemKey, ')
+          ..write('itemStd: $itemStd, ')
           ..write('panelRaw: $panelRaw, ')
           ..write('valueRaw: $valueRaw, ')
           ..write('valueNum: $valueNum, ')
@@ -19999,6 +20038,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
     medicalDocumentId,
     itemNameRaw,
     itemKey,
+    itemStd,
     panelRaw,
     valueRaw,
     valueNum,
@@ -20022,6 +20062,7 @@ class LabResult extends DataClass implements Insertable<LabResult> {
           other.medicalDocumentId == this.medicalDocumentId &&
           other.itemNameRaw == this.itemNameRaw &&
           other.itemKey == this.itemKey &&
+          other.itemStd == this.itemStd &&
           other.panelRaw == this.panelRaw &&
           other.valueRaw == this.valueRaw &&
           other.valueNum == this.valueNum &&
@@ -20043,6 +20084,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
   final Value<String?> medicalDocumentId;
   final Value<String> itemNameRaw;
   final Value<String> itemKey;
+  final Value<String?> itemStd;
   final Value<String?> panelRaw;
   final Value<String> valueRaw;
   final Value<double?> valueNum;
@@ -20063,6 +20105,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     this.medicalDocumentId = const Value.absent(),
     this.itemNameRaw = const Value.absent(),
     this.itemKey = const Value.absent(),
+    this.itemStd = const Value.absent(),
     this.panelRaw = const Value.absent(),
     this.valueRaw = const Value.absent(),
     this.valueNum = const Value.absent(),
@@ -20084,6 +20127,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     this.medicalDocumentId = const Value.absent(),
     required String itemNameRaw,
     required String itemKey,
+    this.itemStd = const Value.absent(),
     this.panelRaw = const Value.absent(),
     required String valueRaw,
     this.valueNum = const Value.absent(),
@@ -20111,6 +20155,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     Expression<String>? medicalDocumentId,
     Expression<String>? itemNameRaw,
     Expression<String>? itemKey,
+    Expression<String>? itemStd,
     Expression<String>? panelRaw,
     Expression<String>? valueRaw,
     Expression<double>? valueNum,
@@ -20132,6 +20177,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
       if (medicalDocumentId != null) 'medical_document_id': medicalDocumentId,
       if (itemNameRaw != null) 'item_name_raw': itemNameRaw,
       if (itemKey != null) 'item_key': itemKey,
+      if (itemStd != null) 'item_std': itemStd,
       if (panelRaw != null) 'panel_raw': panelRaw,
       if (valueRaw != null) 'value_raw': valueRaw,
       if (valueNum != null) 'value_num': valueNum,
@@ -20155,6 +20201,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     Value<String?>? medicalDocumentId,
     Value<String>? itemNameRaw,
     Value<String>? itemKey,
+    Value<String?>? itemStd,
     Value<String?>? panelRaw,
     Value<String>? valueRaw,
     Value<double?>? valueNum,
@@ -20176,6 +20223,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
       medicalDocumentId: medicalDocumentId ?? this.medicalDocumentId,
       itemNameRaw: itemNameRaw ?? this.itemNameRaw,
       itemKey: itemKey ?? this.itemKey,
+      itemStd: itemStd ?? this.itemStd,
       panelRaw: panelRaw ?? this.panelRaw,
       valueRaw: valueRaw ?? this.valueRaw,
       valueNum: valueNum ?? this.valueNum,
@@ -20214,6 +20262,9 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
     }
     if (itemKey.present) {
       map['item_key'] = Variable<String>(itemKey.value);
+    }
+    if (itemStd.present) {
+      map['item_std'] = Variable<String>(itemStd.value);
     }
     if (panelRaw.present) {
       map['panel_raw'] = Variable<String>(panelRaw.value);
@@ -20266,6 +20317,7 @@ class LabResultsCompanion extends UpdateCompanion<LabResult> {
           ..write('medicalDocumentId: $medicalDocumentId, ')
           ..write('itemNameRaw: $itemNameRaw, ')
           ..write('itemKey: $itemKey, ')
+          ..write('itemStd: $itemStd, ')
           ..write('panelRaw: $panelRaw, ')
           ..write('valueRaw: $valueRaw, ')
           ..write('valueNum: $valueNum, ')
@@ -29902,6 +29954,7 @@ typedef $$LabResultsTableCreateCompanionBuilder =
       Value<String?> medicalDocumentId,
       required String itemNameRaw,
       required String itemKey,
+      Value<String?> itemStd,
       Value<String?> panelRaw,
       required String valueRaw,
       Value<double?> valueNum,
@@ -29924,6 +29977,7 @@ typedef $$LabResultsTableUpdateCompanionBuilder =
       Value<String?> medicalDocumentId,
       Value<String> itemNameRaw,
       Value<String> itemKey,
+      Value<String?> itemStd,
       Value<String?> panelRaw,
       Value<String> valueRaw,
       Value<double?> valueNum,
@@ -29979,6 +30033,11 @@ class $$LabResultsTableFilterComposer
 
   ColumnFilters<String> get itemKey => $composableBuilder(
     column: $table.itemKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemStd => $composableBuilder(
+    column: $table.itemStd,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -30083,6 +30142,11 @@ class $$LabResultsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get itemStd => $composableBuilder(
+    column: $table.itemStd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get panelRaw => $composableBuilder(
     column: $table.panelRaw,
     builder: (column) => ColumnOrderings(column),
@@ -30177,6 +30241,9 @@ class $$LabResultsTableAnnotationComposer
   GeneratedColumn<String> get itemKey =>
       $composableBuilder(column: $table.itemKey, builder: (column) => column);
 
+  GeneratedColumn<String> get itemStd =>
+      $composableBuilder(column: $table.itemStd, builder: (column) => column);
+
   GeneratedColumn<String> get panelRaw =>
       $composableBuilder(column: $table.panelRaw, builder: (column) => column);
 
@@ -30254,6 +30321,7 @@ class $$LabResultsTableTableManager
                 Value<String?> medicalDocumentId = const Value.absent(),
                 Value<String> itemNameRaw = const Value.absent(),
                 Value<String> itemKey = const Value.absent(),
+                Value<String?> itemStd = const Value.absent(),
                 Value<String?> panelRaw = const Value.absent(),
                 Value<String> valueRaw = const Value.absent(),
                 Value<double?> valueNum = const Value.absent(),
@@ -30274,6 +30342,7 @@ class $$LabResultsTableTableManager
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,
                 itemKey: itemKey,
+                itemStd: itemStd,
                 panelRaw: panelRaw,
                 valueRaw: valueRaw,
                 valueNum: valueNum,
@@ -30296,6 +30365,7 @@ class $$LabResultsTableTableManager
                 Value<String?> medicalDocumentId = const Value.absent(),
                 required String itemNameRaw,
                 required String itemKey,
+                Value<String?> itemStd = const Value.absent(),
                 Value<String?> panelRaw = const Value.absent(),
                 required String valueRaw,
                 Value<double?> valueNum = const Value.absent(),
@@ -30316,6 +30386,7 @@ class $$LabResultsTableTableManager
                 medicalDocumentId: medicalDocumentId,
                 itemNameRaw: itemNameRaw,
                 itemKey: itemKey,
+                itemStd: itemStd,
                 panelRaw: panelRaw,
                 valueRaw: valueRaw,
                 valueNum: valueNum,

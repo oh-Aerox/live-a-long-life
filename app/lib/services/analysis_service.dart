@@ -10,6 +10,7 @@ import '../data/ids.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
 import 'app_log.dart';
+import 'health_service.dart' show DeviceDayData;
 import 'key_store.dart';
 import 'model_client.dart';
 import 'organize_service.dart' show OrganizeModelCall;
@@ -26,6 +27,11 @@ const weeklyReviewSystemPrompt = '''
 - 每条事实陈述末尾标注 [C1] [C2] 这样的引用号，citations 里给出该陈述
   依据的 record_revision_ids（用输入里给出的 revision_id，不要编造）；
 - 只描述记录里有的事实和趋势，没有数据的方面写"本周没有记录"；
+- health_daily（步数、活动能量）和 health_device（每晚睡眠：时长、入睡、
+  醒来；体能训练）是苹果健康等设备数据，睡眠、运动两节要据此描述；它们
+  没有 revision_id，不要为它们编造引用，写明"设备数据"即可。用户记录与
+  设备数据都没有时才写"本周没有记录"；sleep_minutes 为空表示只有在床数据、
+  睡眠时长未知，不要把在床时长当成睡眠时长；
 - 下周建议：根据本周记录给出下周在饮食、运动、睡眠等方面的具体注意事项，
   同样标注引用。本周有症状、不适或就医相关记录时，围绕它给出针对性的
   留意事项（比如饮食调整、控制运动强度、保证睡眠）；感冒发烧这类短期不适
@@ -50,9 +56,11 @@ class AnalysisService {
     required OrganizeRepository organize,
     required KeyStore keyStore,
     required this.deviceId,
+    Future<DeviceDayData> Function(String localDate)? deviceData,
     OrganizeModelCall? modelCall,
     this.ids = const IdGenerator(),
   })  : _db = db,
+        _deviceData = deviceData,
         _modelConfigs = modelConfigs,
         _organize = organize,
         _keyStore = keyStore,
@@ -64,6 +72,10 @@ class AnalysisService {
   final KeyStore _keyStore;
   final String deviceId;
   final OrganizeModelCall _modelCall;
+
+  /// 按天的设备数据（睡眠按夜合并、体能训练），与日视图同一口径（D-11）。
+  /// 睡眠和体能训练按条存在 health_samples，不在 health_daily 里。
+  final Future<DeviceDayData> Function(String localDate)? _deviceData;
   final IdGenerator ids;
 
   static Future<ModelResponse> _defaultCall({
@@ -73,7 +85,8 @@ class AnalysisService {
     required String userText,
     required int maxTokens,
   }) =>
-      ModelClient().complete(
+      // 周报一次输出整篇正文和引用，推理模型常超过默认的 60 秒，同提取用 180 秒。
+      ModelClient(timeout: const Duration(seconds: 180)).complete(
           config: config,
           apiKey: apiKey,
           system: system,
@@ -122,6 +135,44 @@ class AnalysisService {
               t.localDate.isBiggerOrEqualValue(periodStart) &
               t.localDate.isSmallerOrEqualValue(periodEnd)))
         .get();
+
+    final device = <Map<String, Object?>>[];
+    if (_deviceData != null) {
+      String hm(int ms) {
+        final t = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+        return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      }
+
+      for (var day = start;
+          d(day).compareTo(periodEnd) <= 0;
+          day = day.add(const Duration(days: 1))) {
+        final data = await _deviceData(d(day));
+        final sleep = data.sleep;
+        if (sleep == null && data.workouts.isEmpty) continue;
+        device.add({
+          'date': d(day),
+          if (sleep != null)
+            'sleep': {
+              // 只有在床数据时睡眠时长未知，不拿在床时长冒充（D-11）。
+              'sleep_minutes': sleep.sleepDurationMin,
+              if (sleep.inBedDurationMin != null)
+                'in_bed_minutes': sleep.inBedDurationMin,
+              if (sleep.sleepOnsetMs != null) 'onset': hm(sleep.sleepOnsetMs!),
+              if (sleep.wakeMs != null) 'wake': hm(sleep.wakeMs!),
+            },
+          if (data.workouts.isNotEmpty)
+            'workouts': [
+              for (final w in data.workouts)
+                {
+                  'type': w.workoutType,
+                  'start': hm(w.startUtc),
+                  'minutes': ((w.endUtc - w.startUtc) / 60000).round(),
+                  if (w.energyKcal != null) 'kcal': w.energyKcal!.round(),
+                },
+            ],
+        });
+      }
+    }
 
     // 身体状况（D-25）：长期档案 + 近 30 天的临时疾病；已痊愈的长期
     // 状况单列为既往病史，只作背景（D-41）。只取已核对的（unreviewed
@@ -184,6 +235,7 @@ class AnalysisService {
             'value': h.value,
           },
       ],
+      'health_device': device,
       'long_term_conditions': longTermConditions,
       'recent_temporary_conditions': recentTemporary,
       'past_conditions': pastConditions,
