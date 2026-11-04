@@ -112,3 +112,21 @@ scripts/             一键重签安装脚本、Windows 打包脚本、人体图
 ## 说明
 
 长命百岁只做个人健康记录和纵向趋势分析，不提供医疗诊断。任何健康问题请以医生的意见为准。
+
+## 开源协议
+
+本项目以 [GNU 通用公共许可证第 3 版（GPL-3.0）](LICENSE) 发布。你可以自由使用、修改和分发；分发修改版或基于本项目的作品时，须同样以 GPL-3.0 开源并附上源代码。
+
+### 附加许可：Google ML Kit
+
+安卓端的文字识别和扫码用到 Google ML Kit。它是闭源库，会打包进 APK。为此，依据 GPL-3.0 第 7 条，本项目另外授予以下许可：
+
+> 如果你修改本程序或任何受保护的作品，使其与 Google ML Kit（或该库的修改版，以及它所依赖的 Google Play 服务组件）链接或组合，而这些部分受 ML Kit 服务条款约束，本程序的许可方额外允许你分发由此产生的作品。这种组合以非源代码形式分发时，其"对应源代码"不必包含所用 Google ML Kit 部分的源代码。
+
+English version (for reference):
+
+> Additional permission under GNU GPL version 3 section 7
+>
+> If you modify this Program, or any covered work, by linking or combining it with Google ML Kit (or a modified version of that library, including the Google Play services components it depends on), containing parts covered by the terms of the ML Kit Terms of Service, the licensors of this Program grant you additional permission to convey the resulting work. Corresponding Source for a non-source form of such a combination shall not include the source code for the parts of Google ML Kit used.
+
+分发修改版时，你可以保留这条附加许可，也可以删除（GPL-3.0 第 7 条）。
