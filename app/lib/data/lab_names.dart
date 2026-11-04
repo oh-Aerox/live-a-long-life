@@ -70,6 +70,12 @@ class LabNames {
     // 2. 规则或目录已经认得的，不听模型的。
     if (LabCatalog.contains(SameItem.ruleKey(raw, panel: panel))) return;
 
+    // 四肢血压不归进一般检查的血压，模型说是也不听。
+    if (SameItem.isLimbPanel(panel) &&
+        modelStd is String &&
+        LabCatalog.groupOf(SameItem.ruleKey(modelStd)) == '一般检查') {
+      return;
+    }
     final std = cleanStd(modelStd, panel: panel);
     if (std == null || std == auto) return;
     if (unitConflict(r['unit_raw'] as String?, units[std])) return;

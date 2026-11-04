@@ -94,8 +94,18 @@ class SameItem {
       final base = k.startsWith(specimen) ? k.substring(1) : k;
       return '$specimen${_specimenAliases[base.toLowerCase()] ?? base}';
     }
+    // 四肢血压表里没写部位的"SBP""DBP"：不归进一般检查的血压（目录里
+    // "SBP"是收缩压的缩写），单独成项。
+    if (isLimbPanel(panel) && _bareBp.hasMatch(k)) return '四肢$k';
     return k;
   }
+
+  /// 四肢血压、动脉硬化检测的大项（2026-11-04 用户数据：四肢血压表的
+  /// 部位标签和数值不在同一行，模型有时只写"SBP"，脚踝血压混进了血压趋势）。
+  static bool isLimbPanel(String? panel) =>
+      panel != null && RegExp('四肢|动脉硬化|动脉阻塞|动脉僵硬|踝臂').hasMatch(panel);
+  static final _bareBp = RegExp(r'^(?:SBP|DBP|MBP|PP|收缩压|舒张压|平均动脉压|脉压)$',
+      caseSensitive: false);
 
   /// 左右侧：括号里的 R/L/右/左，或末尾的"：右侧"。括号里的 R、L 是英文，
   /// 不先认出来会被当成缩写去掉，左右两侧就成了一项（2026-10-29 用户数据）。
