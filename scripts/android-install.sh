@@ -11,7 +11,7 @@ cd "$(dirname "$0")/../app"
 SERIAL_ARGS=()
 if [ $# -ge 1 ]; then SERIAL_ARGS=(-s "$1"); fi
 
-echo "==> 构建 release APK（只打 arm64，小米 12 是 arm64）"
+echo "==> 构建 release APK（只打 arm64，小米 是 arm64）"
 # release 暂用 debug 密钥签名（模板默认），与 flutter run 装的调试版签名一致，
 # 两者之间可以互相覆盖安装。正式签名随发版一起做（D-30）。
 flutter build apk --release --target-platform android-arm64
