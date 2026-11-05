@@ -51,6 +51,24 @@ void main() {
     expect(SameItem.labKey('BAI（R）'), 'BAI（右）');
   });
 
+  test('四肢血压各部位分开，不并进一般检查的血压（2026-11-04 用户数据）', () {
+    const limb = '四肢动脉血压值';
+    expect(SameItem.labKey('上臂（右）SBP', panel: limb), '上臂收缩压（右）');
+    expect(SameItem.labKey('上臂（R）SBP', panel: limb), '上臂收缩压（右）');
+    expect(SameItem.labKey('脚踝（左）DBP', panel: limb), '脚踝舒张压（左）');
+    expect(SameItem.labKey('右脚踝平均动脉压'), '脚踝平均动脉压（右）');
+    expect(SameItem.labKey('脚踝（右）DBP', panel: limb),
+        isNot(SameItem.labKey('脚踝（左）DBP', panel: limb)));
+    // 没写部位的：单独成项，不进一般检查的收缩压、舒张压。
+    expect(SameItem.labKey('SBP', panel: limb), '四肢SBP');
+    expect(SameItem.labKey('DBP', panel: '动脉硬化检测'), '四肢DBP');
+    expect(SameItem.trendGroup(limb, SameItem.labKey('SBP', panel: limb)),
+        '动脉硬化检测');
+    // 一般检查的血压照旧。
+    expect(SameItem.labKey('SBP'), '收缩压');
+    expect(SameItem.labKey('收缩压', panel: '一般检查'), '收缩压');
+  });
+
   test('记录里的标准名优先：用户拆出的写法不再被目录并回', () {
     expect(SameItem.labKey('BMI', std: 'BMI'), 'BMI');
     expect(
@@ -81,8 +99,22 @@ void main() {
       assign(x, '最大自主通气量');
       expect(x['item_std'], '最大自主通气量');
       final y = r('上臂右侧收缩压');
-      assign(y, '上臂（右）SBP', existing: {'上臂（右）SBP'});
-      expect(y['item_std'], '上臂（右）SBP');
+      assign(y, '上臂（右）SBP');
+      expect(y['item_std'], '上臂收缩压（右）');
+    });
+
+    test('四肢血压：模型说是一般检查的收缩压也不听，给部位名照收', () {
+      final x = r('SBP', panel: '四肢动脉血压值');
+      assign(x, '收缩压');
+      expect(x['item_std'], isNull);
+      expect(x['item_std_suggested'], isNull);
+      final y = r('SBP', panel: '四肢动脉血压值');
+      assign(y, '脚踝收缩压（左）');
+      expect(y['item_std'], '脚踝收缩压（左）');
+      // 一般检查的血压照旧。
+      final z = r('血压-收缩压', panel: '一般检查');
+      assign(z, '收缩压');
+      expect(z['item_std'], '收缩压');
     });
 
     test('新名字、跨标本：待确认', () {
