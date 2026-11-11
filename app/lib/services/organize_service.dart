@@ -11,6 +11,7 @@ import '../data/repositories/message_repository.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
 import '../data/repositories/record_repository.dart';
+import 'background_time.dart';
 import 'key_store.dart';
 import 'model_client.dart';
 import 'organize_prompt.dart';
@@ -90,6 +91,11 @@ class OrganizeService {
     Duration(minutes: 30),
   ];
 
+  /// 本次模型调用期间应用是否切到过后台。iOS 后台时间用完会挂起应用，
+  /// 请求随之断开，超时要等回到前台才报出来——这不是模型不可用，不提示，
+  /// 回到前台的补整理会重新调用。
+  bool _hiddenDuringCall = false;
+
   /// 每条消息因 stale 重排的次数（内存计数，见类注释）。
   final _staleCounts = <String, int>{};
 
@@ -159,6 +165,9 @@ class OrganizeService {
     _idleTimer = Timer(idleAfter, () => enqueue(OrganizeTrigger.idle));
   }
 
+  /// 应用切到后台或锁屏时调用（见 [_hiddenDuringCall]）。
+  void noteHidden() => _hiddenDuringCall = true;
+
   void dispose() {
     _idleTimer?.cancel();
     _retryTimer?.cancel();
@@ -169,7 +178,9 @@ class OrganizeService {
   Future<void> pump() {
     final inFlight = _pumpFuture;
     if (inFlight != null) return inFlight;
-    final future = _drain().whenComplete(() => _pumpFuture = null);
+    // 发完消息就锁屏很常见：多要一点后台时间把这一轮整理做完。
+    final future = BackgroundTime.run('organize', _drain)
+        .whenComplete(() => _pumpFuture = null);
     _pumpFuture = future;
     return future;
   }
@@ -323,6 +334,7 @@ class OrganizeService {
       existingRecords: existingRecords,
     );
     ModelResponse response;
+    _hiddenDuringCall = false;
     try {
       final apiKey = config.keychainRef.isEmpty
           ? ''
@@ -354,7 +366,9 @@ class OrganizeService {
               : OrganizeRunStatus.failed;
       await _runs.updateRunStatus(run.id, status,
           error: e.message, finishedAt: ids.nowMs());
-      await _noticeModelUnavailable(e, usable.first.sentTz);
+      if (!(e.retriable && _hiddenDuringCall)) {
+        await _noticeModelUnavailable(e, usable.first.sentTz);
+      }
       if (e.retriable) _scheduleRetry();
       return;
     }

@@ -23,6 +23,7 @@ class FakeModel {
   final _script = <Object>[];
   final calls = <String>[]; // 每次调用的 userText
 
+  /// 文字、异常，或调用时才求值的函数（模拟调用途中发生的事）。
   void reply(Object textOrError) => _script.add(textOrError);
 
   Future<ModelResponse> call({
@@ -37,7 +38,8 @@ class FakeModel {
     if (_script.isEmpty) {
       throw StateError('FakeModel 没有预置应答（第 ${calls.length} 次调用）');
     }
-    final next = _script.removeAt(0);
+    var next = _script.removeAt(0);
+    if (next is Object Function()) next = next();
     if (next is ModelClientException) throw next;
     return ModelResponse(text: next as String, tokensIn: 10, tokensOut: 20);
   }
@@ -578,6 +580,31 @@ void main() {
     await service.pump();
     n = notices(await messages.thread());
     expect(n.where((x) => x.body!.contains('模型已恢复')), hasLength(1));
+    expect((await messages.byId(m.id))!.organizeState,
+        OrganizeState.organized);
+  });
+
+  test('请求期间切到后台而失败：不提示模型不可用，回前台补整理照常', () async {
+    await addConfig();
+    final m = await say('晚饭吃了面');
+    // 只看模型状态提示（"已记到 X月X日"之类的照常出现）。
+    List<Message> notices(List<Message> t) => t
+        .where((x) => x.promptMeta?.contains('"kind":"model_') ?? false)
+        .toList();
+
+    // 锁屏后应用被挂起，请求断开，回前台时才报超时（2026-11-11 真机）。
+    model.reply(() {
+      service.noteHidden();
+      return ModelClientException('网络错误：超时', retriable: true);
+    });
+    await service.enqueue(OrganizeTrigger.idle);
+    await service.pump();
+    expect(notices(await messages.thread()), isEmpty);
+
+    model.reply(mealJson([m.id]));
+    await service.catchUp();
+    await service.pump();
+    expect(notices(await messages.thread()), isEmpty);
     expect((await messages.byId(m.id))!.organizeState,
         OrganizeState.organized);
   });
