@@ -4,6 +4,7 @@ import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../data/field_meta.dart';
 import '../data/time_value.dart';
+import '../data/workout_names.dart';
 import '../services/health_service.dart';
 import 'record_detail_page.dart';
 import 'record_ui.dart';
@@ -214,7 +215,7 @@ class _DayViewPageState extends State<DayViewPage> {
             dense: true,
             leading: const Icon(Icons.directions_run_outlined, size: 20),
             title: Text([
-              w.workoutType ?? '体能训练',
+              workoutLabel(w.workoutType),
               '${((w.endUtc - w.startUtc) / 60000).round()} 分钟',
               if (w.energyKcal != null) '${w.energyKcal!.round()} 千卡',
             ].join(' · ')),

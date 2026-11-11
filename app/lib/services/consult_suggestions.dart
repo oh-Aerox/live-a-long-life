@@ -6,6 +6,7 @@ import '../data/field_meta.dart';
 import '../data/lab_abnormal.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/same_item.dart';
+import '../data/workout_names.dart';
 import 'health_service.dart';
 
 /// 咨询页输入框下的一组示例问题（D-45）。
@@ -27,27 +28,6 @@ class SuggestionGroup {
   /// 基础上下文里，不需要查。
   final bool needsLookup;
 }
-
-const _workoutLabels = {
-  'walking': '步行',
-  'running': '跑步',
-  'cycling': '骑行',
-  'hiking': '徒步',
-  'swimming': '游泳',
-  'yoga': '瑜伽',
-  'elliptical': '椭圆机',
-  'rowing': '划船',
-  'functional_strength_training': '力量训练',
-  'traditional_strength_training': '力量训练',
-  'high_intensity_interval_training': '高强度间歇训练',
-  'stair_climbing': '爬楼梯',
-  'badminton': '羽毛球',
-  'basketball': '篮球',
-  'soccer': '足球',
-  'tennis': '网球',
-  'table_tennis': '乒乓球',
-  'dance': '跳舞',
-};
 
 /// 按本机已有的数据生成示例问题（D-45）：只在本地查库，不调模型；
 /// 没数据的类别不出现。问题里的日期、项目名都来自本地数据。
@@ -94,7 +74,7 @@ Future<List<SuggestionGroup>> buildConsultSuggestions({
     if (lastWorkout != null) {
       final t = DateTime.fromMillisecondsSinceEpoch(lastWorkout.startUtc);
       final day = '${t.month}月${t.day}日';
-      final what = _workoutLabels[lastWorkout.workoutType] ?? '运动';
+      final what = workoutLabel(lastWorkout.workoutType, unknown: '运动');
       // 心率要实时读（D-44），读不了时只问强度。
       questions.add(live ? '$day$what时心率怎么样？' : '$day的$what强度合适吗？');
     }
