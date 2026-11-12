@@ -163,7 +163,7 @@ class _HealthRecordsPageState extends State<HealthRecordsPage> {
                   icon: Icons.summarize_outlined,
                   title: '周报',
                   subtitle: _report == null
-                      ? '电脑端生成的每周分析，事实可点回来源'
+                      ? '每周的总结和下周建议，事实可点回来源'
                       : '最近一份 ${_report!.periodStart} 至 ${_report!.periodEnd}',
                   page: () => WeeklyReportPage(services: s),
                 ),

@@ -78,6 +78,7 @@ enum ModelCaller {
   externalAgent,
   phoneMedicalExtract,
   userConsult,
+  weeklyReview,
 }
 
 enum RecordType { meal, sleep, mood, symptom, exercise, note, labPanel, condition }
@@ -430,7 +431,7 @@ class BackupRuns extends Table {
   Set<Column> get primaryKey => {backupId};
 }
 
-/// schema.md §6.1：分析结果（Mac 生成，回传手机）。
+/// schema.md §6.1：分析结果（手机生成，同步到电脑，D-20）。
 /// `is_stale` 实时计算不存储。
 class AnalysisArtifacts extends Table with CommonColumns {
   TextColumn get kind =>

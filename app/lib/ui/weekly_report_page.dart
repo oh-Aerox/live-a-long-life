@@ -2,16 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import 'desktop_text.dart';
 import 'markdown_text.dart';
 import '../app_services.dart';
 import '../data/db/app_database.dart';
+import '../services/analysis_service.dart';
 import 'record_detail_page.dart';
 
-/// 周报页（A-17）：显示 Mac 生成的周报，
-/// 数据有更新时提示"需要更新"（D-14），事实陈述可点回来源记录。
-/// 手机从 Mac 拉取；Mac 端 [readOnly] 直接看本机生成的全文（2026-09-29 联调：
-/// Mac 首页只有 8 行预览，看不到后面的"下周建议"）。
+/// 周报页（A-17）：显示最新一份周报，事实陈述可点回来源记录。
+/// 手机上可以生成，数据有更新时提示"需要更新"（D-14）；电脑端 [readOnly]
+/// 只看手机同步过来的全文（电脑端首页只有 8 行预览，看不到后面的"下周建议"）。
 class WeeklyReportPage extends StatefulWidget {
   const WeeklyReportPage(
       {super.key, required this.services, this.readOnly = false});
@@ -27,6 +26,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
   AnalysisArtifact? _report;
   bool _stale = false;
   bool _busy = false;
+  String? _autoError;
 
   @override
   void initState() {
@@ -44,24 +44,37 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       setState(() {
         _report = report;
         _stale = stale;
+        _autoError = widget.services.analysisService.lastAutoError;
       });
     }
   }
 
-  Future<void> _fetch() async {
+  /// 生成近 7 天的周报。失败时旧周报保留（D-20）。
+  Future<void> _generate() async {
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
-    final row = await widget.services.syncService.fetchLatestAnalysis();
-    if (row != null) {
-      await widget.services.analysisService.saveFetched(row);
-      messenger.showSnackBar(const SnackBar(content: Text('已获取最新周报')));
-    } else {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('没取到：确认电脑上的长命百岁开着，且已生成周报')));
+    try {
+      await widget.services.analysisService.generateWeeklyReview();
+      messenger.showSnackBar(const SnackBar(content: Text('周报已生成')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text(
+              '周报生成失败：${AnalysisService.failureReason(e)}（旧周报保留）')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _load();
     }
-    if (mounted) setState(() => _busy = false);
-    await _load();
   }
+
+  Widget _notice(String text) => Container(
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(text),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -70,34 +83,32 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       appBar: AppBar(title: const Text('周报'), actions: [
         if (!widget.readOnly)
           TextButton(
-            onPressed: _busy ? null : _fetch,
-            child: Text(_busy ? '获取中…' : '从电脑获取'),
+            onPressed: _busy ? null : _generate,
+            child: Text(_busy ? '生成中…' : '生成'),
           ),
       ]),
       body: report == null
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                // 电脑端（只读）没有"获取"按钮，周报在首页生成。
                 child: Text(widget.readOnly
-                    ? '还没有周报，在首页的周报卡片里生成。'
-                    : '还没有周报。在电脑上生成后，点右上角"从电脑获取"。'),
+                    ? '还没有周报。周报在手机上生成，同步过来后在这里查看。'
+                    : _autoError != null
+                        ? '上周周报自动生成失败：$_autoError\n\n'
+                            '可以点右上角"生成"重试。'
+                        : '还没有周报。点右上角"生成"，用默认模型总结近 7 天；'
+                            '也可以在设置里打开"自动生成周报"。'),
               ),
             )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (_autoError != null && !widget.readOnly)
+                  _notice('上周周报自动生成失败：$_autoError。'
+                      '下面是之前的周报，可以点右上角"生成"重试。'),
                 if (_stale)
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(desktopText('生成之后数据有更新，这份周报可能过期：'
-                        '同步后在电脑上重新生成（D-14）')),
-                  ),
+                  _notice('生成之后记录或健康数据有更新，这份周报可能过期，'
+                      '可以点右上角"生成"重新生成。'),
                 Text('${report.periodStart} 至 ${report.periodEnd}',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),

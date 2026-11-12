@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -79,8 +80,12 @@ class AppServices {
       organize: organize,
       keyStore: keyStore,
       deviceId: ctx.deviceId,
+      settings: settings,
       // healthService 在 main 里按平台创建，查询时才取。
       deviceData: (date) => healthService.dayData(date),
+      // 周报在手机上生成，生成后推送给电脑（D-20）；电脑端只看。
+      onGenerated: () => unawaited(syncService.syncNow()),
+      isPhone: !(Platform.isMacOS || Platform.isWindows),
     );
     suggestionService = SuggestionService(
       db: db,

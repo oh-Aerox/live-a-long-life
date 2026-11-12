@@ -9,7 +9,7 @@
 | 场景 | caller | 提示词位置 | 发送的数据 | 触发 |
 |---|---|---|---|---|
 | 手机整理批次 | `phoneOrganize` | `app/lib/services/organize_prompt.dart` | 未整理消息的文字 + 附件数量元信息 + 可更新的已有记录。**不发图片** | 用户点"记好了"；空闲定时器预整理；每日回顾结束；记录上点"重新整理" |
-| Mac 周报生成 | `macAnalysis` | `app/lib/services/analysis_service.dart` | 近 7 天记录的当前版本 + 按天健康数据。纯文本 | Mac 主页周报卡片手动触发 |
+| 周报生成 | `weeklyReview` | `app/lib/services/analysis_service.dart` | 周期内记录的当前版本 + 按天健康数据 + 已核对的身体状况。纯文本 | 手机"健康档案 → 周报"手动生成（近 7 天）；设置里开了自动生成时，启动和回到前台补上周一到上周日的 |
 | 医疗文件结构化提取 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 经页筛选（D-23）与脱敏（D-24）的本地 OCR 文本，带行索引，用户预览修改后发出（D-28）。**不发图片；调用记录含遮蔽项数与发送范围 sent_summary** | 医疗文件详情"识别并预览"→"确认发送" |
 | 医疗文件模型识图 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 用户裁剪后的页面图片（或确认风险后的整页）+ 固定一句话。**唯一发送用户图片的调用；显式触发；图片不落库** | 医疗文件详情"用模型识图" |
 | 医疗文件文字整理 | `phoneMedicalExtract` | `app/lib/services/medical_extraction_service.dart` | 当前版本已提取的文字内容（栏目 + 内容，来自脱敏后的文本）。**不发图片、行号和原始识别文本** | 医疗文件详情"用模型整理"（文字内容两段以上，确认后发送） |
@@ -71,7 +71,7 @@ data 字段（只填有依据的，缺的字段不要编造）：
 - 与健康无关的重要内容用 note 类型。闲聊、无信息量的消息不生成记录。
 ```
 
-## 2. Mac 周报生成
+## 2. 周报生成
 
 - **系统提示词：** `weeklyReviewSystemPrompt`（analysis_service.dart）
 - **用户侧输入：** JSON——`period` 起止日期、`records`（每条含 revision_id、类型、日期、data）、`health_daily`（日期、指标、数值）、`health_device`（按天：睡眠按夜合并后的睡眠时长、在床时长、入睡与醒来时刻，口径同日视图（D-11）；体能训练的类型、开始时刻、分钟数、千卡；没有设备数据的日子不列出）

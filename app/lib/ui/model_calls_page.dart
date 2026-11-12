@@ -8,7 +8,8 @@ import 'desktop_text.dart';
 
 const _callerLabels = {
   ModelCaller.phoneOrganize: '手机整理',
-  ModelCaller.macAnalysis: '电脑端分析',
+  ModelCaller.macAnalysis: '电脑端生成周报',
+  ModelCaller.weeklyReview: '周报',
   ModelCaller.externalAgent: '外部 agent',
   ModelCaller.phoneMedicalExtract: '医疗文件提取',
   ModelCaller.userConsult: '主动咨询',

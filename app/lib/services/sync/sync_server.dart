@@ -28,6 +28,7 @@ const syncedTables = [
   'health_daily',
   'correction_suggestions',
   'medical_documents',
+  'analysis_artifacts',
 ];
 
 /// 对方数据代次变了、等待用户确认重建的手机。
@@ -198,7 +199,6 @@ class SyncServer {
           '/changes' => await _applyChange(peerId, payload),
           '/blob' => await _storeBlob(payload),
           '/blob_fetch' => await _serveBlob(payload),
-          '/analysis' => await _latestAnalysis(),
           _ => {'error': '未知端点'},
         };
         await _peers.updateLastSeen(
@@ -326,8 +326,9 @@ class SyncServer {
   /// 条重新接收；手机新代次里有全部数据，不做跨代次版本比较。手机上已经
   /// 没有的内容随之从 Mac 消失——不提供"保留 Mac 多出的"：恢复后手机的
   /// 消息序号从导出时接着编，会和 Mac 上多出的消息撞号并把它们顶掉，
-  /// 留不住（D-34）。Mac 自己产生的行（修正建议、周报、调用记录）、其他
-  /// 已配对设备的行和已收到的附件文件保留；按 created_on_device 区分，
+  /// 留不住（D-34）。Mac 自己产生的行（修正建议、以前在电脑端生成的周报、
+  /// 调用记录）、其他已配对设备的行和已收到的附件文件保留；手机生成的周报
+  /// 随手机数据重新接收。按 created_on_device 区分，
   /// 不认识的设备标识（换过手机、恢复前的旧标识）算这台手机的。
   /// 返回清掉的行数。
   Future<int> rebuildReplica(String peerId) async {
@@ -425,17 +426,6 @@ class SyncServer {
             verifiedAt: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
           ),
         );
-  }
-
-  /// 手机拉取最新周报（schema §7.4：分析结果 Mac → 手机）。
-  Future<Map<String, Object?>> _latestAnalysis() async {
-    final rows = await _db
-        .customSelect(
-          'SELECT * FROM analysis_artifacts WHERE deleted_at IS NULL '
-          'ORDER BY generated_at DESC LIMIT 1',
-        )
-        .get();
-    return {'artifact': rows.isEmpty ? null : rows.single.data};
   }
 
   /// 接收附件文件：SHA-256 校验通过才落盘并确认（schema §7.4）。

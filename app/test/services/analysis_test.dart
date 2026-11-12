@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_a_long_life/data/change_log.dart';
@@ -10,8 +8,8 @@ import 'package:live_a_long_life/data/field_meta.dart';
 import 'package:live_a_long_life/data/repositories/message_repository.dart';
 import 'package:live_a_long_life/data/repositories/model_config_repository.dart';
 import 'package:live_a_long_life/data/repositories/organize_repository.dart';
-import 'package:live_a_long_life/data/repositories/peer_repository.dart';
 import 'package:live_a_long_life/data/repositories/record_repository.dart';
+import 'package:live_a_long_life/data/repositories/settings_repository.dart';
 import 'package:live_a_long_life/data/time_value.dart';
 import 'package:live_a_long_life/services/analysis_service.dart';
 import 'package:live_a_long_life/services/health_service.dart';
@@ -19,11 +17,6 @@ import 'package:live_a_long_life/services/key_store.dart';
 import 'package:live_a_long_life/services/model_client.dart';
 import 'package:live_a_long_life/services/sleep_merge.dart';
 import 'package:live_a_long_life/services/suggestion_service.dart';
-import 'package:live_a_long_life/services/sync/secure_channel.dart';
-import 'package:live_a_long_life/services/sync/sync_client.dart';
-import 'package:live_a_long_life/services/sync/sync_server.dart';
-import 'package:live_a_long_life/services/sync/sync_service.dart';
-import 'package:path/path.dart' as p;
 
 import '../data/test_helpers.dart';
 
@@ -103,9 +96,21 @@ void main() {
       expect(jsonDecode(artifact.citations), hasLength(1));
       expect(artifact.kind, AnalysisKind.weeklyReview);
 
-      // 模型调用有记录（D-20），caller = mac_analysis。
+      // 模型调用有记录（D-20）。
       final calls = await env.db.select(env.db.modelCalls).get();
-      expect(calls.single.caller, ModelCaller.macAnalysis);
+      expect(calls.single.caller, ModelCaller.weeklyReview);
+
+      // 截止点取本机的代次和变更序号；周报入变更日志，同步给电脑。
+      expect(artifact.dataGeneration, await env.db.currentGeneration());
+      expect(artifact.dataCutoffSeq, greaterThan(0));
+      final logged = await env.db.select(env.db.changeLogs).get();
+      expect(
+          logged.where((c) =>
+              c.entityType == 'analysis_artifacts' &&
+              c.entityId == artifact.id),
+          hasLength(1));
+      // 自己入日志、调用记录入日志都不让周报一生成就过期。
+      expect(await analysis.isStale(artifact), isFalse);
 
       // 失败：响应完全为空 → 抛异常，旧周报保留（降级后只有空响应才算失败）。
       nextReply = '   ';
@@ -238,10 +243,9 @@ void main() {
       expect(jsonDecode(a.citations), isEmpty);
     });
 
-    test('过期判断（D-14）：代次一致且没有新变更时不过期，有新变更即提示', () async {
+    test('过期判断（D-14）：截止点之后周期内的记录有变更才过期，消息和周期外的不算',
+        () async {
       nextReply = jsonEncode({'content_md': '周报', 'citations': []});
-      // 手机侧场景：本机既是数据源（测试里直接用同一库）。
-      final generation = await env.db.currentGeneration();
       final messages = MessageRepository(env.db, env.ctx);
       final m = await messages.send(
         clientMsgId: 'c1',
@@ -250,104 +254,131 @@ void main() {
         text: 'x',
         sentTz: 'Asia/Shanghai',
       );
-      // 人工造一个"截止点 = 当前最大序号"的周报。
       final artifact = await analysis.generateWeeklyReview();
-      final maxSeq = (await env.db.select(env.db.changeLogs).get())
-          .map((c) => c.changeSeq)
-          .fold(0, (a, b) => a > b ? a : b);
-      await (env.db.update(env.db.analysisArtifacts)
-            ..where((t) => t.id.equals(artifact.id)))
-          .write(AnalysisArtifactsCompanion(
-        dataGeneration: Value(generation),
-        dataCutoffSeq: Value(maxSeq),
-      ));
-      final fresh = await analysis.latest(AnalysisKind.weeklyReview);
-      expect(await analysis.isStale(fresh!), isFalse);
+      expect(await analysis.isStale(artifact), isFalse);
 
-      // 新变更 → 过期。
+      // 消息还没整理成记录，不改变周报的依据。
       await messages.edit(m.id, 'y');
-      expect(await analysis.isStale(fresh), isTrue);
+      expect(await analysis.isStale(artifact), isFalse);
+
+      // 周期外的新记录不影响这份周报。
+      await records.create(
+        recordType: RecordType.meal,
+        occurred: TimeValue(
+            localDate: today(20),
+            precision: TimePrecision.dateOnly,
+            source: TimeValueSource.userStated),
+        dataJson: '{"status":"eaten","description":"饺子"}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.organizeRun('r2'),
+      );
+      expect(await analysis.isStale(artifact), isFalse);
+
+      // 周期内的新记录 → 过期。
+      await records.create(
+        recordType: RecordType.meal,
+        occurred: TimeValue(
+            localDate: today(),
+            precision: TimePrecision.dateOnly,
+            source: TimeValueSource.userStated),
+        dataJson: '{"status":"eaten","description":"粥"}',
+        fieldMeta: const FieldMetaMap({}),
+        producedBy: ProducedBy.organizeRun('r2'),
+      );
+      expect(await analysis.isStale(artifact), isTrue);
+
+      // 电脑端只看，不判断过期。
+      final desktop = AnalysisService(
+        db: env.db,
+        modelConfigs: ModelConfigRepository(env.db, env.ctx),
+        organize: OrganizeRepository(env.db, env.ctx),
+        keyStore: KeyStore(),
+        deviceId: 'mac-1',
+        isPhone: false,
+      );
+      expect(await desktop.isStale(artifact), isFalse);
     });
-  });
 
-  test('端到端：Mac 生成周报，手机经同步端点拉取保存', () async {
-    HttpOverrides.global = null;
-    FlutterSecureStorage.setMockInitialValues({});
-    final macEnv = await TestEnv.create();
-    final phoneEnv = await TestEnv.create();
-    final tempDir = await Directory.systemTemp.createTemp('analysis_sync');
-    addTearDown(() async {
-      await macEnv.dispose();
-      await phoneEnv.dispose();
-      await tempDir.delete(recursive: true);
+    test('上一个完整周：周一到周日', () {
+      // 2026-11-12 是周四。
+      final (start, end) =
+          AnalysisService.lastFullWeek(DateTime(2026, 11, 12, 9));
+      expect(start, DateTime(2026, 11, 2));
+      expect(end, DateTime(2026, 11, 8));
+      // 周一当天：上周仍是上一个完整周。
+      final (s2, e2) = AnalysisService.lastFullWeek(DateTime(2026, 11, 9));
+      expect(s2, DateTime(2026, 11, 2));
+      expect(e2, DateTime(2026, 11, 8));
+      // 周日当天：本周还没过完，取再上一周。
+      final (s3, e3) = AnalysisService.lastFullWeek(DateTime(2026, 11, 8, 23));
+      expect(s3, DateTime(2026, 10, 26));
+      expect(e3, DateTime(2026, 11, 1));
     });
 
-    // Mac 上放一份现成的周报。
-    await macEnv.db.into(macEnv.db.analysisArtifacts).insert(
-          AnalysisArtifactsCompanion.insert(
-            id: 'a1',
-            userId: 'u',
-            createdAt: 1,
-            createdOnDevice: 'mac-1',
-            kind: AnalysisKind.weeklyReview,
-            periodStart: today(6),
-            periodEnd: today(),
-            dataGeneration: 'g',
-            dataCutoffSeq: 5,
-            dependsOn: '{}',
-            generatedAt: 1,
-            generator: '{}',
-            modelCallIds: '[]',
-            contentMd: '# 周报正文',
-            citations: '[]',
-          ),
-        );
+    test('自动生成：开关关着不生成；打开后补上周，已有就不重复；失败一小时内不重试',
+        () async {
+      final settings = SettingsRepository(env.db);
+      var generated = 0;
+      final auto = AnalysisService(
+        db: env.db,
+        modelConfigs: ModelConfigRepository(env.db, env.ctx),
+        organize: OrganizeRepository(env.db, env.ctx),
+        keyStore: KeyStore(),
+        deviceId: 'test-device',
+        settings: settings,
+        onGenerated: () => generated++,
+        modelCall: ({
+          required config,
+          required apiKey,
+          system,
+          required userText,
+          required maxTokens,
+        }) async {
+          lastPrompt = userText;
+          if (nextReply is Exception) throw nextReply as Exception;
+          return ModelResponse(text: nextReply as String);
+        },
+      );
+      final now = DateTime(2026, 11, 12, 9);
+      lastPrompt = null;
+      nextReply = jsonEncode({'content_md': '# 上周', 'citations': []});
 
-    final server = SyncServer(
-      deviceId: 'mac-1',
-      displayName: 'Mac',
-      db: macEnv.db,
-      filesDir: Directory(p.join(tempDir.path, 'mac_files')),
-      peers: PeerRepository(macEnv.db),
-      keyStore: KeyStore(),
-    );
-    addTearDown(server.stop);
-    final info = await server.startPairing();
-    await SyncClient(
-      deviceId: 'test-device',
-      displayName: 'iPhone',
-      peers: PeerRepository(phoneEnv.db),
-      keyStore: KeyStore(),
-    ).pairWith(PairingInfo(
-      macDeviceId: info.macDeviceId,
-      displayName: info.displayName,
-      hosts: ['127.0.0.1'],
-      port: info.port,
-      key: info.key,
-    ));
+      expect(await auto.autoGenerateIfDue(now: now), isNull);
+      expect(lastPrompt, isNull);
 
-    final sync = SyncService(
-      deviceId: 'test-device',
-      db: phoneEnv.db,
-      peers: PeerRepository(phoneEnv.db),
-      keyStore: KeyStore(),
-      filesDir: Directory(p.join(tempDir.path, 'phone_files')),
-    );
-    final row = await sync.fetchLatestAnalysis();
-    expect(row, isNotNull);
+      await settings.set(AnalysisService.autoSettingKey, true);
+      final a = await auto.autoGenerateIfDue(now: now);
+      expect(a, isNotNull);
+      expect((a!.periodStart, a.periodEnd), ('2026-11-02', '2026-11-08'));
+      expect((jsonDecode(lastPrompt!) as Map)['period'],
+          ['2026-11-02', '2026-11-08']);
+      expect(generated, 1);
 
-    final phoneAnalysis = AnalysisService(
-      db: phoneEnv.db,
-      modelConfigs: ModelConfigRepository(phoneEnv.db, phoneEnv.ctx),
-      organize: OrganizeRepository(phoneEnv.db, phoneEnv.ctx),
-      keyStore: KeyStore(),
-      deviceId: 'test-device',
-    );
-    await phoneAnalysis.saveFetched(row!);
-    final saved = await phoneAnalysis.latest(AnalysisKind.weeklyReview);
-    expect(saved!.contentMd, '# 周报正文');
-    // 拉取保存不产生手机的变更日志。
-    expect(await phoneEnv.db.select(phoneEnv.db.changeLogs).get(), isEmpty);
+      // 同一周再触发：已有覆盖到上周日的周报，不再生成。
+      expect(await auto.autoGenerateIfDue(now: now), isNull);
+      expect(generated, 1);
+
+      // 下一周：模型连不上 → 不抛异常，记下原因；一小时内不重试。
+      final nextWeek = now.add(const Duration(days: 7));
+      nextReply = ModelClientException('网络错误：连不上', retriable: true);
+      lastPrompt = null;
+      expect(await auto.autoGenerateIfDue(now: nextWeek), isNull);
+      expect(lastPrompt, isNotNull);
+      expect(auto.lastAutoError, '网络错误：连不上');
+      lastPrompt = null;
+      expect(
+          await auto.autoGenerateIfDue(
+              now: nextWeek.add(const Duration(minutes: 30))),
+          isNull);
+      expect(lastPrompt, isNull);
+
+      // 一小时后再试，成功后清掉失败原因。
+      nextReply = jsonEncode({'content_md': '# 又一周', 'citations': []});
+      final b = await auto.autoGenerateIfDue(
+          now: nextWeek.add(const Duration(hours: 2)));
+      expect(b!.periodEnd, '2026-11-15');
+      expect(auto.lastAutoError, isNull);
+    });
   });
 
   group('SuggestionService（schema §6.2）', () {

@@ -80,6 +80,36 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  test('手机生成的周报随变更日志推送到电脑（D-20：电脑端只看）', () async {
+    await phoneEnv.db.transaction(() async {
+      await phoneEnv.db.into(phoneEnv.db.analysisArtifacts).insert(
+            AnalysisArtifactsCompanion.insert(
+              id: 'a1',
+              userId: 'u',
+              createdAt: 1,
+              createdOnDevice: 'test-device',
+              kind: AnalysisKind.weeklyReview,
+              periodStart: '2026-11-02',
+              periodEnd: '2026-11-08',
+              dataGeneration: await phoneEnv.db.currentGeneration(),
+              dataCutoffSeq: 0,
+              dependsOn: '{}',
+              generatedAt: 1,
+              generator: '{}',
+              modelCallIds: '[]',
+              contentMd: '# 周报正文',
+              citations: '[]',
+            ),
+          );
+      await phoneEnv.db.logChange(
+          deviceId: 'test-device', table: 'analysis_artifacts', entityId: 'a1');
+    });
+
+    expect((await sync.syncNow()).error, isNull);
+    final onMac = await macEnv.db.select(macEnv.db.analysisArtifacts).get();
+    expect(onMac.single.contentMd, '# 周报正文');
+  });
+
   test('消息与记录逐条推送到 Mac，游标推进，重复同步不重发（断点续传基础）',
       () async {
     final m = await phoneMessages.send(

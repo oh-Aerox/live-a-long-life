@@ -237,7 +237,7 @@
 | `status` | 成功、失败或超时 |
 | `tokens_in` / `tokens_out` | 可空 |
 | `response_text` | 可空。模型返回内容，按调试保存策略管理；手机医疗原件清理不触发派生文字级联清除 |
-| `caller` | `phone_organize` 手机整理 / `mac_analysis` Mac 分析 / `phone_medical_extract` 医疗文件提取 / `user_consult` 主动咨询 / `external_agent` 用户开启的外部 agent 读取（D-20，尚未实现） |
+| `caller` | `phone_organize` 手机整理 / `weekly_review` 手机生成周报 / `mac_analysis` 以前在 Mac 上生成周报 / `phone_medical_extract` 医疗文件提取 / `user_consult` 主动咨询 / `external_agent` 用户开启的外部 agent 读取（D-20，尚未实现） |
 | `redacted_count` | 可空。发送前本地脱敏遮蔽项数（D-24） |
 | `sent_summary` | 可空。发送范围的人话描述（D-26/D-28） |
 | `request_text` | 可空。实际发送的用户侧内容；系统提示词见 prompts.md 不重复存。与 response_text 同属调试/透明度数据，随记录同步到 Mac |
@@ -421,6 +421,7 @@
 | `idle_preorganize_sec` | `180` | 无输入多少秒后在后台预整理。只触发预整理，不代表结束或确认（R-08） |
 | `healthkit_enabled_types` | `["sleep","steps","workout","active_energy"]` | 读取哪些健康数据（R-17） |
 | `consult_allow_lookup` | `true` | 咨询时是否允许模型用只读工具查阅记录（D-43） |
+| `weekly_review_auto` | `false` | 是否每周自动生成上周的周报（D-20） |
 | `cloud_backup_bookmark` / `cloud_backup_folder_name` / `cloud_backup_in_icloud` | 无 | iCloud 备份文件夹的系统书签、显示名、是否在 iCloud 云盘里（D-51） |
 | `cloud_backup_vault_id` / `cloud_backup_encrypted` | 无 | 备份文件夹的 ID 与是否加密；密钥存钥匙串 `cloud_backup_key_<ID>` |
 | `cloud_backup_auto` | `false` | 是否自动备份，开启 iCloud 备份时设为 `true` |
@@ -580,7 +581,7 @@
 | `review_status` | 该项的核对状态（fieldMeta `results.{i}`），趋势与分析据此过滤或标注未核对 |
 | `updated_at` | 重建时间 |
 
-## 6. 分析层（由 Mac 生成）
+## 6. 分析层
 
 ### 6.1 `analysis_artifacts` 分析结果
 
@@ -588,14 +589,14 @@
 |---|---|
 | `kind` | `weekly_review` 周报 / `visit_timeline` 就诊时间线 / `trend` 趋势。目前只实现了 `weekly_review`，另两种尚未实现 |
 | `period_start` / `period_end` | 覆盖的日期范围 |
-| `data_generation` / `data_cutoff_seq` | 生成时依据的手机端数据代次和变更序号（D-13、D-14） |
+| `data_generation` / `data_cutoff_seq` | 生成时依据的手机端数据代次和变更序号（D-13、D-14），读取输入之前取 |
 | `depends_on` | 依赖范围：日期区间和数据类型列表，比如 `{"dates": ["2026-09-20", "2026-09-26"], "types": ["meal", "sleep", "health_daily"]}`（D-14） |
 | `generated_at` | 生成时间 |
 | `generator` | 生成方式（`app` 应用内分析 / `external_agent` 外部 agent，后者尚未实现）、版本、使用的模型配置（D-20） |
 | `model_call_ids` | 生成过程中的模型调用记录 |
 | `content_md` | 正文，Markdown 格式 |
 | `citations` | 列表，每项包含 `claim_id`（正文中某条陈述的标识）和 `record_revision_ids`、`message_ids`、`attachment_ids`（A-17） |
-| `is_stale` | 在手机上实时计算，不存储。截止点之后依赖范围内的事实新增、纠错、作废或健康数据更新、数据代次改变时需要更新。仅清理/取回附件副本不令分析过期 |
+| `is_stale` | 在手机上实时计算，不存储。截止点之后依赖范围内的事实新增、纠错、作废或健康数据更新、数据代次改变时需要更新。仅清理/取回附件副本不令分析过期。按依赖范围判断：截止点之后周期内的记录、记录版本、健康数据，或任何身体状况（周报输入不限日期）有变更即过期；周报自身和调用记录入日志不算；记录从周期内改到周期外的不算。电脑端不计算 |
 
 ### 6.2 `correction_suggestions` 修正建议
 
@@ -658,7 +659,7 @@
 | `last_success_at` | 最近一次成功同步的时间 |
 | `last_error` | 最近一次错误 |
 
-**代次变化：** 接收方发现对方的 `generation` 变了（对方从备份恢复或换了手机），不沿用旧的序号。完整恢复是用户明确执行的操作：Mac 按新代次以手机当前状态重建手机数据的副本，不做跨代次的 `entity_version` 大小比较；Mac 上恢复点之后的手机数据保留还是清除，在恢复界面向用户说明，不由版本比较隐式决定。Mac 自己生成的分析结果和修正建议不在重建范围内。之后从新代次的序号继续（D-13）。具体做法（D-34）：Mac 收到新代次先拒收并记下待重建，用户确认后先备份，再清掉这台手机的副本行（Mac 自己的和其他设备的保留），接收进度改到新代次从 1 开始；手机端回填标记记已回填的代次，换代次后在新代次里回填全部数据。不提供"保留 Mac 多出的"：恢复后消息序号会与 Mac 上多出的消息撞号。
+**代次变化：** 接收方发现对方的 `generation` 变了（对方从备份恢复或换了手机），不沿用旧的序号。完整恢复是用户明确执行的操作：Mac 按新代次以手机当前状态重建手机数据的副本，不做跨代次的 `entity_version` 大小比较；Mac 上恢复点之后的手机数据保留还是清除，在恢复界面向用户说明，不由版本比较隐式决定。手机生成的周报随手机数据重新接收；Mac 自己生成的修正建议和以前在 Mac 上生成的周报不在重建范围内。之后从新代次的序号继续（D-13）。具体做法（D-34）：Mac 收到新代次先拒收并记下待重建，用户确认后先备份，再清掉这台手机的副本行（Mac 自己的和其他设备的保留），接收进度改到新代次从 1 开始；手机端回填标记记已回填的代次，换代次后在新代次里回填全部数据。不提供"保留 Mac 多出的"：恢复后消息序号会与 Mac 上多出的消息撞号。
 
 ### 7.4 各类数据的同步范围
 
@@ -672,7 +673,8 @@
 | 设备健康样本、日聚合数据 | ✓ | |
 | 用户资料 | ✓ | |
 | 医疗文件 | ✓ | |
-| 分析结果、修正建议 | | ✓ |
+| 分析结果（周报，D-20） | ✓ | |
+| 修正建议 | | ✓ |
 | 修正建议的处理状态 | ✓ | |
 | 模型配置、key、设置 | 不同步 | 不同步 |
 
