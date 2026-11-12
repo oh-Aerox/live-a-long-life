@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../app_services.dart';
 import '../data/db/app_database.dart';
 import '../services/cloud_backup_service.dart';
+import '../services/analysis_service.dart';
 import '../services/cloud_folder.dart';
 import '../services/export_location.dart';
 import '../services/export_service.dart';
@@ -43,6 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String _version = '';
   bool _busy = false;
   bool _healthEnabled = false;
+  bool _weeklyAuto = false;
   String? _pairedMacName;
   String _syncSummary = '';
   CloudBackupState? _cloud;
@@ -63,6 +65,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final healthEnabled =
         await widget.services.settings.get('healthkit_sync_enabled') as bool? ??
             false;
+    final weeklyAuto = await widget.services.settings
+            .get(AnalysisService.autoSettingKey) as bool? ??
+        false;
     final peers = await widget.services.peerRepo.all();
     final push = await (widget.services.db.select(widget.services.db.syncStates)
           ..where((t) => t.direction.equalsValue(SyncDirection.push))
@@ -80,6 +85,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _signingExpiry = expiry;
         _version = '${info.version} (${info.buildNumber})';
         _healthEnabled = healthEnabled;
+        _weeklyAuto = weeklyAuto;
         _pairedMacName =
             peers.isEmpty ? null : peers.map((p) => p.displayName).join('、');
         _syncSummary = syncSummary;
@@ -108,6 +114,55 @@ class _SettingsPageState extends State<SettingsPage> {
       messenger.showSnackBar(SnackBar(content: Text('读取失败：$e')));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// 打开前说明会发什么、发给谁（D-16 数据边界）；没配模型时先去配。
+  /// 打开后马上看一次要不要补上周的周报。
+  Future<void> _toggleWeeklyAuto(bool enable) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (enable) {
+      final config = await widget.services.modelConfigs.defaultConfig();
+      if (!mounted) return;
+      if (config == null) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('先在"模型"里添加模型配置')));
+        return;
+      }
+      final where = switch (config.dataBoundary) {
+        DataBoundary.device => '本机',
+        DataBoundary.lan => '局域网',
+        DataBoundary.cloud => '云端',
+      };
+      final ok = await showAdaptiveDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog.adaptive(
+          title: const Text('自动生成周报'),
+          content: Text('每周第一次打开应用时，把上周（周一到周日）的记录、'
+              '健康数据和已核对的身体状况发给默认模型 ${config.model}（$where），'
+              '生成周报。发了什么可以在"模型 → 调用记录"里查看。\n\n'
+              '模型连不上时不会改用别的模型，下次打开再试。'),
+          actions: [
+            DialogAction(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消')),
+            DialogAction(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('打开')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    await widget.services.settings.set(AnalysisService.autoSettingKey, enable);
+    if (mounted) setState(() => _weeklyAuto = enable);
+    if (enable) {
+      final report =
+          await widget.services.analysisService.autoGenerateIfDue();
+      if (report != null) {
+        messenger.showSnackBar(const SnackBar(
+            content: Text('已生成上周的周报，在"健康档案 → 周报"查看')));
+      }
     }
   }
 
@@ -194,6 +249,14 @@ class _SettingsPageState extends State<SettingsPage> {
               trailing: chevron,
               onTap: () => open(ModelConfigPage(services: widget.services)),
             ),
+            AdaptiveTile(
+              title: const Text('自动生成周报'),
+              subtitle: const Text('每周第一次打开时，用默认模型总结上周'),
+              trailing: Switch.adaptive(
+                value: _weeklyAuto,
+                onChanged: (v) => _toggleWeeklyAuto(v),
+              ),
+            ),
           ]),
           AdaptiveSection(header: '数据与同步', children: [
             AdaptiveTile(
@@ -243,7 +306,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('数据存储位置'),
                   content: Text('消息、照片、PDF 和资料保存在本机应用'
                       '沙盒里。配对电脑后，数据通过局域网同步到电脑保存副本，'
-                      '不经过云端。整理消息、识别病历时，相关内容会发给你配置的'
+                      '不经过云端。整理消息、识别病历、生成周报时，相关内容会发给你配置的'
                       '模型服务，发了什么可以在"模型 → 调用记录"里查看。'
                       '${ChannelCloudFolder.supported ? '开启 iCloud 备份后，备份写到你选的 iCloud 云盘文件夹。' : ''}'
                       '删除应用会一并删除本机数据，重要内容请先'

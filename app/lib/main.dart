@@ -116,15 +116,20 @@ Future<void> main() async {
         unawaited(services.cloudBackup.autoBackup(background: true)),
   );
 
-  // 健康数据：用户在设置里开启后，启动和回到前台时增量同步。
+  // 健康数据：用户在设置里开启后，启动和回到前台时增量同步；之后补上
+  // 上周的周报（设置里开了自动生成时，周报要用到设备数据，D-20）。
   services.healthService = HealthService(
     repository: services.health,
     settings: services.settings,
     tz: tz,
   );
-  unawaited(services.healthService.autoSync());
-  AppLifecycleListener(
-      onResume: () => unawaited(services.healthService.autoSync()));
+  Future<void> onForeground() async {
+    await services.healthService.autoSync();
+    await services.analysisService.autoGenerateIfDue();
+  }
+
+  unawaited(onForeground());
+  AppLifecycleListener(onResume: () => unawaited(onForeground()));
 
   // 每日回顾：点开通知进入带提问的对话流，只问缺的。
   services.reviewService = ReviewService(

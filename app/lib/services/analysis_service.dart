@@ -9,8 +9,10 @@ import '../data/field_meta.dart';
 import '../data/ids.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
+import '../data/repositories/settings_repository.dart';
 import '../data/workout_names.dart';
 import 'app_log.dart';
+import 'background_time.dart';
 import 'health_service.dart' show DeviceDayData;
 import 'key_store.dart';
 import 'model_client.dart';
@@ -49,7 +51,7 @@ const weeklyReviewSystemPrompt = '''
 ''';
 
 /// 分析结果的生成与读取（schema §6.1，D-14/D-20）。
-/// 生成在 Mac 上进行；手机通过同步端点拉取副本。
+/// 生成在手机上进行，入变更日志同步到电脑；电脑端只看。
 class AnalysisService {
   AnalysisService({
     required AppDatabase db,
@@ -57,22 +59,42 @@ class AnalysisService {
     required OrganizeRepository organize,
     required KeyStore keyStore,
     required this.deviceId,
+    SettingsRepository? settings,
     Future<DeviceDayData> Function(String localDate)? deviceData,
     OrganizeModelCall? modelCall,
+    this.onGenerated,
+    this.isPhone = true,
     this.ids = const IdGenerator(),
   })  : _db = db,
+        _settings = settings,
         _deviceData = deviceData,
         _modelConfigs = modelConfigs,
         _organize = organize,
         _keyStore = keyStore,
         _modelCall = modelCall ?? _defaultCall;
 
+  /// 设置里"自动生成周报"开关的键（默认关）。
+  static const autoSettingKey = 'weekly_review_auto';
+
   final AppDatabase _db;
+  final SettingsRepository? _settings;
   final ModelConfigRepository _modelConfigs;
   final OrganizeRepository _organize;
   final KeyStore _keyStore;
   final String deviceId;
   final OrganizeModelCall _modelCall;
+
+  /// 生成了新周报之后调用（手机上用来推送同步，让电脑尽快看到）。
+  final void Function()? onGenerated;
+
+  /// 电脑端只看周报：没有手机的变更日志，不判断过期（[isStale]）。
+  final bool isPhone;
+
+  Future<AnalysisArtifact?>? _autoRunning;
+  DateTime? _autoFailedAt;
+
+  /// 最近一次自动生成失败的原因；之后成功或手动生成成功时清掉。
+  String? lastAutoError;
 
   /// 按天的设备数据（睡眠按夜合并、体能训练），与日视图同一口径（D-11）。
   /// 睡眠和体能训练按条存在 health_samples，不在 health_daily 里。
@@ -94,8 +116,81 @@ class AnalysisService {
           userText: userText,
           maxTokens: maxTokens);
 
-  /// 生成上周周报。失败抛异常，已有的旧周报保留（product-spec §12）。
-  Future<AnalysisArtifact> generateWeeklyReview() async {
+  static String _d(DateTime t) =>
+      '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+
+  /// 上一个完整的周：上周一到上周日（按日期构造，不受夏令时影响）。
+  static (DateTime, DateTime) lastFullWeek(DateTime now) {
+    final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
+    return (
+      DateTime(monday.year, monday.month, monday.day - 7),
+      DateTime(monday.year, monday.month, monday.day - 1),
+    );
+  }
+
+  /// 设置里开了自动生成时，补上上一个完整周的周报：启动和回到前台时调用。
+  /// 已有覆盖到上周日的周报（含这周手动生成的）就不生成；没配模型不算失败；
+  /// 失败后一小时内不再试，模型连不上时不随回前台反复请求（D-20：排队，
+  /// 不改用别的模型）。不抛异常，同时触发时共用同一次。
+  Future<AnalysisArtifact?> autoGenerateIfDue({DateTime? now}) =>
+      _autoRunning ??= _autoGenerate(now ?? DateTime.now())
+          .whenComplete(() => _autoRunning = null);
+
+  Future<AnalysisArtifact?> _autoGenerate(DateTime now) async {
+    try {
+      final settings = _settings;
+      if (settings == null ||
+          !(await settings.get(autoSettingKey) as bool? ?? false)) {
+        return null;
+      }
+      final (start, end) = lastFullWeek(now);
+      final current = await latest(AnalysisKind.weeklyReview);
+      if (current != null && current.periodEnd.compareTo(_d(end)) >= 0) {
+        return null;
+      }
+      final failedAt = _autoFailedAt;
+      if (failedAt != null &&
+          now.difference(failedAt) < const Duration(hours: 1)) {
+        return null;
+      }
+      if (await _modelConfigs.defaultConfig() == null) return null;
+      AppLog.I.i('analysis', '自动生成上周周报：${_d(start)} 至 ${_d(end)}');
+      try {
+        final artifact = await generateWeeklyReview(start: start, end: end);
+        _autoFailedAt = null;
+        return artifact;
+      } catch (e) {
+        _autoFailedAt = now;
+        lastAutoError = failureReason(e);
+        AppLog.I.w('analysis', '自动生成周报失败：$lastAutoError');
+        return null;
+      }
+    } catch (e, st) {
+      AppLog.I.e('analysis', '检查自动生成周报出错', e, st);
+      return null;
+    }
+  }
+
+  /// 生成失败给用户看的原因。
+  static String failureReason(Object e) => switch (e) {
+        StateError(:final message) => message,
+        ModelClientException(:final message) => message,
+        _ => '$e',
+      };
+
+  /// 生成周报，默认覆盖到今天为止的 7 天；自动生成传上一个完整周。
+  /// 失败抛异常，已有的旧周报保留（D-20）。锁屏或切到后台时
+  /// 向系统要时间把这次生成做完。
+  Future<AnalysisArtifact> generateWeeklyReview(
+      {DateTime? start, DateTime? end}) async {
+    final artifact = await BackgroundTime.run(
+        'weekly_review', () => _generate(start: start, end: end));
+    lastAutoError = null;
+    onGenerated?.call();
+    return artifact;
+  }
+
+  Future<AnalysisArtifact> _generate({DateTime? start, DateTime? end}) async {
     AppLog.I.i('analysis', '开始生成周报');
     final config = await _modelConfigs.defaultConfig();
     if (config == null) {
@@ -103,12 +198,16 @@ class AnalysisService {
       throw StateError('还没有配置模型：先在"模型配置"里添加');
     }
 
-    final end = DateTime.now();
-    final start = end.subtract(const Duration(days: 6));
-    String d(DateTime t) =>
-        '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+    end ??= DateTime.now();
+    start ??= end.subtract(const Duration(days: 6));
+    const d = _d;
     final periodStart = d(start);
     final periodEnd = d(end);
+
+    // 数据截止点（D-14）：读输入之前取本机的代次和最大变更序号，生成期间
+    // 新写的记录算在截止点之后。
+    final generation = await _db.currentGeneration();
+    final cutoffSeq = await _maxChangeSeq(generation);
 
     // 输入：期间的记录（当前版本）与按天健康数据。
     final records = await (_db.select(_db.records)
@@ -259,7 +358,7 @@ class AnalysisService {
       tokensIn: response.tokensIn,
       tokensOut: response.tokensOut,
       responseText: response.text,
-      caller: ModelCaller.macAnalysis,
+      caller: ModelCaller.weeklyReview,
       requestText: userText,
     );
 
@@ -273,13 +372,9 @@ class AnalysisService {
         '周报解析成功，正文 ${parsed.$1.length} 字，引用 ${parsed.$2.length} 条，'
         '输入记录 ${input.length} 条');
 
-    // 生成依据的手机数据截止点：接收游标（D-14）。
-    final pull = await (_db.select(_db.syncStates)
-          ..where((t) => t.direction.equalsValue(SyncDirection.pull))
-          ..limit(1))
-        .getSingleOrNull();
-
-    return _db.into(_db.analysisArtifacts).insertReturning(
+    // 入变更日志，随同步到电脑（schema §7.4）。
+    return _db.transaction(() async {
+      final artifact = await _db.into(_db.analysisArtifacts).insertReturning(
           AnalysisArtifactsCompanion.insert(
             id: ids.newId(),
             userId: records.isNotEmpty ? records.first.userId : 'unknown',
@@ -288,8 +383,8 @@ class AnalysisService {
             kind: AnalysisKind.weeklyReview,
             periodStart: periodStart,
             periodEnd: periodEnd,
-            dataGeneration: pull?.generation ?? '',
-            dataCutoffSeq: pull?.ackedContiguousSeq ?? 0,
+            dataGeneration: generation,
+            dataCutoffSeq: cutoffSeq,
             dependsOn: jsonEncode({
               'dates': [periodStart, periodEnd],
               'types': ['meal', 'sleep', 'mood', 'symptom', 'exercise', 'note', 'health_daily'],
@@ -305,6 +400,23 @@ class AnalysisService {
             citations: jsonEncode(parsed.$2),
           ),
         );
+      await _db.logChange(
+          deviceId: deviceId,
+          table: 'analysis_artifacts',
+          entityId: artifact.id);
+      return artifact;
+    });
+  }
+
+  Future<int> _maxChangeSeq(String generation) async {
+    final row = await _db
+        .customSelect(
+          'SELECT COALESCE(MAX(change_seq), 0) AS m FROM change_logs '
+          'WHERE generation = ?',
+          variables: [Variable.withString(generation)],
+        )
+        .getSingle();
+    return row.data['m'] as int;
   }
 
   /// 解析周报，三级降级（模型经常不严格返回纯 JSON，尤其中转站/兼容服务）：
@@ -363,39 +475,48 @@ class AnalysisService {
             ..limit(1))
           .getSingleOrNull();
 
-  /// 手机端：保存从 Mac 拉来的分析结果（不入变更日志——不是手机的业务变更）。
-  Future<void> saveFetched(Map<String, Object?> row) async {
-    final columns = row.keys.toList();
-    final placeholders = List.filled(columns.length, '?').join(', ');
-    await _db.customInsert(
-      'INSERT OR REPLACE INTO analysis_artifacts (${columns.join(', ')}) '
-      'VALUES ($placeholders)',
-      variables: [
-        for (final c in columns)
-          switch (row[c]) {
-            null => const Variable(null),
-            final int v => Variable.withInt(v),
-            final double v => Variable.withReal(v),
-            final String v => Variable.withString(v),
-            final bool v => Variable.withBool(v),
-            _ => throw StateError('不支持的值'),
-          },
-      ],
-    );
-  }
-
-  /// 手机端：分析是否已过期（D-14，粗粒度第一版：截止点之后本机有任何
-  /// 新变更即视为可能过期；按 depends_on 范围精算留到后续）。
+  /// 分析是否已过期（D-14）：截止点之后，周期内的记录、健康数据，或任何
+  /// 身体状况（周报输入不限日期）有新增、修改、删除。周报自己和模型调用
+  /// 记录入变更日志不算；记录从周期内改到周期外的不算（少见，不精算）。
+  /// 睡眠按醒来那天归日，健康样本往前后各多看一天。电脑端不判断，见 [isPhone]。
   Future<bool> isStale(AnalysisArtifact artifact) async {
+    if (!isPhone) return false;
     final generation = await _db.currentGeneration();
     if (artifact.dataGeneration != generation) return true;
-    final maxSeq = await _db
+    final from = artifact.periodStart;
+    final to = artifact.periodEnd;
+    final s = DateTime.parse(from);
+    final e = DateTime.parse(to);
+    final sampleFrom =
+        DateTime(s.year, s.month, s.day - 1).millisecondsSinceEpoch;
+    final sampleTo =
+        DateTime(e.year, e.month, e.day + 2).millisecondsSinceEpoch;
+    final row = await _db
         .customSelect(
-          'SELECT COALESCE(MAX(change_seq), 0) AS m FROM change_logs '
-          'WHERE generation = ?',
-          variables: [Variable.withString(generation)],
+          'SELECT COUNT(*) AS n FROM change_logs c '
+          'WHERE c.generation = ?1 AND c.change_seq > ?2 AND ('
+          "(c.entity_type = 'records' AND "
+          "(json_extract(c.payload, '\$.record_type') = 'condition' OR "
+          "json_extract(c.payload, '\$.local_date') BETWEEN ?3 AND ?4)) OR "
+          "(c.entity_type = 'record_revisions' AND EXISTS (SELECT 1 "
+          'FROM records r '
+          "WHERE r.id = json_extract(c.payload, '\$.record_id') AND "
+          "(r.record_type = 'condition' OR r.local_date BETWEEN ?3 AND ?4))) OR "
+          "(c.entity_type = 'health_daily' AND "
+          "json_extract(c.payload, '\$.local_date') BETWEEN ?3 AND ?4) OR "
+          "(c.entity_type = 'health_samples' AND "
+          "json_extract(c.payload, '\$.start_utc') >= ?5 AND "
+          "json_extract(c.payload, '\$.start_utc') < ?6))",
+          variables: [
+            Variable.withString(generation),
+            Variable.withInt(artifact.dataCutoffSeq),
+            Variable.withString(from),
+            Variable.withString(to),
+            Variable.withInt(sampleFrom),
+            Variable.withInt(sampleTo),
+          ],
         )
         .getSingle();
-    return (maxSeq.data['m'] as int) > artifact.dataCutoffSeq;
+    return (row.data['n'] as int) > 0;
   }
 }

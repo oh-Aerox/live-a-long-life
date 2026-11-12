@@ -46,7 +46,6 @@ class _MacHomePageState extends State<MacHomePage> {
   SyncState? _pullState;
   List<PendingRebuild> _pendingRebuilds = [];
   AnalysisArtifact? _latestReport;
-  bool _generating = false;
   BackupRun? _latestBackup;
   bool _backingUp = false;
   final _passphrase = TextEditingController();
@@ -133,20 +132,6 @@ class _MacHomePageState extends State<MacHomePage> {
     if (pass == null || pass.isEmpty) return null;
     await widget.services.keyStore.saveRaw('backup_passphrase', pass);
     return pass;
-  }
-
-  Future<void> _generateReport() async {
-    setState(() => _generating = true);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await widget.services.analysisService.generateWeeklyReview();
-      messenger.showSnackBar(const SnackBar(content: Text('周报已生成')));
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
-    } finally {
-      if (mounted) setState(() => _generating = false);
-      await _load();
-    }
   }
 
   @override
@@ -265,7 +250,7 @@ class _MacHomePageState extends State<MacHomePage> {
               '手机再把现有数据全部重新发一遍。手机上已经没有的内容'
               '（比如导出之后才记的、恢复时没带回来的）会从电脑端清掉。\n\n'
               '清掉之前先自动备份一次，备份不成功就不动数据；需要时可以从这份备份里找回。'
-              '电脑端自己生成的周报、修正建议，其他手机的数据和已收到的原件文件都保留。',
+              '以前在电脑端生成的周报、电脑端的修正建议，其他手机的数据和已收到的原件文件都保留。',
             ),
           ),
         ),
@@ -548,7 +533,7 @@ class _MacHomePageState extends State<MacHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('周报分析', style: Theme.of(context).textTheme.titleMedium),
+                  Text('周报', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   if (_latestReport != null) ...[
                     Text(
@@ -562,39 +547,25 @@ class _MacHomePageState extends State<MacHomePage> {
                       style: const TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 8),
-                  ] else
-                    const Text('还没有生成过周报。生成失败时旧周报保留。'),
-                  Row(
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: _generating ? null : _generateReport,
-                        child: Text(_generating ? '生成中…' : '生成周报'),
-                      ),
-                      const SizedBox(width: 8),
-                      if (_latestReport != null) ...[
-                        OutlinedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WeeklyReportPage(
-                                services: widget.services,
-                                readOnly: true,
-                              ),
-                            ),
+                    OutlinedButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WeeklyReportPage(
+                            services: widget.services,
+                            readOnly: true,
                           ),
-                          child: const Text('查看全文'),
                         ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    desktopText(
-                      '周报用电脑端配置的模型'
-                      '（设置 → 模型配置，不与手机同步），手机在"周报"页拉取查看。',
+                      ),
+                      child: const Text('查看全文'),
                     ),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    const SizedBox(height: 4),
+                  ] else
+                    const Text('还没有周报。'),
+                  const Text(
+                    '周报在手机上生成（健康档案 → 周报，或在手机设置里打开自动生成），'
+                    '同步过来后在这里查看。',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),

@@ -262,32 +262,6 @@ class SyncService {
     return rows.length;
   }
 
-  /// 从第一个已配对的 Mac 拉取最新分析结果。没有或失败返回 null。
-  Future<Map<String, Object?>?> fetchLatestAnalysis() async {
-    final peers = await _peers.all();
-    for (final peer in peers) {
-      final keyB64 = await _keyStore.read('sync_peer_${peer.peerDeviceId}');
-      if (keyB64 == null) continue;
-      final channel = SecureChannel(base64Decode(keyB64));
-      final addr = await _reachableAddr(peer, channel);
-      if (addr == null) continue;
-      try {
-        final reply = await _postSealed(
-          channel,
-          addr.split(':').first,
-          int.parse(addr.split(':').last),
-          '/analysis',
-          {},
-        );
-        final artifact = reply['artifact'];
-        if (artifact is Map) return artifact.cast<String, Object?>();
-      } catch (_) {
-        continue;
-      }
-    }
-    return null;
-  }
-
   /// 用户主动取回原件（D-22/A-21）：向已配对 Mac 请求同一 sha 的文件，
   /// 校验哈希后落盘，返回本地路径；Mac 不可达或没有该文件时返回 null。
   Future<String?> retrieveBlob(String sha) async {

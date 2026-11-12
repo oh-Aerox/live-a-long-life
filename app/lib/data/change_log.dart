@@ -51,6 +51,7 @@ extension ChangeLogging on AppDatabase {
     'medical_documents',
     'health_samples',
     'health_daily',
+    'analysis_artifacts',
   ];
 
   /// 回填：把当前代次日志里还没有的行补进日志，否则这些数据永远同步
