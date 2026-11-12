@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:health/health.dart';
 
+import '../data/workout_names.dart';
+
 // 咨询时实时读取苹果健康（D-44）：只在回答问题时读、在内存里汇总后发给
 // 模型，不入库；调用记录里只写读了什么（ToolOutcome.ephemeral）。
 
@@ -84,7 +86,7 @@ class HealthKitLiveSource implements LiveHealthSource {
           classification?.name,
         MenstruationFlowHealthValue(:final flow) => flow?.name,
         WorkoutHealthValue(:final workoutActivityType) =>
-          summary?.workoutType ?? workoutActivityType.name,
+          workoutLabel(summary?.workoutType ?? workoutActivityType.name),
         _ => null,
       },
       extra: {

@@ -88,6 +88,7 @@ Future<void> main() async {
   unawaited(services.organizeService.catchUp());
   // 回到前台也补整理：模型恢复后不必等到下次启动或退避计时。
   AppLifecycleListener(
+      onHide: services.organizeService.noteHidden,
       onResume: () => unawaited(services.organizeService.catchUp()));
 
   // 变更日志埋点前的存量数据一次性回填；清理一次重复记录（修复前遗留）；

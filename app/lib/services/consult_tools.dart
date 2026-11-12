@@ -7,6 +7,7 @@ import '../data/record_summary.dart';
 import '../data/repositories/medical_document_repository.dart';
 import '../data/repositories/record_repository.dart';
 import '../data/same_item.dart';
+import '../data/workout_names.dart';
 import 'health_live.dart';
 import 'health_service.dart';
 import 'tool_chat.dart';
@@ -280,7 +281,7 @@ class ConsultTools {
           'workouts': [
             for (final w in data.workouts)
               [
-                w.workoutType ?? '体能训练',
+                workoutLabel(w.workoutType),
                 '${_clock(w.startUtc)} 起 ${((w.endUtc - w.startUtc) / 60000).round()} 分钟',
                 if (w.energyKcal != null) '${w.energyKcal!.round()} 千卡',
               ].join('，'),

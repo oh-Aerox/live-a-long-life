@@ -20,6 +20,48 @@ import Vision
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CloudFolderChannel") {
       CloudFolderChannel.register(with: registrar.messenger())
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BackgroundTaskChannel") {
+      BackgroundTaskChannel.register(with: registrar.messenger())
+    }
+  }
+}
+
+/// 后台时间：Dart 在做模型请求等一时半会儿做不完的事时申请，做完归还。
+/// 按次给编号，几件事同时在做也互不影响；系统收回时间时自动归还。
+class BackgroundTaskChannel: NSObject {
+  // 还没归还的编号，防止系统收回后 Dart 再归还一次（重复归还系统会报警告）。
+  // 方法调用和收回回调都在主线程，不用加锁。
+  private static var active = Set<Int>()
+
+  static func register(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "life.long/background_task", binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in
+      let args = call.arguments as? [String: Any] ?? [:]
+      switch call.method {
+      case "begin":
+        var id = UIBackgroundTaskIdentifier.invalid
+        id = UIApplication.shared.beginBackgroundTask(
+          withName: args["name"] as? String
+        ) { end(id.rawValue) }
+        if id == .invalid {
+          result(nil)
+        } else {
+          active.insert(id.rawValue)
+          result(id.rawValue)
+        }
+      case "end":
+        if let raw = args["id"] as? Int { end(raw) }
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func end(_ raw: Int) {
+    guard active.remove(raw) != nil else { return }
+    UIApplication.shared.endBackgroundTask(UIBackgroundTaskIdentifier(rawValue: raw))
   }
 }
 

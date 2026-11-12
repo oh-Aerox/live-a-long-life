@@ -9,6 +9,7 @@ import '../data/field_meta.dart';
 import '../data/ids.dart';
 import '../data/repositories/model_config_repository.dart';
 import '../data/repositories/organize_repository.dart';
+import '../data/workout_names.dart';
 import 'app_log.dart';
 import 'health_service.dart' show DeviceDayData;
 import 'key_store.dart';
@@ -164,7 +165,7 @@ class AnalysisService {
             'workouts': [
               for (final w in data.workouts)
                 {
-                  'type': w.workoutType,
+                  'type': workoutLabel(w.workoutType),
                   'start': hm(w.startUtc),
                   'minutes': ((w.endUtc - w.startUtc) / 60000).round(),
                   if (w.energyKcal != null) 'kcal': w.energyKcal!.round(),
